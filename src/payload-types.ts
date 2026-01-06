@@ -69,6 +69,15 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    'muscle-groups': MuscleGroup;
+    exercises: Exercise;
+    routines: Routine;
+    'routine-exercises': RoutineExercise;
+    'routine-sets': RoutineSet;
+    'workout-days': WorkoutDay;
+    'workout-exercises': WorkoutExercise;
+    'workout-sets': WorkoutSet;
+    'body-weight-logs': BodyWeightLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,13 +87,22 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'muscle-groups': MuscleGroupsSelect<false> | MuscleGroupsSelect<true>;
+    exercises: ExercisesSelect<false> | ExercisesSelect<true>;
+    routines: RoutinesSelect<false> | RoutinesSelect<true>;
+    'routine-exercises': RoutineExercisesSelect<false> | RoutineExercisesSelect<true>;
+    'routine-sets': RoutineSetsSelect<false> | RoutineSetsSelect<true>;
+    'workout-days': WorkoutDaysSelect<false> | WorkoutDaysSelect<true>;
+    'workout-exercises': WorkoutExercisesSelect<false> | WorkoutExercisesSelect<true>;
+    'workout-sets': WorkoutSetsSelect<false> | WorkoutSetsSelect<true>;
+    'body-weight-logs': BodyWeightLogsSelect<false> | BodyWeightLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
   globals: {};
@@ -121,7 +139,11 @@ export interface UserAuthOperations {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  displayName: string;
+  preferredUnit: 'kg' | 'lb';
+  role: 'admin' | 'user';
+  isActive: 'active' | 'inactive';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -145,7 +167,7 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -161,10 +183,127 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "muscle-groups".
+ */
+export interface MuscleGroup {
+  id: number;
+  name: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exercises".
+ */
+export interface Exercise {
+  id: number;
+  name: string;
+  muscleGroup: number | MuscleGroup;
+  isCustom?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routines".
+ */
+export interface Routine {
+  id: number;
+  user: number | User;
+  name: string;
+  notes?: string | null;
+  isActive: 'active' | 'inactive';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routine-exercises".
+ */
+export interface RoutineExercise {
+  id: number;
+  routine: number | Routine;
+  exercise: number | Exercise;
+  exerciseOrder: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routine-sets".
+ */
+export interface RoutineSet {
+  id: number;
+  routineExercise: number | RoutineExercise;
+  setOrder: number;
+  setLabel: 'warmup' | 'working' | 'drop';
+  reps: number;
+  weight: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-days".
+ */
+export interface WorkoutDay {
+  id: number;
+  user: number | User;
+  title: string;
+  date: string;
+  durationSeconds?: number | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-exercises".
+ */
+export interface WorkoutExercise {
+  id: number;
+  workoutDay: number | WorkoutDay;
+  exercise: number | Exercise;
+  exerciseOrder: number;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-sets".
+ */
+export interface WorkoutSet {
+  id: number;
+  workoutDay: number | WorkoutDay;
+  workoutExercise: number | WorkoutExercise;
+  setOrder: number;
+  setLabel: 'warmup' | 'working' | 'drop';
+  reps: number;
+  weight: number;
+  previousWeight?: number | null;
+  previousReps?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "body-weight-logs".
+ */
+export interface BodyWeightLog {
+  id: number;
+  user: number | User;
+  weight: number;
+  loggedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -181,20 +320,56 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'muscle-groups';
+        value: number | MuscleGroup;
+      } | null)
+    | ({
+        relationTo: 'exercises';
+        value: number | Exercise;
+      } | null)
+    | ({
+        relationTo: 'routines';
+        value: number | Routine;
+      } | null)
+    | ({
+        relationTo: 'routine-exercises';
+        value: number | RoutineExercise;
+      } | null)
+    | ({
+        relationTo: 'routine-sets';
+        value: number | RoutineSet;
+      } | null)
+    | ({
+        relationTo: 'workout-days';
+        value: number | WorkoutDay;
+      } | null)
+    | ({
+        relationTo: 'workout-exercises';
+        value: number | WorkoutExercise;
+      } | null)
+    | ({
+        relationTo: 'workout-sets';
+        value: number | WorkoutSet;
+      } | null)
+    | ({
+        relationTo: 'body-weight-logs';
+        value: number | BodyWeightLog;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -204,10 +379,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -227,7 +402,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -238,6 +413,10 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
+  preferredUnit?: T;
+  role?: T;
+  isActive?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -272,6 +451,114 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "muscle-groups_select".
+ */
+export interface MuscleGroupsSelect<T extends boolean = true> {
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exercises_select".
+ */
+export interface ExercisesSelect<T extends boolean = true> {
+  name?: T;
+  muscleGroup?: T;
+  isCustom?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routines_select".
+ */
+export interface RoutinesSelect<T extends boolean = true> {
+  user?: T;
+  name?: T;
+  notes?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routine-exercises_select".
+ */
+export interface RoutineExercisesSelect<T extends boolean = true> {
+  routine?: T;
+  exercise?: T;
+  exerciseOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "routine-sets_select".
+ */
+export interface RoutineSetsSelect<T extends boolean = true> {
+  routineExercise?: T;
+  setOrder?: T;
+  setLabel?: T;
+  reps?: T;
+  weight?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-days_select".
+ */
+export interface WorkoutDaysSelect<T extends boolean = true> {
+  user?: T;
+  title?: T;
+  date?: T;
+  durationSeconds?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-exercises_select".
+ */
+export interface WorkoutExercisesSelect<T extends boolean = true> {
+  workoutDay?: T;
+  exercise?: T;
+  exerciseOrder?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workout-sets_select".
+ */
+export interface WorkoutSetsSelect<T extends boolean = true> {
+  workoutDay?: T;
+  workoutExercise?: T;
+  setOrder?: T;
+  setLabel?: T;
+  reps?: T;
+  weight?: T;
+  previousWeight?: T;
+  previousReps?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "body-weight-logs_select".
+ */
+export interface BodyWeightLogsSelect<T extends boolean = true> {
+  user?: T;
+  weight?: T;
+  loggedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

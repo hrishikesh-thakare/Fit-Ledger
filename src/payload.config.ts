@@ -7,6 +7,15 @@ import sharp from 'sharp'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { MuscleGroups } from './collections/MuscleGroups'
+import { Exercises } from './collections/Exercises'
+import { Routines } from './collections/Routines'
+import { RoutineExercises } from './collections/RoutineExercises'
+import { RoutineSets } from './collections/RoutineSets'
+import { WorkoutDays } from './collections/WorkoutDays'
+import { WorkoutSets } from './collections/WorkoutSets'
+import { WorkoutExercises } from './collections/WorkoutExercises'
+import { BodyWeightLogs } from './collections/BodyWeightLogs'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -18,7 +27,19 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media],
+  collections: [
+    Users,
+    Media,
+    MuscleGroups,
+    Exercises,
+    Routines,
+    RoutineExercises,
+    RoutineSets,
+    WorkoutDays,
+    WorkoutExercises,
+    WorkoutSets,
+    BodyWeightLogs,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
