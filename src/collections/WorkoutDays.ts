@@ -22,6 +22,18 @@ export const WorkoutDays: CollectionConfig = {
     },
   },
 
+  hooks: {
+    beforeChange: [
+      ({ data, operation, req }) => {
+        // Auto-fill user field on create
+        if (operation === 'create' && req.user) {
+          data.user = req.user.id
+        }
+        return data
+      },
+    ],
+  },
+
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'user', 'date', 'createdAt'],

@@ -46,6 +46,27 @@ export const WorkoutExercises: CollectionConfig = {
     },
   },
 
+  hooks: {
+    beforeChange: [
+      async ({ data, operation, req }) => {
+        // On create, verify the workout day belongs to the current user
+        if (operation === 'create' && data.workoutDay && req.user) {
+          const workoutDay = await req.payload.findByID({
+            collection: 'workout-days',
+            id: data.workoutDay,
+          })
+          
+          // Check if workout day belongs to current user
+          const userId = typeof workoutDay.user === 'object' ? workoutDay.user.id : workoutDay.user
+          if (userId !== req.user.id && req.user.role !== 'admin') {
+            throw new Error('You can only add exercises to your own workout days')
+          }
+        }
+        return data
+      },
+    ],
+  },
+
   admin: {
     useAsTitle: 'exercise',
     defaultColumns: ['workoutDay', 'exercise', 'exerciseOrder', 'createdAt'],

@@ -22,6 +22,18 @@ export const BodyWeightLogs: CollectionConfig = {
     },
   },
 
+  hooks: {
+    beforeChange: [
+      ({ data, operation, req }) => {
+        // Auto-fill user field on create
+        if (operation === 'create' && req.user) {
+          data.user = req.user.id
+        }
+        return data
+      },
+    ],
+  },
+
   admin: {
     useAsTitle: 'weight',
     defaultColumns: ['user', 'weight', 'loggedAt', 'createdAt'],
