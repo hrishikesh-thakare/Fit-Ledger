@@ -19,6 +19,7 @@ import {
   Person,
   Dashboard as DashboardIcon,
 } from '@mui/icons-material'
+import BottomNav from '@/components/BottomNav'
 
 export default function HistoryPage() {
   const router = useRouter()
@@ -169,32 +170,7 @@ export default function HistoryPage() {
       </Container>
 
       {/* Bottom Navigation */}
-      <BottomNavigation
-        value={navValue}
-        onChange={handleNavChange}
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          bgcolor: 'background.paper',
-          borderTop: 1,
-          borderColor: 'divider',
-          height: 70,
-          '& .MuiBottomNavigationAction-root': {
-            color: 'text.secondary',
-            minWidth: 'auto',
-            '&.Mui-selected': {
-              color: 'primary.main',
-            },
-          },
-        }}
-      >
-        <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
-        <BottomNavigationAction label="Routines" icon={<FitnessCenter />} />
-        <BottomNavigationAction label="History" icon={<HistoryIcon />} />
-        <BottomNavigationAction label="Profile" icon={<Person />} />
-      </BottomNavigation>
+      <BottomNav />
     </Box>
   )
 }

@@ -16,12 +16,8 @@ import {
   Divider,
   Stack,
 } from '@mui/material'
-import {
-  FitnessCenter,
-  History,
-  Person,
-  Dashboard as DashboardIcon,
-} from '@mui/icons-material'
+import { FitnessCenter, History, Person, Dashboard as DashboardIcon } from '@mui/icons-material'
+import BottomNav from '@/components/BottomNav'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -56,9 +52,7 @@ export default function DashboardPage() {
           <CardContent>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
               <FitnessCenter sx={{ color: 'primary.main', fontSize: '1.25rem' }} />
-              <Typography variant="titleMedium">
-                Last Workout Summary
-              </Typography>
+              <Typography variant="titleMedium">Last Workout Summary</Typography>
             </Stack>
             <Divider sx={{ mb: 1.5 }} />
             <Stack spacing={1.5}>
@@ -101,8 +95,8 @@ export default function DashboardPage() {
         {/* Weekly Workout Count Card */}
         <Card sx={{ mb: 2 }}>
           <CardContent>
-            <Typography 
-              variant="labelLarge" 
+            <Typography
+              variant="labelLarge"
               color="text.disabled"
               sx={{ mb: 1.5, textTransform: 'uppercase' }}
             >
@@ -133,8 +127,8 @@ export default function DashboardPage() {
                     justifyContent: 'center',
                   }}
                 >
-                  <Typography 
-                    variant="labelSmall" 
+                  <Typography
+                    variant="labelSmall"
                     color={index < 4 ? 'primary.contrastText' : 'text.disabled'}
                     fontWeight={500}
                   >
@@ -149,8 +143,8 @@ export default function DashboardPage() {
         {/* Bodyweight Trend Card */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography 
-              variant="labelLarge" 
+            <Typography
+              variant="labelLarge"
               color="text.disabled"
               sx={{ mb: 2, textTransform: 'uppercase' }}
             >
@@ -178,32 +172,13 @@ export default function DashboardPage() {
         </Card>
 
         {/* Start Workout Button */}
-        <Button
-          fullWidth
-          variant="contained"
-          size="large"
-          onClick={() => router.push('/routines')}
-        >
+        <Button fullWidth variant="contained" size="large" onClick={() => router.push('/routines')}>
           Start Workout
         </Button>
       </Container>
 
       {/* Bottom Navigation */}
-      <BottomNavigation
-        value={navValue}
-        onChange={handleNavChange}
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-        }}
-      >
-        <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
-        <BottomNavigationAction label="Routines" icon={<FitnessCenter />} />
-        <BottomNavigationAction label="History" icon={<History />} />
-        <BottomNavigationAction label="Profile" icon={<Person />} />
-      </BottomNavigation>
+      <BottomNav />
     </Box>
   )
 }

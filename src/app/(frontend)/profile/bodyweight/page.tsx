@@ -18,30 +18,52 @@ import {
   Divider,
   Chip,
 } from '@mui/material'
-import { ArrowBack, TrendingDown, CalendarToday, Save, MonitorWeight } from '@mui/icons-material'
+import {
+  ArrowBack,
+  TrendingDown,
+  CalendarToday,
+  Save,
+  MonitorWeight,
+  Add,
+} from '@mui/icons-material'
+import BottomNav from '@/components/BottomNav'
+import WeightPicker from '@/components/WeightPicker'
 
 export default function BodyweightLogPage() {
   const router = useRouter()
-  const [newWeight, setNewWeight] = useState('')
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
 
   // Mock data
   const currentWeight = 75.5
   const targetWeight = 72.0
   const weightLogs = [
-    { date: 'January 20, 2026', weight: 75.5, change: -0.3 },
-    { date: 'January 18, 2026', weight: 75.8, change: -0.2 },
-    { date: 'January 15, 2026', weight: 76.0, change: -0.4 },
-    { date: 'January 13, 2026', weight: 76.4, change: -0.1 },
-    { date: 'January 10, 2026', weight: 76.5, change: -0.3 },
-    { date: 'January 8, 2026', weight: 76.8, change: -0.2 },
-    { date: 'January 5, 2026', weight: 77.0, change: 0.0 },
-    { date: 'January 3, 2026', weight: 77.0, change: -0.5 },
+    { date: 'January 20, 2026', weight: 75.5, change: -0.3 }, // Decrease (Red)
+    { date: 'January 18, 2026', weight: 75.8, change: 0.5 }, // Increase (Green)
+    { date: 'January 15, 2026', weight: 75.3, change: 1.2 }, // Increase (Green)
+    { date: 'January 13, 2026', weight: 74.1, change: 0.0 }, // Neutral (Grey)
+    { date: 'January 10, 2026', weight: 74.1, change: -0.4 }, // Decrease (Red)
+    { date: 'January 8, 2026', weight: 74.5, change: -0.2 },
+    { date: 'January 5, 2026', weight: 74.7, change: 0.0 },
+    { date: 'January 3, 2026', weight: 74.7, change: -0.5 },
+    { date: 'January 1, 2026', weight: 75.2, change: -0.3 },
+    { date: 'December 28, 2025', weight: 75.5, change: 0.5 },
+    { date: 'December 25, 2025', weight: 75.0, change: -0.2 },
+    { date: 'December 22, 2025', weight: 75.2, change: -0.4 },
+    { date: 'December 19, 2025', weight: 75.6, change: -0.1 },
+    { date: 'December 16, 2025', weight: 75.7, change: -0.3 },
+    { date: 'December 13, 2025', weight: 76.0, change: -0.2 },
+    { date: 'December 10, 2025', weight: 76.2, change: 0.0 },
+    { date: 'December 7, 2025', weight: 76.2, change: -0.5 },
+    { date: 'December 4, 2025', weight: 76.7, change: -0.3 },
+    { date: 'December 1, 2025', weight: 77.0, change: 0.0 },
+    { date: 'November 28, 2025', weight: 77.0, change: -0.5 },
+    { date: 'November 25, 2025', weight: 77.5, change: -0.5 },
   ]
 
-  const handleSave = () => {
+  const handleSaveWeight = (weight: number, date: Date) => {
     // UI only - would save to database
-    console.log('Saving weight:', newWeight)
-    setNewWeight('')
+    console.log('Saving weight:', weight, 'on date:', date)
+    setIsPickerOpen(false)
   }
 
   return (
@@ -49,26 +71,28 @@ export default function BodyweightLogPage() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 4,
+        pb: 9, // Increased from 4 to 12 to clear the fixed BottomNav
       }}
     >
       {/* Top AppBar */}
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
-        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          top: 0,
+          zIndex: 1100,
+        }}
       >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            onClick={() => router.push('/profile')}
-            sx={{ color: 'text.primary', mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
             Bodyweight Log
           </Typography>
+          <IconButton onClick={() => setIsPickerOpen(true)} color="primary">
+            <Add />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -113,101 +137,12 @@ export default function BodyweightLogPage() {
           </CardContent>
         </Card>
 
-        {/* Add New Weight */}
-        <Card
-          sx={{
-            bgcolor: 'surfaceContainer',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 2,
-            mb: 3,
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
-              Log New Weight
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-              <TextField
-                fullWidth
-                type="number"
-                value={newWeight}
-                onChange={(e) => setNewWeight(e.target.value)}
-                placeholder="Enter weight in kg"
-                InputProps={{
-                  endAdornment: <Typography sx={{ color: 'text.secondary', ml: 1 }}>kg</Typography>,
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'text.primary',
-                    bgcolor: 'background.paper',
-                    '& fieldset': {
-                      borderColor: 'divider',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'primary.main',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'primary.main',
-                    },
-                  },
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={handleSave}
-                disabled={!newWeight}
-                startIcon={<Save />}
-                sx={{
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  fontWeight: 'bold',
-                  px: 3,
-                  py: 1.5,
-                  whiteSpace: 'nowrap',
-                  '&:hover': {
-                    bgcolor: 'primary.dark',
-                  },
-                  '&:disabled': {
-                    bgcolor: 'action.disabledBackground',
-                    color: 'text.disabled',
-                  },
-                }}
-              >
-                Save
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Weight Chart Placeholder */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
-            Weight Trend
-          </Typography>
-          <Card
-            sx={{
-              bgcolor: 'surfaceContainer',
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: 2,
-              height: 200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Box sx={{ textAlign: 'center' }}>
-              <TrendingDown sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1 }} />
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Chart visualization placeholder
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Weight progress over time
-              </Typography>
-            </Box>
-          </Card>
-        </Box>
+        <WeightPicker
+          open={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          onSave={handleSaveWeight}
+          initialWeight={currentWeight}
+        />
 
         {/* Weight History */}
         <Box sx={{ mb: 3 }}>
@@ -254,11 +189,13 @@ export default function BodyweightLogPage() {
                         <Chip
                           label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}kg`}
                           size="small"
+                          variant="filled"
                           sx={{
-                            bgcolor: log.change < 0 ? 'success.dark' : 'error.dark', // Assuming success/error colors in theme or fallback
-                            color: 'white', // Ensure contrast
+                            bgcolor: 'action.hover',
+                            color: log.change < 0 ? 'error.main' : 'success.main',
                             fontWeight: 'bold',
                             fontSize: '0.8rem',
+                            border: 'none',
                           }}
                         />
                       )}
@@ -266,10 +203,13 @@ export default function BodyweightLogPage() {
                         <Chip
                           label="No change"
                           size="small"
+                          variant="filled"
                           sx={{
-                            bgcolor: 'action.disabledBackground',
-                            color: 'text.disabled',
+                            bgcolor: 'action.hover',
+                            color: 'text.secondary',
+                            fontWeight: 'bold', // Added for consistency
                             fontSize: '0.8rem',
+                            border: 'none',
                           }}
                         />
                       )}
@@ -284,6 +224,7 @@ export default function BodyweightLogPage() {
           </Card>
         </Box>
       </Container>
+      <BottomNav />
     </Box>
   )
 }

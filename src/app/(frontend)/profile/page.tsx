@@ -28,6 +28,7 @@ import {
   MonitorWeight,
   ChevronRight,
 } from '@mui/icons-material'
+import BottomNav from '@/components/BottomNav'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -267,27 +268,7 @@ export default function ProfilePage() {
           borderColor: 'divider',
         }}
       >
-        <BottomNavigation
-          value={navValue}
-          onChange={handleNavChange}
-          sx={{
-            bgcolor: 'transparent',
-            height: 72,
-            '& .MuiBottomNavigationAction-root': {
-              color: 'text.secondary',
-              minWidth: 64,
-              minHeight: 72,
-              '&.Mui-selected': {
-                color: 'primary.main',
-              },
-            },
-          }}
-        >
-          <BottomNavigationAction label="Dashboard" icon={<Home />} />
-          <BottomNavigationAction label="Routines" icon={<FitnessCenter />} />
-          <BottomNavigationAction label="History" icon={<History />} />
-          <BottomNavigationAction label="Profile" icon={<Person />} />
-        </BottomNavigation>
+        <BottomNav />
       </Box>
     </Box>
   )

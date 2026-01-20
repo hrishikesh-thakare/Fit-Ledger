@@ -25,6 +25,7 @@ import {
   ArrowBack,
   ChevronRight,
 } from '@mui/icons-material'
+import BottomNav from '@/components/BottomNav'
 
 export default function RoutinesPage() {
   const router = useRouter()
@@ -55,11 +56,7 @@ export default function RoutinesPage() {
       {/* Top AppBar */}
       <AppBar position="static">
         <Toolbar>
-          <IconButton
-            edge="start"
-            onClick={() => router.push('/dashboard')}
-            sx={{ mr: 2 }}
-          >
+          <IconButton edge="start" onClick={() => router.push('/dashboard')} sx={{ mr: 2 }}>
             <ArrowBack />
           </IconButton>
           <Typography variant="titleLarge" fontWeight="bold" sx={{ flexGrow: 1 }}>
@@ -92,9 +89,7 @@ export default function RoutinesPage() {
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Stack spacing={0.5} flex={1}>
-                    <Typography variant="titleMedium">
-                      {routine.name}
-                    </Typography>
+                    <Typography variant="titleMedium">{routine.name}</Typography>
                     <Typography variant="bodySmall" color="text.disabled">
                       {routine.exerciseCount} exercises • {routine.description}
                     </Typography>
@@ -140,21 +135,7 @@ export default function RoutinesPage() {
       </Fab>
 
       {/* Bottom Navigation */}
-      <BottomNavigation
-        value={navValue}
-        onChange={handleNavChange}
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-        }}
-      >
-        <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
-        <BottomNavigationAction label="Routines" icon={<FitnessCenter />} />
-        <BottomNavigationAction label="History" icon={<History />} />
-        <BottomNavigationAction label="Profile" icon={<Person />} />
-      </BottomNavigation>
+      <BottomNav />
     </Box>
   )
 }
