@@ -43,15 +43,19 @@ export default function WorkoutSummaryPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 4,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
               Workout Complete! 🎉
             </Typography>
           </Box>
@@ -61,10 +65,10 @@ export default function WorkoutSummaryPage() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Header */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.5 }}>
+          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.5 }}>
             Workout Complete
           </Typography>
-          <Typography variant="body2" sx={{ color: '#666666' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Review your session
           </Typography>
         </Box>
@@ -75,16 +79,17 @@ export default function WorkoutSummaryPage() {
             elevation={0}
             sx={{
               flex: 1,
-              bgcolor: '#0a0a0a',
-              border: '1px solid #222222',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 1,
             }}
           >
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.25 }}>
+              <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}>
                 {workoutData.duration}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#666666' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 Duration
               </Typography>
             </CardContent>
@@ -94,16 +99,17 @@ export default function WorkoutSummaryPage() {
             elevation={0}
             sx={{
               flex: 1,
-              bgcolor: '#0a0a0a',
-              border: '1px solid #222222',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 1,
             }}
           >
             <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.25 }}>
+              <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}>
                 {workoutData.totalVolume}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#666666' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 Volume (kg)
               </Typography>
             </CardContent>
@@ -112,15 +118,25 @@ export default function WorkoutSummaryPage() {
 
         {/* Exercises Summary */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              mb: 1.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Exercises
           </Typography>
 
           <Card
             elevation={0}
             sx={{
-              bgcolor: '#0a0a0a',
-              border: '1px solid #222222',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 1,
             }}
           >
@@ -139,8 +155,9 @@ export default function WorkoutSummaryPage() {
                           width: 20,
                           height: 20,
                           borderRadius: '4px',
-                          bgcolor: '#1a1a1a',
-                          border: '1px solid #333333',
+                          bgcolor: 'surfaceContainer',
+                          border: 1,
+                          borderColor: 'divider',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -148,21 +165,24 @@ export default function WorkoutSummaryPage() {
                           flexShrink: 0,
                         }}
                       >
-                        <Typography variant="caption" sx={{ color: '#888888', fontWeight: 600, fontSize: '0.7rem' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.7rem' }}
+                        >
                           {index + 1}
                         </Typography>
                       </Box>
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
                           {exercise.name}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#666666' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           {exercise.sets} sets × {exercise.weight}
                         </Typography>
                       </Box>
                     </ListItem>
                     {index < workoutData.exercises.length - 1 && (
-                      <Divider sx={{ bgcolor: '#1a1a1a' }} />
+                      <Divider sx={{ bgcolor: 'divider' }} />
                     )}
                   </React.Fragment>
                 ))}
@@ -180,15 +200,15 @@ export default function WorkoutSummaryPage() {
             onClick={handleSave}
             sx={{
               py: 1.5,
-              bgcolor: '#2196F3',
-              color: '#ffffff',
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
               fontWeight: 600,
               fontSize: '1rem',
               textTransform: 'none',
               borderRadius: 1,
               boxShadow: 'none',
               '&:hover': {
-                bgcolor: '#1976D2',
+                bgcolor: 'primary.dark',
                 boxShadow: 'none',
               },
             }}
@@ -203,14 +223,14 @@ export default function WorkoutSummaryPage() {
             onClick={handleDiscard}
             sx={{
               py: 1.5,
-              color: '#666666',
+              color: 'text.secondary',
               fontWeight: 500,
               fontSize: '0.9rem',
               textTransform: 'none',
               borderRadius: 1,
               '&:hover': {
-                color: '#888888',
-                bgcolor: '#111111',
+                color: 'text.primary',
+                bgcolor: 'action.hover',
               },
             }}
           >

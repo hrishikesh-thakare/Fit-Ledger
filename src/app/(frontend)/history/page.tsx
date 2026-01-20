@@ -26,12 +26,54 @@ export default function HistoryPage() {
 
   const workouts = [
     { id: 1, name: 'Push Day', date: 'Today', time: '2:30 PM', duration: '45 min', exercises: 6 },
-    { id: 2, name: 'Leg Day', date: 'Yesterday', time: '10:00 AM', duration: '60 min', exercises: 7 },
-    { id: 3, name: 'Pull Day', date: '2 days ago', time: '3:00 PM', duration: '50 min', exercises: 5 },
-    { id: 4, name: 'Push Day', date: '4 days ago', time: '2:00 PM', duration: '42 min', exercises: 6 },
-    { id: 5, name: 'Core & Abs', date: '5 days ago', time: '7:00 PM', duration: '30 min', exercises: 4 },
-    { id: 6, name: 'Leg Day', date: '7 days ago', time: '10:30 AM', duration: '58 min', exercises: 7 },
-    { id: 7, name: 'Upper Body', date: '9 days ago', time: '2:45 PM', duration: '55 min', exercises: 8 },
+    {
+      id: 2,
+      name: 'Leg Day',
+      date: 'Yesterday',
+      time: '10:00 AM',
+      duration: '60 min',
+      exercises: 7,
+    },
+    {
+      id: 3,
+      name: 'Pull Day',
+      date: '2 days ago',
+      time: '3:00 PM',
+      duration: '50 min',
+      exercises: 5,
+    },
+    {
+      id: 4,
+      name: 'Push Day',
+      date: '4 days ago',
+      time: '2:00 PM',
+      duration: '42 min',
+      exercises: 6,
+    },
+    {
+      id: 5,
+      name: 'Core & Abs',
+      date: '5 days ago',
+      time: '7:00 PM',
+      duration: '30 min',
+      exercises: 4,
+    },
+    {
+      id: 6,
+      name: 'Leg Day',
+      date: '7 days ago',
+      time: '10:30 AM',
+      duration: '58 min',
+      exercises: 7,
+    },
+    {
+      id: 7,
+      name: 'Upper Body',
+      date: '9 days ago',
+      time: '2:45 PM',
+      duration: '55 min',
+      exercises: 8,
+    },
   ]
 
   const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -44,14 +86,18 @@ export default function HistoryPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 10,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flexGrow: 1 }}>
             Workout History
           </Typography>
         </Toolbar>
@@ -60,7 +106,7 @@ export default function HistoryPage() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Subtitle */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" sx={{ color: '#888888' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Recent activity
           </Typography>
         </Box>
@@ -71,24 +117,30 @@ export default function HistoryPage() {
             key={workout.id}
             elevation={0}
             sx={{
-              bgcolor: '#0a0a0a',
-              border: '1px solid #222222',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 1,
               mb: 1.5,
               cursor: 'pointer',
               '&:active': {
-                bgcolor: '#111111',
+                bgcolor: 'action.selected',
               },
             }}
-            onClick={() => {router.push(`/history/${workout.id}`)}}
+            onClick={() => {
+              router.push(`/history/${workout.id}`)
+            }}
           >
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600, mb: 0.25 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ color: 'text.primary', fontWeight: 600, mb: 0.25 }}
+                  >
                     {workout.name}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#666666', fontSize: '0.8rem' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                     {workout.date} • {workout.duration} • {workout.exercises} exercises
                   </Typography>
                 </Box>
@@ -105,11 +157,11 @@ export default function HistoryPage() {
               py: 8,
             }}
           >
-            <HistoryIcon sx={{ fontSize: '4rem', color: '#333333', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#888888', mb: 1 }}>
+            <HistoryIcon sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
               No workout history
             </Typography>
-            <Typography variant="body2" sx={{ color: '#666666' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               Start your first workout to see it here
             </Typography>
           </Box>
@@ -125,14 +177,15 @@ export default function HistoryPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          bgcolor: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
           height: 70,
           '& .MuiBottomNavigationAction-root': {
-            color: '#888888',
+            color: 'text.secondary',
             minWidth: 'auto',
             '&.Mui-selected': {
-              color: '#2196F3',
+              color: 'primary.main',
             },
           },
         }}

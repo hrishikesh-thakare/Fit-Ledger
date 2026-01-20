@@ -2,18 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-} from '@mui/material'
-import {
-  PlayArrow,
-  Pause,
-  SkipNext,
-  Close,
-} from '@mui/icons-material'
+import { Box, Typography, Button, IconButton } from '@mui/material'
+import { PlayArrow, Pause, SkipNext, Close } from '@mui/icons-material'
 
 export default function RestTimerPage() {
   const router = useRouter()
@@ -22,10 +12,10 @@ export default function RestTimerPage() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
-    
+
     if (isRunning && seconds > 0) {
       interval = setInterval(() => {
-        setSeconds(prev => prev - 1)
+        setSeconds((prev) => prev - 1)
       }, 1000)
     } else if (seconds === 0) {
       setIsRunning(false)
@@ -54,7 +44,7 @@ export default function RestTimerPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -70,7 +60,7 @@ export default function RestTimerPage() {
           position: 'absolute',
           top: 20,
           right: 20,
-          color: '#888888',
+          color: 'text.secondary',
         }}
       >
         <Close />
@@ -80,7 +70,7 @@ export default function RestTimerPage() {
       <Typography
         variant="body1"
         sx={{
-          color: '#888888',
+          color: 'text.secondary',
           mb: 2,
           fontWeight: 500,
           letterSpacing: '0.1em',
@@ -100,7 +90,7 @@ export default function RestTimerPage() {
         <Typography
           variant="h1"
           sx={{
-            color: seconds <= 10 && seconds > 0 ? '#f44336' : '#2196F3',
+            color: seconds <= 10 && seconds > 0 ? 'error.main' : 'primary.main',
             fontSize: { xs: '7rem', sm: '9rem' },
             fontWeight: 'bold',
             fontFamily: 'monospace',
@@ -110,12 +100,12 @@ export default function RestTimerPage() {
         >
           {formatTime(seconds)}
         </Typography>
-        
+
         {seconds === 0 && (
           <Typography
             variant="h6"
             sx={{
-              color: '#2196F3',
+              color: 'primary.main',
               textAlign: 'center',
               mt: 2,
               fontWeight: 600,
@@ -143,17 +133,17 @@ export default function RestTimerPage() {
           sx={{
             py: 1.75,
             px: 4,
-            bgcolor: '#2196F3',
-            color: '#ffffff',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
             fontWeight: 600,
             fontSize: '1.1rem',
             textTransform: 'none',
             borderRadius: 3,
             minWidth: 150,
-            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
+            boxShadow: '0 4px 12px rgba(208, 188, 255, 0.4)', // Using primary color (approx) for shadow
             '&:hover': {
-              bgcolor: '#1976D2',
-              boxShadow: '0 6px 16px rgba(33, 150, 243, 0.5)',
+              bgcolor: 'primary.dark',
+              boxShadow: '0 6px 16px rgba(208, 188, 255, 0.5)',
             },
           }}
         >
@@ -169,16 +159,16 @@ export default function RestTimerPage() {
           sx={{
             py: 1.75,
             px: 4,
-            color: '#888888',
-            borderColor: '#333333',
+            color: 'text.secondary',
+            borderColor: 'divider',
             fontWeight: 600,
             fontSize: '1.1rem',
             textTransform: 'none',
             borderRadius: 3,
             '&:hover': {
-              borderColor: '#2196F3',
-              color: '#2196F3',
-              bgcolor: 'rgba(33, 150, 243, 0.08)',
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              bgcolor: 'action.hover',
             },
           }}
         >

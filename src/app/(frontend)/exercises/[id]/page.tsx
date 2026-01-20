@@ -16,11 +16,7 @@ import {
   Divider,
   Chip,
 } from '@mui/material'
-import {
-  ArrowBack,
-  TrendingUp,
-  CalendarToday,
-} from '@mui/icons-material'
+import { ArrowBack, TrendingUp, CalendarToday } from '@mui/icons-material'
 
 export default function ExerciseDetailPage() {
   const router = useRouter()
@@ -52,25 +48,29 @@ export default function ExerciseDetailPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 4,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.push('/exercises')}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ color: 'text.primary', mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
               {exercise.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#888888' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {exercise.muscleGroup}
             </Typography>
           </Box>
@@ -82,34 +82,38 @@ export default function ExerciseDetailPage() {
         <Card
           elevation={0}
           sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #2196F3',
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'primary.main',
             borderRadius: 1,
             mb: 3,
           }}
         >
           <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-              <TrendingUp sx={{ color: '#2196F3', mr: 1, fontSize: '1.25rem' }} />
-              <Typography variant="subtitle1" sx={{ color: '#2196F3', fontWeight: 600 }}>
+              <TrendingUp sx={{ color: 'primary.main', mr: 1, fontSize: '1.25rem' }} />
+              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 600 }}>
                 Personal Best
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.5 }}>
-              <Typography variant="h3" sx={{ color: '#ffffff', fontWeight: 'bold', mr: 0.5 }}>
+              <Typography variant="h3" sx={{ color: 'text.primary', fontWeight: 'bold', mr: 0.5 }}>
                 {exercise.personalBest.weight}
               </Typography>
-              <Typography variant="body1" sx={{ color: '#888888', mr: 2 }}>
+              <Typography variant="body1" sx={{ color: 'text.secondary', mr: 2 }}>
                 kg
               </Typography>
-              <Typography variant="h4" sx={{ color: '#666666', fontWeight: 'bold', mr: 0.5 }}>
+              <Typography
+                variant="h4"
+                sx={{ color: 'text.secondary', fontWeight: 'bold', mr: 0.5 }}
+              >
                 ×
               </Typography>
-              <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
                 {exercise.personalBest.reps}
               </Typography>
             </Box>
-            <Typography variant="caption" sx={{ color: '#666666' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Set on {exercise.personalBest.date}
             </Typography>
           </CardContent>
@@ -117,13 +121,14 @@ export default function ExerciseDetailPage() {
 
         {/* Progress Chart Placeholder */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
             Progress Chart
           </Typography>
           <Card
             sx={{
-              bgcolor: '#1a1a1a',
-              border: '1px solid #333333',
+              bgcolor: 'surfaceContainer',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 2,
               height: 200,
               display: 'flex',
@@ -132,11 +137,11 @@ export default function ExerciseDetailPage() {
             }}
           >
             <Box sx={{ textAlign: 'center' }}>
-              <TrendingUp sx={{ fontSize: '3rem', color: '#333333', mb: 1 }} />
-              <Typography variant="body2" sx={{ color: '#666666' }}>
+              <TrendingUp sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1 }} />
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Chart visualization placeholder
               </Typography>
-              <Typography variant="caption" sx={{ color: '#555555' }}>
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                 Performance over time
               </Typography>
             </Box>
@@ -145,14 +150,15 @@ export default function ExerciseDetailPage() {
 
         {/* Historical Performances */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
             Performance History
           </Typography>
 
           <Card
             sx={{
-              bgcolor: '#1a1a1a',
-              border: '1px solid #333333',
+              bgcolor: 'surfaceContainer',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 2,
             }}
           >
@@ -169,8 +175,8 @@ export default function ExerciseDetailPage() {
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                      <CalendarToday sx={{ fontSize: '0.9rem', color: '#888888', mr: 1 }} />
-                      <Typography variant="body2" sx={{ color: '#888888', flex: 1 }}>
+                      <CalendarToday sx={{ fontSize: '0.9rem', color: 'text.secondary', mr: 1 }} />
+                      <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
                         {entry.date}
                       </Typography>
                       {index === 2 && (
@@ -178,8 +184,8 @@ export default function ExerciseDetailPage() {
                           label="PR"
                           size="small"
                           sx={{
-                            bgcolor: '#2196F3',
-                            color: '#ffffff',
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
                             fontWeight: 'bold',
                             fontSize: '0.7rem',
                             height: 20,
@@ -187,28 +193,31 @@ export default function ExerciseDetailPage() {
                         />
                       )}
                     </Box>
-                    
+
                     <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 1 }}>
                       <Box>
-                        <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
-                          <span style={{ color: '#2196F3' }}>{entry.weight}kg</span> × {entry.reps}
+                        <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+                          <span style={{ color: 'var(--mui-palette-primary-main)' }}>
+                            {entry.weight}kg
+                          </span>{' '}
+                          × {entry.reps}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#666666' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           Best set
                         </Typography>
                       </Box>
                       <Box sx={{ ml: 'auto', textAlign: 'right' }}>
-                        <Typography variant="body2" sx={{ color: '#888888' }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                           {entry.sets} sets
                         </Typography>
-                        <Typography variant="caption" sx={{ color: '#666666' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           {entry.volume}kg total
                         </Typography>
                       </Box>
                     </Box>
                   </ListItem>
                   {index < exercise.history.length - 1 && (
-                    <Divider sx={{ bgcolor: '#333333', mx: 2.5 }} />
+                    <Divider sx={{ bgcolor: 'divider', mx: 2.5 }} />
                   )}
                 </React.Fragment>
               ))}

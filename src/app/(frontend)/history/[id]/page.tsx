@@ -17,11 +17,7 @@ import {
   ListItem,
   Divider,
 } from '@mui/material'
-import {
-  ArrowBack,
-  ExpandMore,
-  ExpandLess,
-} from '@mui/icons-material'
+import { ArrowBack, ExpandMore, ExpandLess } from '@mui/icons-material'
 
 export default function WorkoutHistoryDetailPage() {
   const router = useRouter()
@@ -88,21 +84,25 @@ export default function WorkoutHistoryDetailPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 4,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.push('/history')}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ color: 'text.primary', mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
             Workout Details
           </Typography>
         </Toolbar>
@@ -111,17 +111,26 @@ export default function WorkoutHistoryDetailPage() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Workout Header */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.5 }}>
+          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.5 }}>
             {workout.name}
           </Typography>
-          <Typography variant="body2" sx={{ color: '#666666' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {workout.date} • {workout.duration} • {workout.totalVolume}kg
           </Typography>
         </Box>
 
         {/* Exercises List */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              mb: 1.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Exercises
           </Typography>
 
@@ -130,8 +139,9 @@ export default function WorkoutHistoryDetailPage() {
               key={exercise.id}
               elevation={0}
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid #222222',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
                 borderRadius: 1,
                 mb: 1.5,
               }}
@@ -144,21 +154,23 @@ export default function WorkoutHistoryDetailPage() {
                     py: 1.5,
                     cursor: 'pointer',
                     '&:active': {
-                      bgcolor: '#111111',
+                      bgcolor: 'action.selected',
                     },
                   }}
                   onClick={() => handleToggleExpand(exercise.id)}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                      <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 500 }}>
                         {exercise.name}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#666666' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         {exercise.sets.length} sets
                       </Typography>
                     </Box>
-                    <IconButton size="small" sx={{ color: '#666666' }}>
+                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
                       {expandedExercise === exercise.id ? <ExpandLess /> : <ExpandMore />}
                     </IconButton>
                   </Box>
@@ -166,7 +178,7 @@ export default function WorkoutHistoryDetailPage() {
 
                 {/* Expanded Sets */}
                 <Collapse in={expandedExercise === exercise.id}>
-                  <Divider sx={{ bgcolor: '#1a1a1a' }} />
+                  <Divider sx={{ bgcolor: 'divider' }} />
                   <List sx={{ p: 0 }}>
                     {exercise.sets.map((set, setIndex) => (
                       <React.Fragment key={set.set}>
@@ -177,16 +189,19 @@ export default function WorkoutHistoryDetailPage() {
                           }}
                         >
                           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            <Typography variant="caption" sx={{ color: '#666666', width: 50 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{ color: 'text.secondary', width: 50 }}
+                            >
                               Set {set.set}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: '#888888', flex: 1 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
                               {set.weight}kg × {set.reps}
                             </Typography>
                           </Box>
                         </ListItem>
                         {setIndex < exercise.sets.length - 1 && (
-                          <Divider sx={{ bgcolor: '#1a1a1a' }} />
+                          <Divider sx={{ bgcolor: 'divider' }} />
                         )}
                       </React.Fragment>
                     ))}
@@ -199,7 +214,7 @@ export default function WorkoutHistoryDetailPage() {
 
         {/* Notes Section */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
             Notes
           </Typography>
           <TextField
@@ -211,16 +226,16 @@ export default function WorkoutHistoryDetailPage() {
             placeholder="Add notes about this workout..."
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
-                bgcolor: '#1a1a1a',
+                color: 'text.primary',
+                bgcolor: 'background.paper',
                 '& fieldset': {
-                  borderColor: '#333333',
+                  borderColor: 'divider',
                 },
                 '&:hover fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: 'primary.main',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#2196F3',
+                  borderColor: 'primary.main',
                 },
               },
             }}

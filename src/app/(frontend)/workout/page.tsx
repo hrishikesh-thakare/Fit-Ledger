@@ -60,25 +60,25 @@ export default function WorkoutLoggingPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 10,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar position="static">
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.back()}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ color: '#888888', fontSize: '0.75rem' }}>
+            <Typography variant="labelSmall" color="text.secondary">
               Exercise 1 of 6
             </Typography>
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+            <Typography variant="titleLarge" fontWeight="bold">
               Bench Press
             </Typography>
           </Box>
@@ -87,21 +87,13 @@ export default function WorkoutLoggingPage() {
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3, pb: 10 }}>
         {/* Previous Performance */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
-            borderRadius: 1,
-            mb: 3,
-          }}
-        >
-          <CardContent sx={{ p: 2 }}>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
             <Stack spacing={0.5}>
-              <Typography variant="caption" sx={{ color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <Typography variant="labelMedium" color="text.disabled" sx={{ textTransform: 'uppercase' }}>
                 Last workout: 2 days ago
               </Typography>
-              <Typography variant="body2" sx={{ color: '#888888' }}>
+              <Typography variant="bodyMedium" color="text.secondary">
                 4 sets × 60kg × 8 reps
               </Typography>
             </Stack>
@@ -110,21 +102,13 @@ export default function WorkoutLoggingPage() {
 
         {/* Sets Section */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="titleLarge" fontWeight="bold" sx={{ mb: 2 }}>
             Sets
           </Typography>
         </Box>
 
         {/* Sets List */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
-            borderRadius: 1,
-            mb: 2,
-          }}
-        >
+        <Card sx={{ mb: 2 }}>
           <CardContent sx={{ p: 0 }}>
             {/* Header */}
             <Box
@@ -133,26 +117,27 @@ export default function WorkoutLoggingPage() {
                 alignItems: 'center',
                 px: 2,
                 py: 1,
-                borderBottom: '1px solid #222222',
+                borderBottom: 1,
+                borderColor: 'divider',
               }}
             >
               <Box sx={{ width: 40 }}>
-                <Typography variant="caption" sx={{ color: '#666666', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Typography variant="labelMedium" color="text.disabled" sx={{ textTransform: 'uppercase' }}>
                   Set
                 </Typography>
               </Box>
               <Box sx={{ flex: 1, px: 1 }}>
-                <Typography variant="caption" sx={{ color: '#666666', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Typography variant="labelMedium" color="text.disabled" sx={{ textTransform: 'uppercase' }}>
                   Kg
                 </Typography>
               </Box>
               <Box sx={{ flex: 1, px: 1 }}>
-                <Typography variant="caption" sx={{ color: '#666666', fontWeight: 600, textTransform: 'uppercase' }}>
+                <Typography variant="labelMedium" color="text.disabled" sx={{ textTransform: 'uppercase' }}>
                   Reps
                 </Typography>
               </Box>
               <Box sx={{ width: 44 }}>
-                <Typography variant="caption" sx={{ color: '#666666', fontWeight: 600, textTransform: 'uppercase', textAlign: 'center' }}>
+                <Typography variant="labelMedium" color="text.disabled" sx={{ textTransform: 'uppercase', textAlign: 'center' }}>
                   Done
                 </Typography>
               </Box>
@@ -167,17 +152,15 @@ export default function WorkoutLoggingPage() {
                     alignItems: 'center',
                     px: 2,
                     py: 1.5,
-                    bgcolor: set.completed ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
+                    bgcolor: set.completed ? 'action.selected' : 'transparent',
                   }}
                 >
                   {/* Set Number */}
                   <Box sx={{ width: 40 }}>
                     <Typography
-                      variant="body1"
-                      sx={{
-                        color: set.completed ? '#2196F3' : '#ffffff',
-                        fontWeight: 'bold',
-                      }}
+                      variant="bodyLarge"
+                      color={set.completed ? 'primary.main' : 'text.primary'}
+                      fontWeight="bold"
                     >
                       {index + 1}
                     </Typography>
@@ -195,26 +178,7 @@ export default function WorkoutLoggingPage() {
                       inputProps={{
                         inputMode: 'decimal',
                         min: 0,
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          color: '#ffffff',
-                          bgcolor: '#0a0a0a',
-                          minHeight: 44,
-                          '& fieldset': {
-                            borderColor: '#333333',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#2196F3',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#2196F3',
-                          },
-                        },
-                        '& input': {
-                          textAlign: 'center',
-                          fontSize: '1rem',
-                        },
+                        style: { textAlign: 'center' },
                       }}
                     />
                   </Box>
@@ -231,26 +195,7 @@ export default function WorkoutLoggingPage() {
                       inputProps={{
                         inputMode: 'numeric',
                         min: 0,
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          color: '#ffffff',
-                          bgcolor: '#0a0a0a',
-                          minHeight: 44,
-                          '& fieldset': {
-                            borderColor: '#333333',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#2196F3',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#2196F3',
-                          },
-                        },
-                        '& input': {
-                          textAlign: 'center',
-                          fontSize: '1rem',
-                        },
+                        style: { textAlign: 'center' },
                       }}
                     />
                   </Box>
@@ -260,19 +205,12 @@ export default function WorkoutLoggingPage() {
                     <Checkbox
                       checked={set.completed}
                       onChange={() => handleToggleComplete(set.id)}
-                      icon={<RadioButtonUnchecked sx={{ color: '#666666', fontSize: '1.75rem' }} />}
-                      checkedIcon={<CheckCircle sx={{ color: '#2196F3', fontSize: '1.75rem' }} />}
-                      sx={{
-                        '&:hover': {
-                          bgcolor: 'rgba(33, 150, 243, 0.08)',
-                        },
-                      }}
+                      icon={<RadioButtonUnchecked />}
+                      checkedIcon={<CheckCircle color="primary" />}
                     />
                   </Box>
                 </Box>
-                {index < sets.length - 1 && (
-                  <Divider sx={{ bgcolor: '#333333', mx: 2 }} />
-                )}
+                {index < sets.length - 1 && <Divider />}
               </React.Fragment>
             ))}
           </CardContent>
@@ -284,21 +222,7 @@ export default function WorkoutLoggingPage() {
           variant="outlined"
           startIcon={<Add />}
           onClick={handleAddSet}
-          sx={{
-            minHeight: 48,
-            py: 1.5,
-            color: '#2196F3',
-            borderColor: '#333333',
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '1rem',
-            borderRadius: 2,
-            mb: 2,
-            '&:hover': {
-              borderColor: '#2196F3',
-              bgcolor: 'rgba(33, 150, 243, 0.08)',
-            },
-          }}
+          sx={{ mb: 2 }}
         >
           Add Set
         </Button>
@@ -313,18 +237,18 @@ export default function WorkoutLoggingPage() {
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#2196F3', fontWeight: 'bold' }}>
+            <Typography variant="titleLarge" color="primary.main" fontWeight="bold">
               {sets.filter(s => s.completed).length}/{sets.length}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#888888' }}>
+            <Typography variant="labelMedium" color="text.secondary">
               Completed
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#2196F3', fontWeight: 'bold' }}>
+            <Typography variant="titleLarge" color="primary.main" fontWeight="bold">
               {sets.reduce((sum, s) => sum + (s.completed && s.weight ? parseFloat(s.weight) * parseInt(s.reps || '0') : 0), 0).toFixed(0)}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#888888' }}>
+            <Typography variant="labelMedium" color="text.secondary">
               Total Volume
             </Typography>
           </Box>
@@ -338,8 +262,9 @@ export default function WorkoutLoggingPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          bgcolor: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
+          bgcolor: 'surfaceContainerLow',
+          borderTop: 1,
+          borderColor: 'divider',
           p: 2,
         }}
       >
@@ -348,20 +273,6 @@ export default function WorkoutLoggingPage() {
           variant="contained"
           size="large"
           onClick={handleFinishWorkout}
-          sx={{
-            py: 1.75,
-            bgcolor: '#2196F3',
-            color: '#ffffff',
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            textTransform: 'none',
-            borderRadius: 2,
-            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.4)',
-            '&:hover': {
-              bgcolor: '#1976D2',
-              boxShadow: '0 6px 16px rgba(33, 150, 243, 0.5)',
-            },
-          }}
         >
           Finish Workout
         </Button>

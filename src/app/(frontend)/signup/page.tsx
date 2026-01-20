@@ -36,7 +36,7 @@ export default function SignUpPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         px: 2,
         py: 2,
       }}
@@ -49,21 +49,14 @@ export default function SignUpPage() {
         <Box sx={{ p: 3, width: '100%' }}>
           <Box sx={{ mb: 3, textAlign: 'center' }}>
             <Typography 
-              variant="h4" 
+              variant="headlineMedium" 
               component="h1" 
               fontWeight="bold" 
               gutterBottom
-              sx={{ 
-                fontSize: { xs: '1.75rem', sm: '2rem' },
-                color: '#ffffff',
-              }}
             >
               FitLedger
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ color: '#888888' }}
-            >
+            <Typography variant="bodyMedium" color="text.secondary">
               Create your account
             </Typography>
           </Box>
@@ -77,35 +70,12 @@ export default function SignUpPage() {
               onChange={(e) => setName(e.target.value)}
               margin="normal"
               required
-              size="medium"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Person sx={{ color: '#2196F3' }} />
+                    <Person color="primary" />
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '1rem',
-                  color: '#ffffff',
-                  bgcolor: '#1a1a1a',
-                  '& fieldset': {
-                    borderColor: '#333333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888888',
-                  '&.Mui-focused': {
-                    color: '#2196F3',
-                  },
-                },
               }}
             />
 
@@ -117,35 +87,12 @@ export default function SignUpPage() {
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
               required
-              size="medium"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email sx={{ color: '#2196F3' }} />
+                    <Email color="primary" />
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '1rem',
-                  color: '#ffffff',
-                  bgcolor: '#1a1a1a',
-                  '& fieldset': {
-                    borderColor: '#333333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888888',
-                  '&.Mui-focused': {
-                    color: '#2196F3',
-                  },
-                },
               }}
             />
 
@@ -157,11 +104,10 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
-              size="medium"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock sx={{ color: '#2196F3' }} />
+                    <Lock color="primary" />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -169,35 +115,11 @@ export default function SignUpPage() {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
-                      size="large"
-                      sx={{ color: '#888888' }}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '1rem',
-                  color: '#ffffff',
-                  bgcolor: '#1a1a1a',
-                  '& fieldset': {
-                    borderColor: '#333333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888888',
-                  '&.Mui-focused': {
-                    color: '#2196F3',
-                  },
-                },
               }}
             />
 
@@ -209,11 +131,10 @@ export default function SignUpPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               margin="normal"
               required
-              size="medium"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Lock sx={{ color: '#2196F3' }} />
+                    <Lock color="primary" />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -221,35 +142,11 @@ export default function SignUpPage() {
                     <IconButton
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
-                      size="large"
-                      sx={{ color: '#888888' }}
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  fontSize: '1rem',
-                  color: '#ffffff',
-                  bgcolor: '#1a1a1a',
-                  '& fieldset': {
-                    borderColor: '#333333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#2196F3',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888888',
-                  '&.Mui-focused': {
-                    color: '#2196F3',
-                  },
-                },
               }}
             />
 
@@ -258,29 +155,13 @@ export default function SignUpPage() {
               variant="contained"
               size="large"
               type="submit"
-              sx={{ 
-                mt: 3, 
-                mb: 2, 
-                py: 1.75,
-                minHeight: 52,
-                fontSize: '1rem',
-                fontWeight: 600,
-                textTransform: 'none',
-                borderRadius: 1,
-                bgcolor: '#2196F3',
-                color: '#ffffff',
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: '#1976D2',
-                  boxShadow: 'none',
-                },
-              }}
+              sx={{ mt: 3, mb: 2 }}
             >
               Sign Up
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#888888' }}>
+              <Typography variant="bodyMedium" color="text.secondary">
                 Already have an account?{' '}
                 <Link
                   component="button"
@@ -290,10 +171,8 @@ export default function SignUpPage() {
                     cursor: 'pointer',
                     fontWeight: 600,
                     textDecoration: 'none',
-                    color: '#2196F3',
                     '&:hover': { 
                       textDecoration: 'underline',
-                      color: '#1976D2',
                     },
                   }}
                 >

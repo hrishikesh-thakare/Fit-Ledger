@@ -63,20 +63,20 @@ export default function ExerciseSelectorPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar position="static">
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.back()}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+          <Typography variant="titleLarge" fontWeight="bold">
             Select Exercise
           </Typography>
         </Toolbar>
@@ -93,24 +93,9 @@ export default function ExerciseSelectorPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ color: '#888888' }} />
+                  <Search color="disabled" />
                 </InputAdornment>
               ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
-                bgcolor: '#1a1a1a',
-                '& fieldset': {
-                  borderColor: '#333333',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#2196F3',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2196F3',
-                },
-              },
             }}
           />
         </Box>
@@ -133,30 +118,16 @@ export default function ExerciseSelectorPage() {
               key={filter}
               label={filter}
               onClick={() => setSelectedFilter(filter === 'All' ? null : filter)}
+              color={selectedFilter === filter || (filter === 'All' && !selectedFilter) ? 'primary' : 'default'}
               sx={{
-                bgcolor: selectedFilter === filter || (filter === 'All' && !selectedFilter)
-                  ? '#2196F3'
-                  : '#1a1a1a',
-                color: selectedFilter === filter || (filter === 'All' && !selectedFilter)
-                  ? '#ffffff'
-                  : '#888888',
-                border: '1px solid',
-                borderColor: selectedFilter === filter || (filter === 'All' && !selectedFilter)
-                  ? '#2196F3'
-                  : '#333333',
                 fontWeight: 600,
-                '&:hover': {
-                  bgcolor: selectedFilter === filter || (filter === 'All' && !selectedFilter)
-                    ? '#1976D2'
-                    : 'rgba(33, 150, 243, 0.08)',
-                },
               }}
             />
           ))}
         </Box>
 
         {/* Exercise List */}
-        <Box sx={{ bgcolor: '#000000' }}>
+        <Box sx={{ bgcolor: 'background.default' }}>
           <List sx={{ p: 0 }}>
             {filteredExercises.map((exercise, index) => (
               <React.Fragment key={exercise.id}>
@@ -166,27 +137,25 @@ export default function ExerciseSelectorPage() {
                     py: 1.5,
                     cursor: 'pointer',
                     '&:active': {
-                      bgcolor: '#111111',
+                      bgcolor: 'action.selected',
                     },
                   }}
                   onClick={() => router.push(`/exercises/${exercise.id}`)}
                 >
                   <ListItemText
                     primary={
-                      <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                      <Typography variant="bodyLarge" fontWeight={500}>
                         {exercise.name}
                       </Typography>
                     }
                     secondary={
-                      <Typography variant="caption" sx={{ color: '#666666' }}>
+                      <Typography variant="labelMedium" color="text.disabled">
                         {exercise.category}
                       </Typography>
                     }
                   />
                 </ListItem>
-                {index < filteredExercises.length - 1 && (
-                  <Divider sx={{ bgcolor: '#1a1a1a' }} />
-                )}
+                {index < filteredExercises.length - 1 && <Divider />}
               </React.Fragment>
             ))}
           </List>
@@ -200,11 +169,11 @@ export default function ExerciseSelectorPage() {
                 px: 2,
               }}
             >
-              <Search sx={{ fontSize: '3rem', color: '#333333', mb: 2 }} />
-              <Typography variant="h6" sx={{ color: '#888888', mb: 1 }}>
+              <Search sx={{ fontSize: '3rem', color: 'text.disabled', mb: 2 }} />
+              <Typography variant="titleMedium" color="text.secondary" sx={{ mb: 1 }}>
                 No exercises found
               </Typography>
-              <Typography variant="body2" sx={{ color: '#666666' }}>
+              <Typography variant="bodyMedium" color="text.disabled">
                 Try adjusting your search or filters
               </Typography>
             </Box>

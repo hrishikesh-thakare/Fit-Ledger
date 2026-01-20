@@ -17,14 +17,7 @@ import {
   ListItem,
   Divider,
 } from '@mui/material'
-import {
-  ArrowBack,
-  Save,
-  DragIndicator,
-  Delete,
-  Add,
-  Edit,
-} from '@mui/icons-material'
+import { ArrowBack, Save, DragIndicator, Delete, Add, Edit } from '@mui/icons-material'
 
 export default function RoutineEditorPage() {
   const router = useRouter()
@@ -45,28 +38,32 @@ export default function RoutineEditorPage() {
   }
 
   const handleDeleteExercise = (id: number) => {
-    setExercises(exercises.filter(ex => ex.id !== id))
+    setExercises(exercises.filter((ex) => ex.id !== id))
   }
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 4,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.back()}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ color: 'text.primary', mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flexGrow: 1 }}>
             Edit Routine
           </Typography>
           <Button
@@ -74,13 +71,8 @@ export default function RoutineEditorPage() {
             startIcon={<Save />}
             onClick={handleSave}
             sx={{
-              bgcolor: '#2196F3',
-              color: '#ffffff',
               textTransform: 'none',
               fontWeight: 600,
-              '&:hover': {
-                bgcolor: '#1976D2',
-              },
             }}
           >
             Save
@@ -91,7 +83,7 @@ export default function RoutineEditorPage() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Routine Name Field */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ color: '#888888', mb: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
             Routine Name
           </Typography>
           <TextField
@@ -101,17 +93,7 @@ export default function RoutineEditorPage() {
             placeholder="Enter routine name"
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
-                bgcolor: '#1a1a1a',
-                '& fieldset': {
-                  borderColor: '#333333',
-                },
-                '&:hover fieldset': {
-                  borderColor: '#2196F3',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#2196F3',
-                },
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -119,7 +101,7 @@ export default function RoutineEditorPage() {
 
         {/* Exercises Section */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
             Exercises
           </Typography>
         </Box>
@@ -127,8 +109,9 @@ export default function RoutineEditorPage() {
         {/* Exercise List */}
         <Card
           sx={{
-            bgcolor: '#1a1a1a',
-            border: '1px solid #333333',
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
             borderRadius: 2,
             mb: 2,
           }}
@@ -149,8 +132,8 @@ export default function RoutineEditorPage() {
                     {/* Drag Handle */}
                     <IconButton
                       size="small"
-                      sx={{ 
-                        color: '#666666',
+                      sx={{
+                        color: 'text.disabled',
                         cursor: 'grab',
                         '&:active': {
                           cursor: 'grabbing',
@@ -166,24 +149,37 @@ export default function RoutineEditorPage() {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        bgcolor: '#2196F3',
+                        bgcolor: 'primary.main',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'primary.contrastText',
+                          fontWeight: 'bold',
+                          fontSize: '0.85rem',
+                        }}
+                      >
                         {index + 1}
                       </Typography>
                     </Box>
 
                     {/* Exercise Details */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 600, mb: 0.3 }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ color: 'text.primary', fontWeight: 600, mb: 0.3 }}
+                      >
                         {exercise.name}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#888888', fontSize: '0.85rem' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', fontSize: '0.85rem' }}
+                      >
                         {exercise.sets} sets × {exercise.reps} reps
                       </Typography>
                     </Box>
@@ -191,8 +187,10 @@ export default function RoutineEditorPage() {
                     {/* Edit Button */}
                     <IconButton
                       size="small"
-                      sx={{ color: '#2196F3' }}
-                      onClick={() => {/* Mock edit */}}
+                      sx={{ color: 'primary.main' }}
+                      onClick={() => {
+                        /* Mock edit */
+                      }}
                     >
                       <Edit fontSize="small" />
                     </IconButton>
@@ -200,15 +198,13 @@ export default function RoutineEditorPage() {
                     {/* Delete Button */}
                     <IconButton
                       size="small"
-                      sx={{ color: '#f44336' }}
+                      sx={{ color: 'error.main' }}
                       onClick={() => handleDeleteExercise(exercise.id)}
                     >
                       <Delete fontSize="small" />
                     </IconButton>
                   </ListItem>
-                  {index < exercises.length - 1 && (
-                    <Divider sx={{ bgcolor: '#333333', mx: 2 }} />
-                  )}
+                  {index < exercises.length - 1 && <Divider sx={{ bgcolor: 'divider', mx: 2 }} />}
                 </React.Fragment>
               ))}
             </List>
@@ -220,19 +216,15 @@ export default function RoutineEditorPage() {
           fullWidth
           variant="outlined"
           startIcon={<Add />}
-          onClick={() => {/* Mock add */}}
+          onClick={() => {
+            /* Mock add */
+          }}
           sx={{
             py: 1.5,
-            color: '#2196F3',
-            borderColor: '#333333',
             textTransform: 'none',
             fontWeight: 600,
             fontSize: '1rem',
             borderRadius: 2,
-            '&:hover': {
-              borderColor: '#2196F3',
-              bgcolor: 'rgba(33, 150, 243, 0.08)',
-            },
           }}
         >
           Add Exercise
@@ -240,7 +232,7 @@ export default function RoutineEditorPage() {
 
         {/* Helper Text */}
         <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" sx={{ color: '#666666', fontSize: '0.85rem' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>
             Drag exercises to reorder • Tap to edit details
           </Typography>
         </Box>

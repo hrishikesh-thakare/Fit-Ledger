@@ -48,21 +48,21 @@ export default function RoutinesPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 10,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar position="static">
         <Toolbar>
           <IconButton
             edge="start"
             onClick={() => router.push('/dashboard')}
-            sx={{ color: '#ffffff', mr: 2 }}
+            sx={{ mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', flexGrow: 1 }}>
+          <Typography variant="titleLarge" fontWeight="bold" sx={{ flexGrow: 1 }}>
             My Routines
           </Typography>
         </Toolbar>
@@ -71,7 +71,7 @@ export default function RoutinesPage() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Subtitle */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" sx={{ color: '#888888' }}>
+          <Typography variant="bodyMedium" color="text.secondary">
             {routines.length} workout routines
           </Typography>
         </Box>
@@ -81,29 +81,25 @@ export default function RoutinesPage() {
           {routines.map((routine) => (
             <Card
               key={routine.id}
-              elevation={0}
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid #222222',
-                borderRadius: 1,
                 cursor: 'pointer',
                 '&:active': {
-                  bgcolor: '#111111',
+                  transform: 'scale(0.98)',
                 },
               }}
               onClick={() => router.push(`/routines/${routine.id}`)}
             >
-              <CardContent sx={{ p: 2 }}>
+              <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Stack spacing={0.5} flex={1}>
-                    <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                    <Typography variant="titleMedium">
                       {routine.name}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#666666', fontSize: '0.8rem' }}>
+                    <Typography variant="bodySmall" color="text.disabled">
                       {routine.exerciseCount} exercises • {routine.description}
                     </Typography>
                   </Stack>
-                  <ChevronRight sx={{ color: '#444444', fontSize: '1.25rem' }} />
+                  <ChevronRight sx={{ color: 'text.disabled' }} />
                 </Stack>
               </CardContent>
             </Card>
@@ -118,11 +114,11 @@ export default function RoutinesPage() {
               py: 8,
             }}
           >
-            <FitnessCenter sx={{ fontSize: '4rem', color: '#333333', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#888888', mb: 1 }}>
+            <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+            <Typography variant="titleMedium" color="text.secondary" sx={{ mb: 1 }}>
               No routines yet
             </Typography>
-            <Typography variant="body2" sx={{ color: '#666666' }}>
+            <Typography variant="bodyMedium" color="text.disabled">
               Create your first workout routine
             </Typography>
           </Box>
@@ -136,22 +132,8 @@ export default function RoutinesPage() {
         onClick={() => router.push('/routines/new')}
         sx={{
           position: 'fixed',
-          bottom: 88,
+          bottom: 96,
           right: 16,
-          bgcolor: '#2196F3',
-          color: '#ffffff',
-          width: 56,
-          height: 56,
-          boxShadow: '0 8px 16px rgba(33, 150, 243, 0.4)',
-          '&:hover': {
-            bgcolor: '#1976D2',
-            boxShadow: '0 12px 24px rgba(33, 150, 243, 0.5)',
-            transform: 'scale(1.05)',
-          },
-          '&:active': {
-            transform: 'scale(0.98)',
-          },
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Add sx={{ fontSize: '1.75rem' }} />
@@ -166,16 +148,6 @@ export default function RoutinesPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          bgcolor: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
-          height: 70,
-          '& .MuiBottomNavigationAction-root': {
-            color: '#888888',
-            minWidth: 'auto',
-            '&.Mui-selected': {
-              color: '#2196F3',
-            },
-          },
         }}
       >
         <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />

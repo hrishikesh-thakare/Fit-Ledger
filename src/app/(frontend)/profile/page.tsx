@@ -53,22 +53,26 @@ export default function ProfilePage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
+        bgcolor: 'background.default',
         pb: 8,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+      >
         <Toolbar>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold', flex: 1 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flex: 1 }}>
             Profile
           </Typography>
           <IconButton
             onClick={() => router.push('/settings')}
             sx={{
-              color: '#2196F3',
+              color: 'primary.main',
               '&:hover': {
-                bgcolor: 'rgba(33, 150, 243, 0.1)',
+                bgcolor: 'action.hover',
               },
             }}
           >
@@ -82,8 +86,9 @@ export default function ProfilePage() {
         <Card
           elevation={0}
           sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
             borderRadius: 1,
             mb: 3,
           }}
@@ -93,20 +98,23 @@ export default function ProfilePage() {
               sx={{
                 width: 64,
                 height: 64,
-                bgcolor: '#222222',
-                color: '#888888',
+                bgcolor: 'surfaceContainer',
+                color: 'text.secondary',
                 margin: '0 auto',
                 mb: 1.5,
                 fontSize: '1.5rem',
                 fontWeight: 600,
               }}
             >
-              {user.name.split(' ').map(n => n[0]).join('')}
+              {user.name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')}
             </Avatar>
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600, mb: 0.25 }}>
+            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.25 }}>
               {user.name}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#666666' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {user.email}
             </Typography>
           </CardContent>
@@ -114,24 +122,37 @@ export default function ProfilePage() {
 
         {/* Stats Cards */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              mb: 1.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Stats
           </Typography>
-          
+
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.5, mb: 1.5 }}>
             <Card
               elevation={0}
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid #222222',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
                 borderRadius: 1,
               }}
             >
               <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.25 }}>
+                <Typography
+                  variant="h5"
+                  sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}
+                >
                   {user.totalWorkouts}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666666' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Workouts
                 </Typography>
               </CardContent>
@@ -140,16 +161,20 @@ export default function ProfilePage() {
             <Card
               elevation={0}
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid #222222',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
                 borderRadius: 1,
               }}
             >
               <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h5" sx={{ color: '#ffffff', fontWeight: 'bold', mb: 0.25 }}>
+                <Typography
+                  variant="h5"
+                  sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}
+                >
                   {user.activeDays}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666666' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Active Days
                 </Typography>
               </CardContent>
@@ -158,16 +183,20 @@ export default function ProfilePage() {
             <Card
               elevation={0}
               sx={{
-                bgcolor: '#0a0a0a',
-                border: '1px solid #2196F3',
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'primary.main',
                 borderRadius: 1,
               }}
             >
               <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h5" sx={{ color: '#2196F3', fontWeight: 'bold', mb: 0.25 }}>
+                <Typography
+                  variant="h5"
+                  sx={{ color: 'primary.main', fontWeight: 'bold', mb: 0.25 }}
+                >
                   {user.currentStreak}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666666' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Streak
                 </Typography>
               </CardContent>
@@ -177,15 +206,25 @@ export default function ProfilePage() {
 
         {/* Quick Links */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              mb: 1.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
             Quick Links
           </Typography>
-          
+
           <Card
             elevation={0}
             sx={{
-              bgcolor: '#0a0a0a',
-              border: '1px solid #222222',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               borderRadius: 1,
             }}
           >
@@ -196,18 +235,20 @@ export default function ProfilePage() {
                   cursor: 'pointer',
                   py: 1.5,
                   '&:active': {
-                    bgcolor: '#111111',
+                    bgcolor: 'action.selected',
                   },
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>
-                  <MonitorWeight sx={{ color: '#666666', fontSize: '1.25rem' }} />
+                  <MonitorWeight sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Bodyweight Log"
-                  primaryTypographyProps={{ sx: { color: '#ffffff', fontWeight: 500, fontSize: '0.95rem' } }}
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
                 />
-                <ChevronRight sx={{ color: '#444444', fontSize: '1.25rem' }} />
+                <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
               </ListItem>
             </List>
           </Card>
@@ -221,8 +262,9 @@ export default function ProfilePage() {
           bottom: 0,
           left: 0,
           right: 0,
-          bgcolor: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
         }}
       >
         <BottomNavigation
@@ -232,11 +274,11 @@ export default function ProfilePage() {
             bgcolor: 'transparent',
             height: 72,
             '& .MuiBottomNavigationAction-root': {
-              color: '#888888',
+              color: 'text.secondary',
               minWidth: 64,
               minHeight: 72,
               '&.Mui-selected': {
-                color: '#2196F3',
+                color: 'primary.main',
               },
             },
           }}

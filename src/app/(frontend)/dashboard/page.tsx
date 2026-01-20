@@ -37,14 +37,14 @@ export default function DashboardPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#000000',
-        pb: 8,
+        bgcolor: 'background.default',
+        pb: 10,
       }}
     >
       {/* Top AppBar */}
-      <AppBar position="static" elevation={0} sx={{ bgcolor: '#0a0a0a', borderBottom: '1px solid #1a1a1a' }}>
+      <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+          <Typography variant="titleLarge" sx={{ fontWeight: 'bold' }}>
             Good morning! 👋
           </Typography>
         </Toolbar>
@@ -52,53 +52,45 @@ export default function DashboardPage() {
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3, pb: 10 }}>
         {/* Last Workout Summary Card */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
-            borderRadius: 1,
-            mb: 2,
-          }}
-        >
-          <CardContent sx={{ p: 2.5 }}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-              <FitnessCenter sx={{ color: '#2196F3', fontSize: '1.25rem' }} />
-              <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600 }}>
+              <FitnessCenter sx={{ color: 'primary.main', fontSize: '1.25rem' }} />
+              <Typography variant="titleMedium">
                 Last Workout Summary
               </Typography>
             </Stack>
-            <Divider sx={{ bgcolor: '#222222', mb: 1.5 }} />
+            <Divider sx={{ mb: 1.5 }} />
             <Stack spacing={1.5}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="body2" sx={{ color: '#888888' }}>
+                <Typography variant="bodyMedium" color="text.secondary">
                   Workout:
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                <Typography variant="bodyMedium" fontWeight={600}>
                   Push Day
                 </Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="body2" sx={{ color: '#888888' }}>
+                <Typography variant="bodyMedium" color="text.secondary">
                   Date:
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                <Typography variant="bodyMedium" fontWeight={600}>
                   Yesterday
                 </Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="body2" sx={{ color: '#888888' }}>
+                <Typography variant="bodyMedium" color="text.secondary">
                   Duration:
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                <Typography variant="bodyMedium" fontWeight={600}>
                   45 minutes
                 </Typography>
               </Stack>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="body2" sx={{ color: '#888888' }}>
+                <Typography variant="bodyMedium" color="text.secondary">
                   Exercises:
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                <Typography variant="bodyMedium" fontWeight={600}>
                   6 exercises
                 </Typography>
               </Stack>
@@ -107,24 +99,20 @@ export default function DashboardPage() {
         </Card>
 
         {/* Weekly Workout Count Card */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
-            borderRadius: 1,
-            mb: 2,
-          }}
-        >
-          <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography 
+              variant="labelLarge" 
+              color="text.disabled"
+              sx={{ mb: 1.5, textTransform: 'uppercase' }}
+            >
               This Week
             </Typography>
             <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 2 }}>
-              <Typography variant="h3" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+              <Typography variant="headlineLarge" fontWeight="bold">
                 4
               </Typography>
-              <Typography variant="body2" sx={{ color: '#666666' }}>
+              <Typography variant="bodyMedium" color="text.disabled">
                 workouts
               </Typography>
             </Stack>
@@ -136,15 +124,20 @@ export default function DashboardPage() {
                     width: 28,
                     height: 28,
                     minWidth: 28,
-                    borderRadius: '4px',
-                    bgcolor: index < 4 ? '#2196F3' : '#1a1a1a',
-                    border: index < 4 ? 'none' : '1px solid #333333',
+                    borderRadius: '8px',
+                    bgcolor: index < 4 ? 'primary.main' : 'surfaceContainerLow',
+                    border: index < 4 ? 'none' : '1px solid',
+                    borderColor: 'outline',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: index < 4 ? '#ffffff' : '#666666', fontWeight: 500, fontSize: '0.7rem' }}>
+                  <Typography 
+                    variant="labelSmall" 
+                    color={index < 4 ? 'primary.contrastText' : 'text.disabled'}
+                    fontWeight={500}
+                  >
                     {day}
                   </Typography>
                 </Box>
@@ -154,33 +147,29 @@ export default function DashboardPage() {
         </Card>
 
         {/* Bodyweight Trend Card */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: '#0a0a0a',
-            border: '1px solid #222222',
-            borderRadius: 1,
-            mb: 3,
-          }}
-        >
-          <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="subtitle2" sx={{ color: '#666666', fontWeight: 600, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography 
+              variant="labelLarge" 
+              color="text.disabled"
+              sx={{ mb: 2, textTransform: 'uppercase' }}
+            >
               Bodyweight
             </Typography>
             <Stack direction="row" justifyContent="space-between" alignItems="baseline">
               <Stack spacing={0}>
-                <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 'bold' }}>
+                <Typography variant="headlineMedium" fontWeight="bold">
                   75.5
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666666' }}>
+                <Typography variant="labelSmall" color="text.disabled">
                   kg current
                 </Typography>
               </Stack>
               <Stack spacing={0} alignItems="flex-end">
-                <Typography variant="h5" sx={{ color: '#666666', fontWeight: 'bold' }}>
+                <Typography variant="headlineSmall" color="text.disabled" fontWeight="bold">
                   80.0
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#666666' }}>
+                <Typography variant="labelSmall" color="text.disabled">
                   kg goal
                 </Typography>
               </Stack>
@@ -194,21 +183,6 @@ export default function DashboardPage() {
           variant="contained"
           size="large"
           onClick={() => router.push('/routines')}
-          sx={{
-            py: 1.5,
-            minHeight: 52,
-            bgcolor: '#2196F3',
-            color: '#ffffff',
-            fontWeight: 600,
-            fontSize: '1rem',
-            textTransform: 'none',
-            borderRadius: 1,
-            boxShadow: 'none',
-            '&:hover': {
-              bgcolor: '#1976D2',
-              boxShadow: 'none',
-            },
-          }}
         >
           Start Workout
         </Button>
@@ -223,17 +197,6 @@ export default function DashboardPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          bgcolor: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
-          height: 72,
-          '& .MuiBottomNavigationAction-root': {
-            color: '#888888',
-            minWidth: 64,
-            minHeight: 72,
-            '&.Mui-selected': {
-              color: '#2196F3',
-            },
-          },
         }}
       >
         <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
