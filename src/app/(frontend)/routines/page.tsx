@@ -10,26 +10,15 @@ import {
   CardContent,
   AppBar,
   Toolbar,
-  BottomNavigation,
-  BottomNavigationAction,
   Fab,
   IconButton,
   Stack,
 } from '@mui/material'
-import {
-  FitnessCenter,
-  History,
-  Person,
-  Dashboard as DashboardIcon,
-  Add,
-  ArrowBack,
-  ChevronRight,
-} from '@mui/icons-material'
+import { FitnessCenter, Add, ArrowBack, ChevronRight } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 
 export default function RoutinesPage() {
   const router = useRouter()
-  const [navValue, setNavValue] = useState(1)
 
   const routines = [
     { id: 1, name: 'Push Day', exerciseCount: 6, description: 'Chest, Shoulders, Triceps' },
@@ -38,12 +27,6 @@ export default function RoutinesPage() {
     { id: 4, name: 'Upper Body', exerciseCount: 8, description: 'Full upper body workout' },
     { id: 5, name: 'Core & Abs', exerciseCount: 4, description: 'Core strengthening' },
   ]
-
-  const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
-    setNavValue(newValue)
-    const routes = ['/dashboard', '/routines', '/history', '/profile']
-    router.push(routes[newValue])
-  }
 
   return (
     <Box

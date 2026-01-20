@@ -2,28 +2,12 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  AppBar,
-  Toolbar,
-  BottomNavigation,
-  BottomNavigationAction,
-} from '@mui/material'
-import {
-  FitnessCenter,
-  History as HistoryIcon,
-  Person,
-  Dashboard as DashboardIcon,
-} from '@mui/icons-material'
+import { Box, Container, Typography, Card, CardContent, AppBar, Toolbar } from '@mui/material'
+import { History as HistoryIcon } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 
 export default function HistoryPage() {
   const router = useRouter()
-  const [navValue, setNavValue] = useState(2)
 
   const workouts = [
     { id: 1, name: 'Push Day', date: 'Today', time: '2:30 PM', duration: '45 min', exercises: 6 },
@@ -76,12 +60,6 @@ export default function HistoryPage() {
       exercises: 8,
     },
   ]
-
-  const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
-    setNavValue(newValue)
-    const routes = ['/dashboard', '/routines', '/history', '/profile']
-    router.push(routes[newValue])
-  }
 
   return (
     <Box

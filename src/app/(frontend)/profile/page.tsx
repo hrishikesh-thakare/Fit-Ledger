@@ -12,27 +12,16 @@ import {
   Toolbar,
   IconButton,
   Avatar,
-  BottomNavigation,
-  BottomNavigationAction,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
 } from '@mui/material'
-import {
-  Settings,
-  Home,
-  FitnessCenter,
-  History,
-  Person,
-  MonitorWeight,
-  ChevronRight,
-} from '@mui/icons-material'
+import { Settings, MonitorWeight, ChevronRight } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const [navValue, setNavValue] = useState(3)
 
   // Mock data
   const user = {
@@ -42,12 +31,6 @@ export default function ProfilePage() {
     activeDays: 23,
     currentStreak: 7,
     joinDate: 'December 2025',
-  }
-
-  const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
-    setNavValue(newValue)
-    const routes = ['/dashboard', '/routines', '/history', '/profile']
-    router.push(routes[newValue])
   }
 
   return (

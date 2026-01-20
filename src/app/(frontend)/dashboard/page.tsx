@@ -11,23 +11,14 @@ import {
   Button,
   AppBar,
   Toolbar,
-  BottomNavigation,
-  BottomNavigationAction,
   Divider,
   Stack,
 } from '@mui/material'
-import { FitnessCenter, History, Person, Dashboard as DashboardIcon } from '@mui/icons-material'
+import { FitnessCenter } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [navValue, setNavValue] = useState(0)
-
-  const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
-    setNavValue(newValue)
-    const routes = ['/dashboard', '/routines', '/history', '/profile']
-    router.push(routes[newValue])
-  }
 
   return (
     <Box

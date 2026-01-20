@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Stack,
 } from '@mui/material'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -59,6 +58,7 @@ const PickerItem = React.memo<PickerItemProps>(({ value, isActive, onClick, alig
     </Box>
   )
 })
+PickerItem.displayName = 'PickerItem'
 
 const WeightPicker: React.FC<WeightPickerProps> = ({
   open,
@@ -73,7 +73,6 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
 
   const integerScrollRef = useRef<HTMLDivElement>(null)
   const decimalScrollRef = useRef<HTMLDivElement>(null)
-  const isScrollingTimeout = useRef<NodeJS.Timeout>(null)
 
   useEffect(() => {
     if (open) {
@@ -102,6 +101,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const handleSave = () => {

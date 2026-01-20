@@ -9,20 +9,20 @@ export default function BottomNav() {
   const router = useRouter()
   const pathname = usePathname()
 
-  const getActiveIndex = () => {
+  const getActiveIndex = React.useCallback(() => {
     if (pathname === '/dashboard') return 0
     if (pathname === '/routines') return 1
     if (pathname.startsWith('/history')) return 2
     if (pathname === '/profile/bodyweight') return 3
     if (pathname === '/profile') return 4
     return 0
-  }
+  }, [pathname])
 
   const [value, setValue] = React.useState(getActiveIndex())
 
   React.useEffect(() => {
     setValue(getActiveIndex())
-  }, [pathname])
+  }, [pathname, getActiveIndex])
 
   const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue)

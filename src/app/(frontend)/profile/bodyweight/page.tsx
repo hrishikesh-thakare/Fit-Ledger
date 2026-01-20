@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+
 import {
   Box,
   Container,
@@ -11,26 +11,16 @@ import {
   AppBar,
   Toolbar,
   IconButton,
-  TextField,
-  Button,
   List,
   ListItem,
   Divider,
   Chip,
 } from '@mui/material'
-import {
-  ArrowBack,
-  TrendingDown,
-  CalendarToday,
-  Save,
-  MonitorWeight,
-  Add,
-} from '@mui/icons-material'
+import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import WeightPicker from '@/components/WeightPicker'
 
 export default function BodyweightLogPage() {
-  const router = useRouter()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
 
   // Mock data
