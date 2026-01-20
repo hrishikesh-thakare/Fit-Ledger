@@ -12,15 +12,12 @@ import {
   Toolbar,
   BottomNavigation,
   BottomNavigationAction,
-  Chip,
 } from '@mui/material'
 import {
   FitnessCenter,
   History as HistoryIcon,
   Person,
   Dashboard as DashboardIcon,
-  Timer,
-  CalendarToday,
 } from '@mui/icons-material'
 
 export default function HistoryPage() {

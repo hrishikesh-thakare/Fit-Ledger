@@ -16,16 +16,11 @@ import {
   List,
   ListItem,
   Divider,
-  Chip,
 } from '@mui/material'
 import {
   ArrowBack,
-  Timer,
-  CalendarToday,
   ExpandMore,
   ExpandLess,
-  FitnessCenter,
-  CheckCircle,
 } from '@mui/icons-material'
 
 export default function WorkoutHistoryDetailPage() {
@@ -130,7 +125,7 @@ export default function WorkoutHistoryDetailPage() {
             Exercises
           </Typography>
 
-          {workout.exercises.map((exercise, index) => (
+          {workout.exercises.map((exercise) => (
             <Card
               key={exercise.id}
               elevation={0}

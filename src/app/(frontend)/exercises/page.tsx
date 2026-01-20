@@ -20,7 +20,6 @@ import {
 import {
   ArrowBack,
   Search,
-  FitnessCenter,
 } from '@mui/icons-material'
 
 export default function ExerciseSelectorPage() {

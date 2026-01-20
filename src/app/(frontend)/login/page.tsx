@@ -186,7 +186,7 @@ export default function LoginPage() {
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="body2" sx={{ fontSize: '0.875rem', color: '#888888' }}>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link
                   component="button"
                   type="button"

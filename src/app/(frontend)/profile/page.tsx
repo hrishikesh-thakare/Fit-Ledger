@@ -26,8 +26,6 @@ import {
   History,
   Person,
   MonitorWeight,
-  TrendingUp,
-  CalendarToday,
   ChevronRight,
 } from '@mui/icons-material'
 

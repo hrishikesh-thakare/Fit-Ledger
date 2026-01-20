@@ -14,14 +14,7 @@ import {
   List,
   ListItem,
   Divider,
-  Chip,
 } from '@mui/material'
-import {
-  CheckCircle,
-  Timer,
-  FitnessCenter,
-  TrendingUp,
-} from '@mui/icons-material'
 
 export default function WorkoutSummaryPage() {
   const router = useRouter()

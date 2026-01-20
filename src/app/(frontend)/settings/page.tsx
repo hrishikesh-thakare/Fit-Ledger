@@ -30,7 +30,7 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
+  const [_theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
   const [darkModeEnabled, setDarkModeEnabled] = useState(true)
 

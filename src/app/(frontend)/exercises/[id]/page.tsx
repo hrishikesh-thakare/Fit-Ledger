@@ -20,7 +20,6 @@ import {
   ArrowBack,
   TrendingUp,
   CalendarToday,
-  FitnessCenter,
 } from '@mui/icons-material'
 
 export default function ExerciseDetailPage() {
