@@ -1,9 +1,9 @@
-import { Components, Theme } from '@mui/material/styles';
+import { Components, Theme } from '@mui/material/styles'
 
 const MuiOutlinedInput: Components<Theme>['MuiOutlinedInput'] = {
   styleOverrides: {
     root: ({ theme }) => ({
-      backgroundColor: (theme.palette as any).surfaceContainerHighest || theme.palette.background.paper,
+      backgroundColor: theme.palette.surfaceContainerHighest || theme.palette.background.paper,
       borderRadius: '12px',
       minHeight: '56px',
       color: theme.palette.text.primary,
@@ -30,6 +30,6 @@ const MuiOutlinedInput: Components<Theme>['MuiOutlinedInput'] = {
       fontSize: '0.875rem',
     },
   },
-};
+}
 
-export default MuiOutlinedInput;
+export default MuiOutlinedInput

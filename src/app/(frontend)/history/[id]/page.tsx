@@ -1,84 +1,71 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import React from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Container,
   Typography,
-  Card,
-  CardContent,
   AppBar,
   Toolbar,
   IconButton,
-  TextField,
-  Collapse,
-  List,
-  ListItem,
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Divider,
+  Paper,
 } from '@mui/material'
-import { ArrowBack, ExpandMore, ExpandLess } from '@mui/icons-material'
+import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
 
-export default function WorkoutHistoryDetailPage() {
+// Mock Detailed Data
+const workoutDetails = {
+  id: 1,
+  name: 'Leg Day A',
+  date: 'October 23, 2023',
+  startTime: '2:30 PM',
+  endTime: '3:42 PM',
+  duration: '01:12:45',
+  volume: '14,250 lbs',
+  formattedDate: 'Monday, Oct 23',
+  exercises: [
+    {
+      id: 101,
+      name: 'Barbell Squat',
+      sets: [
+        { id: 1, type: 'Warmup', weight: '135', reps: 12 },
+        { id: 2, type: 'Working', weight: '225', reps: 8 },
+        { id: 3, type: 'Working', weight: '245', reps: 6 },
+        { id: 4, type: 'Working', weight: '265', reps: 4 },
+      ],
+    },
+    {
+      id: 102,
+      name: 'Romanian Deadlift',
+      sets: [
+        { id: 1, type: 'Working', weight: '185', reps: 10 },
+        { id: 2, type: 'Working', weight: '205', reps: 8 },
+        { id: 3, type: 'Working', weight: '225', reps: 6 },
+      ],
+    },
+    {
+      id: 103,
+      name: 'Lunges',
+      sets: [
+        { id: 1, type: 'Working', weight: '40', reps: 12 },
+        { id: 2, type: 'Working', weight: '40', reps: 12 },
+        { id: 3, type: 'Working', weight: '45', reps: 10 },
+      ],
+    },
+  ],
+}
+
+export default function HistoryDetailPage() {
   const router = useRouter()
-  const params = useParams()
-
-  const [expandedExercise, setExpandedExercise] = useState<number | null>(null)
-  const [notes, setNotes] = useState('Great workout! Felt strong on bench press today.')
-
-  // Mock data - would normally fetch based on params.id
-  const workout = {
-    id: params.id,
-    name: 'Push Day',
-    date: 'January 15, 2026',
-    time: '2:30 PM',
-    duration: '45 min',
-    totalVolume: 4250,
-    exercises: [
-      {
-        id: 1,
-        name: 'Bench Press',
-        sets: [
-          { set: 1, weight: 60, reps: 8, completed: true },
-          { set: 2, weight: 60, reps: 8, completed: true },
-          { set: 3, weight: 60, reps: 8, completed: true },
-          { set: 4, weight: 60, reps: 8, completed: true },
-        ],
-      },
-      {
-        id: 2,
-        name: 'Incline Dumbbell Press',
-        sets: [
-          { set: 1, weight: 22.5, reps: 10, completed: true },
-          { set: 2, weight: 22.5, reps: 10, completed: true },
-          { set: 3, weight: 22.5, reps: 10, completed: true },
-        ],
-      },
-      {
-        id: 3,
-        name: 'Shoulder Press',
-        sets: [
-          { set: 1, weight: 20, reps: 10, completed: true },
-          { set: 2, weight: 20, reps: 10, completed: true },
-          { set: 3, weight: 20, reps: 10, completed: true },
-          { set: 4, weight: 20, reps: 10, completed: true },
-        ],
-      },
-      {
-        id: 4,
-        name: 'Lateral Raises',
-        sets: [
-          { set: 1, weight: 12.5, reps: 12, completed: true },
-          { set: 2, weight: 12.5, reps: 12, completed: true },
-          { set: 3, weight: 12.5, reps: 12, completed: true },
-        ],
-      },
-    ],
-  }
-
-  const handleToggleExpand = (exerciseId: number) => {
-    setExpandedExercise(expandedExercise === exerciseId ? null : exerciseId)
-  }
+  // const params = useParams() // unused for mock
 
   return (
     <Box
@@ -90,14 +77,14 @@ export default function WorkoutHistoryDetailPage() {
     >
       {/* Top AppBar */}
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
-        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', top: 0 }}
       >
         <Toolbar>
           <IconButton
             edge="start"
-            onClick={() => router.push('/history')}
+            onClick={() => router.back()}
             sx={{ color: 'text.primary', mr: 2 }}
           >
             <ArrowBack />
@@ -109,32 +96,65 @@ export default function WorkoutHistoryDetailPage() {
       </AppBar>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
-        {/* Workout Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.5 }}>
-            {workout.name}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {workout.date} • {workout.duration} • {workout.totalVolume}kg
-          </Typography>
-        </Box>
-
-        {/* Exercises List */}
-        <Box sx={{ mb: 3 }}>
+        {/* Header Summary Card */}
+        <Box sx={{ mb: 4 }}>
           <Typography
-            variant="subtitle2"
+            variant="h4"
             sx={{
-              color: 'text.secondary',
-              fontWeight: 600,
-              mb: 1.5,
+              fontWeight: '900',
+              color: 'text.primary',
+              mb: 0.5,
+              letterSpacing: '-0.02em',
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
             }}
           >
-            Exercises
+            {workoutDetails.name}
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ color: 'text.secondary', mb: 3, display: 'flex', alignItems: 'center' }}
+          >
+            <CalendarToday sx={{ fontSize: '1rem', mr: 0.8, mb: 0.2 }} />
+            {workoutDetails.date} • {workoutDetails.startTime}
           </Typography>
 
-          {workout.exercises.map((exercise) => (
+          <Box sx={{ display: 'flex', gap: 4 }}>
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
+              >
+                DURATION
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                <AccessTime sx={{ color: 'primary.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {workoutDetails.duration}
+                </Typography>
+              </Box>
+            </Box>
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
+              >
+                VOLUME
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                <FitnessCenter sx={{ color: 'primary.main', mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {workoutDetails.volume}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        <Divider sx={{ mb: 4 }} />
+
+        {/* Exercises List */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {workoutDetails.exercises.map((exercise) => (
             <Card
               key={exercise.id}
               elevation={0}
@@ -142,104 +162,111 @@ export default function WorkoutHistoryDetailPage() {
                 bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',
-                borderRadius: 1,
-                mb: 1.5,
+                borderRadius: 2,
+                overflow: 'hidden',
               }}
             >
-              <CardContent sx={{ p: 0 }}>
-                {/* Exercise Header */}
-                <Box
-                  sx={{
-                    px: 2,
-                    py: 1.5,
-                    cursor: 'pointer',
-                    '&:active': {
-                      bgcolor: 'action.selected',
-                    },
-                  }}
-                  onClick={() => handleToggleExpand(exercise.id)}
-                >
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 500 }}>
-                        {exercise.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {exercise.sets.length} sets
-                      </Typography>
-                    </Box>
-                    <IconButton size="small" sx={{ color: 'text.secondary' }}>
-                      {expandedExercise === exercise.id ? <ExpandLess /> : <ExpandMore />}
-                    </IconButton>
-                  </Box>
-                </Box>
+              <Box sx={{ p: 2, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                  {exercise.name}
+                </Typography>
+              </Box>
 
-                {/* Expanded Sets */}
-                <Collapse in={expandedExercise === exercise.id}>
-                  <Divider sx={{ bgcolor: 'divider' }} />
-                  <List sx={{ p: 0 }}>
-                    {exercise.sets.map((set, setIndex) => (
-                      <React.Fragment key={set.set}>
-                        <ListItem
-                          sx={{
-                            px: 2,
-                            py: 1,
-                          }}
+              {/* Set Table */}
+              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: 'background.paper' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          color: 'text.secondary',
+                          fontWeight: 'bold',
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          width: '20%',
+                        }}
+                      >
+                        SET
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          color: 'text.secondary',
+                          fontWeight: 'bold',
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          width: '40%',
+                        }}
+                      >
+                        WEIGHT &nbsp;
+                        <Typography variant="caption" component="span" color="text.disabled">
+                          (lbs)
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          color: 'text.secondary',
+                          fontWeight: 'bold',
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                          width: '40%',
+                        }}
+                      >
+                        REPS
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {exercise.sets.map((set, index) => (
+                      <TableRow
+                        key={set.id}
+                        sx={{
+                          '&:last-child td, &:last-child th': { border: 0 },
+                          bgcolor:
+                            set.type === 'Warmup' ? 'rgba(255, 255, 255, 0.02)' : 'transparent', // Subtle hint for warmup
+                        }}
+                      >
+                        <TableCell
+                          align="center"
+                          scope="row"
+                          sx={{ color: 'text.secondary', fontSize: '0.9rem' }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                            <Typography
-                              variant="caption"
-                              sx={{ color: 'text.secondary', width: 50 }}
+                          {index + 1}
+                          {set.type === 'Warmup' && (
+                            <Box
+                              component="span"
+                              sx={{
+                                display: 'block',
+                                fontSize: '0.65rem',
+                                color: 'text.disabled',
+                                textTransform: 'uppercase',
+                              }}
                             >
-                              Set {set.set}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
-                              {set.weight}kg × {set.reps}
-                            </Typography>
-                          </Box>
-                        </ListItem>
-                        {setIndex < exercise.sets.length - 1 && (
-                          <Divider sx={{ bgcolor: 'divider' }} />
-                        )}
-                      </React.Fragment>
+                              Warmup
+                            </Box>
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: '600', fontSize: '1rem' }}>
+                          {set.weight}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: '600', fontSize: '1rem' }}>
+                          {set.reps}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </List>
-                </Collapse>
-              </CardContent>
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Card>
           ))}
         </Box>
 
-        {/* Notes Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
-            Notes
+        <Box sx={{ mt: 6, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+            Workout Completed
           </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about this workout..."
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: 'text.primary',
-                bgcolor: 'background.paper',
-                '& fieldset': {
-                  borderColor: 'divider',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'primary.main',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'primary.main',
-                },
-              },
-            }}
-          />
         </Box>
       </Container>
     </Box>

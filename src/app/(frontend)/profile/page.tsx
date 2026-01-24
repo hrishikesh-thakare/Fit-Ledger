@@ -10,26 +10,45 @@ import {
   CardContent,
   AppBar,
   Toolbar,
-  IconButton,
   Avatar,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Divider,
+  Switch,
+  Select,
+  MenuItem,
 } from '@mui/material'
-import { Settings, MonitorWeight, ChevronRight } from '@mui/icons-material'
+import {
+  Brightness4,
+  FitnessCenter,
+  CloudDownload,
+  Edit,
+  ChevronRight,
+  History,
+  Info,
+} from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 
 export default function ProfilePage() {
   const router = useRouter()
 
+  // Settings State
+  const [_theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
+  const [units, setUnits] = useState<'kg' | 'lb'>('kg')
+  const [darkModeEnabled, setDarkModeEnabled] = useState(true)
+  const [updatePrevWeights, setUpdatePrevWeights] = useState(true)
+
+  const handleThemeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDarkModeEnabled(event.target.checked)
+    setTheme(event.target.checked ? 'dark' : 'light')
+  }
+
   // Mock data
   const user = {
     name: 'John Doe',
     email: 'john.doe@example.com',
-    totalWorkouts: 47,
-    activeDays: 23,
-    currentStreak: 7,
     joinDate: 'December 2025',
   }
 
@@ -38,7 +57,7 @@ export default function ProfilePage() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 8,
+        pb: 12, // Extra padding for bottom nav
       }}
     >
       {/* Top AppBar */}
@@ -51,17 +70,6 @@ export default function ProfilePage() {
           <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flex: 1 }}>
             Profile
           </Typography>
-          <IconButton
-            onClick={() => router.push('/settings')}
-            sx={{
-              color: 'primary.main',
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            <Settings />
-          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -77,16 +85,16 @@ export default function ProfilePage() {
             mb: 3,
           }}
         >
-          <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
             <Avatar
               sx={{
-                width: 64,
-                height: 64,
+                width: 80,
+                height: 80,
                 bgcolor: 'surfaceContainer',
                 color: 'text.secondary',
                 margin: '0 auto',
-                mb: 1.5,
-                fontSize: '1.5rem',
+                mb: 2,
+                fontSize: '2rem',
                 fontWeight: 600,
               }}
             >
@@ -95,16 +103,50 @@ export default function ProfilePage() {
                 .map((n) => n[0])
                 .join('')}
             </Avatar>
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.25 }}>
+            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5 }}>
               {user.name}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {user.email}
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              @{user.name.toLowerCase().replace(' ', '_')}
             </Typography>
+
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              Member since {user.joinDate}
+            </Typography>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Edit Profile Button (Inside Card) */}
+            <ListItem
+              onClick={() => router.push('/profile/edit')}
+              sx={{
+                cursor: 'pointer',
+                py: 1,
+                px: 2,
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+                '&:active': {
+                  bgcolor: 'action.selected',
+                },
+                justifyContent: 'center',
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <Edit sx={{ color: 'primary.main', fontSize: '1.1rem' }} />
+              </ListItemIcon>
+              <Typography
+                variant="button"
+                color="primary"
+                fontWeight="bold"
+                sx={{ textTransform: 'none' }}
+              >
+                Edit Profile
+              </Typography>
+            </ListItem>
           </CardContent>
         </Card>
 
-        {/* Stats Cards */}
+        {/* Preferences Section */}
         <Box sx={{ mb: 3 }}>
           <Typography
             variant="subtitle2"
@@ -116,79 +158,117 @@ export default function ProfilePage() {
               letterSpacing: '0.05em',
             }}
           >
-            Stats
+            Preferences
           </Typography>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.5, mb: 1.5 }}>
-            <Card
-              elevation={0}
-              sx={{
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 1,
-              }}
-            >
-              <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography
-                  variant="h5"
-                  sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}
-                >
-                  {user.totalWorkouts}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Workouts
-                </Typography>
-              </CardContent>
-            </Card>
+          <Card
+            elevation={0}
+            sx={{
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 1,
+            }}
+          >
+            <List sx={{ p: 0 }}>
+              <ListItem sx={{ py: 1.5 }}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Brightness4 sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Dark Mode"
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
+                />
+                <Switch
+                  checked={darkModeEnabled}
+                  onChange={handleThemeChange}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'primary.main',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'primary.main',
+                    },
+                  }}
+                />
+              </ListItem>
 
-            <Card
-              elevation={0}
-              sx={{
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 1,
-              }}
-            >
-              <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography
-                  variant="h5"
-                  sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}
-                >
-                  {user.activeDays}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Active Days
-                </Typography>
-              </CardContent>
-            </Card>
+              <Divider sx={{ bgcolor: 'divider' }} />
 
-            <Card
-              elevation={0}
-              sx={{
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'primary.main',
-                borderRadius: 1,
-              }}
-            >
-              <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                <Typography
-                  variant="h5"
-                  sx={{ color: 'primary.main', fontWeight: 'bold', mb: 0.25 }}
+              <ListItem sx={{ py: 1.5 }}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <FitnessCenter sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Weight Units"
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
+                />
+                <Select
+                  value={units}
+                  onChange={(e) => setUnits(e.target.value as 'kg' | 'lb')}
+                  size="small"
+                  sx={{
+                    color: 'text.primary',
+                    bgcolor: 'background.paper',
+                    fontSize: '0.9rem',
+                    height: 32,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'divider',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: 'text.secondary',
+                    },
+                  }}
                 >
-                  {user.currentStreak}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Streak
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
+                  <MenuItem value="kg">kg</MenuItem>
+                  <MenuItem value="lb">lb</MenuItem>
+                </Select>
+              </ListItem>
+
+              <Divider sx={{ bgcolor: 'divider' }} />
+
+              <ListItem sx={{ py: 1.5 }}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <History sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Update Previous Weights"
+                  secondary="Sync last performed weights to new workouts"
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
+                  secondaryTypographyProps={{
+                    sx: { color: 'text.secondary', fontSize: '0.8rem', mt: 0.5 },
+                  }}
+                />
+                <Switch
+                  checked={updatePrevWeights}
+                  onChange={(e) => setUpdatePrevWeights(e.target.checked)}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'primary.main',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'primary.main',
+                    },
+                  }}
+                />
+              </ListItem>
+            </List>
+          </Card>
         </Box>
 
-        {/* Quick Links */}
+        {/* Data Section */}
         <Box sx={{ mb: 3 }}>
           <Typography
             variant="subtitle2"
@@ -200,7 +280,7 @@ export default function ProfilePage() {
               letterSpacing: '0.05em',
             }}
           >
-            Quick Links
+            Data
           </Typography>
 
           <Card
@@ -214,7 +294,9 @@ export default function ProfilePage() {
           >
             <List sx={{ p: 0 }}>
               <ListItem
-                onClick={() => router.push('/profile/bodyweight')}
+                onClick={() => {
+                  /* UI only - would export data */
+                }}
                 sx={{
                   cursor: 'pointer',
                   py: 1.5,
@@ -224,10 +306,10 @@ export default function ProfilePage() {
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>
-                  <MonitorWeight sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                  <CloudDownload sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Bodyweight Log"
+                  primary="Export Data"
                   primaryTypographyProps={{
                     sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
                   }}
@@ -236,6 +318,65 @@ export default function ProfilePage() {
               </ListItem>
             </List>
           </Card>
+        </Box>
+
+        {/* About Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              mb: 1.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            About
+          </Typography>
+
+          <Card
+            elevation={0}
+            sx={{
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 1,
+            }}
+          >
+            <List sx={{ p: 0 }}>
+              <ListItem
+                onClick={() => {
+                  /* UI only - would show about page */
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  py: 1.5,
+                  '&:active': {
+                    bgcolor: 'action.selected',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Info sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="About FitLedger"
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
+                />
+                <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
+              </ListItem>
+            </List>
+          </Card>
+        </Box>
+
+        {/* App Version */}
+        <Box sx={{ textAlign: 'center', py: 2 }}>
+          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+            FitLedger v1.0.0
+          </Typography>
         </Box>
       </Container>
 

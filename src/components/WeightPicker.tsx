@@ -144,7 +144,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
       }}
     >
       <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Typography component="div" variant="h6" fontWeight="bold">
           Log Weight
         </Typography>
       </DialogTitle>

@@ -13,7 +13,7 @@ export default function BottomNav() {
     if (pathname === '/dashboard') return 0
     if (pathname === '/routines') return 1
     if (pathname.startsWith('/history')) return 2
-    if (pathname === '/profile/bodyweight') return 3
+    if (pathname === '/bodyweight') return 3
     if (pathname === '/profile') return 4
     return 0
   }, [pathname])
@@ -26,7 +26,7 @@ export default function BottomNav() {
 
   const handleNavChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue)
-    const routes = ['/dashboard', '/routines', '/history', '/profile/bodyweight', '/profile']
+    const routes = ['/dashboard', '/routines', '/history', '/bodyweight', '/profile']
     router.push(routes[newValue])
   }
 

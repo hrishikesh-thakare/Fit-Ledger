@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Container,
@@ -23,18 +23,15 @@ import {
 } from '@mui/material'
 import { ArrowBack, DragIndicator, Delete, Add, Edit } from '@mui/icons-material'
 
-export default function RoutineEditorPage() {
+export default function NewRoutinePage() {
   const router = useRouter()
-  const params = useParams()
 
-  const [routineName, setRoutineName] = useState('Push Day')
-  const [exercises, setExercises] = useState([
-    { id: 1, name: 'Bench Press', sets: 4, reps: '8-10' },
-    { id: 2, name: 'Incline Dumbbell Press', sets: 3, reps: '10-12' },
-    { id: 3, name: 'Shoulder Press', sets: 4, reps: '10-12' },
-    { id: 4, name: 'Lateral Raises', sets: 3, reps: '12-15' },
-    { id: 5, name: 'Tricep Pushdowns', sets: 3, reps: '12-15' },
-  ])
+  // Form State
+  const [routineName, setRoutineName] = useState('')
+  const [notes, setNotes] = useState('')
+  const [exercises, setExercises] = useState<
+    { id: number; name: string; sets: number; reps: string }[]
+  >([])
 
   // Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -49,9 +46,9 @@ export default function RoutineEditorPage() {
   const dragItem = useRef<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
 
-  const handleSave = () => {
-    // Mock save - just go back
-    router.push(`/routines/${params.id}`)
+  const handleCreate = () => {
+    console.log('Creating routine:', { name: routineName, notes, exercises })
+    router.push('/routines')
   }
 
   const handleDeleteExercise = (id: number) => {
@@ -62,6 +59,10 @@ export default function RoutineEditorPage() {
     const newId = Math.max(...exercises.map((e) => e.id), 0) + 1
     const newExercise = { id: newId, name: 'New Exercise', sets: 3, reps: '10' }
     setExercises([...exercises, newExercise])
+
+    // Auto-open edit for the new exercise
+    setEditingExercise(newExercise)
+    setEditDialogOpen(true)
   }
 
   const handleEditClick = (exercise: (typeof exercises)[0]) => {
@@ -71,10 +72,25 @@ export default function RoutineEditorPage() {
 
   const handleSaveEdit = () => {
     if (editingExercise) {
-      setExercises(exercises.map((ex) => (ex.id === editingExercise.id ? editingExercise : ex)))
+      // If it was a new exercise being added and edited immediately
+      const exists = exercises.find((ex) => ex.id === editingExercise.id)
+      if (exists) {
+        setExercises(exercises.map((ex) => (ex.id === editingExercise.id ? editingExercise : ex)))
+      } else {
+        // Fallback (safe)
+        setExercises([...exercises, editingExercise])
+      }
       setEditDialogOpen(false)
       setEditingExercise(null)
     }
+  }
+
+  // Handle cancel edit (if new, remove it)
+  const handleCancelEdit = () => {
+    // Optional: logic to remove if name is "New Exercise" and user cancelled?
+    // For now, keep it simple.
+    setEditDialogOpen(false)
+    setEditingExercise(null)
   }
 
   // Drag Handlers
@@ -123,19 +139,23 @@ export default function RoutineEditorPage() {
               letterSpacing: '0.05em',
             }}
           >
-            Editor
+            New Routine
           </Typography>
           <Button
             variant="text"
-            onClick={handleSave}
+            onClick={handleCreate}
+            disabled={!routineName.trim()}
             sx={{
               textTransform: 'none',
               fontWeight: 700,
               color: 'primary.main',
               fontSize: '1rem',
+              '&:disabled': {
+                color: 'text.disabled',
+              },
             }}
           >
-            Save
+            Create
           </Button>
         </Toolbar>
       </AppBar>
@@ -151,22 +171,22 @@ export default function RoutineEditorPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          Edit Routine
+          Create Routine
         </Typography>
 
         {/* Routine Name Field */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 3 }}>
           <Typography
             variant="caption"
             sx={{ color: 'text.secondary', fontWeight: 700, ml: 1, mb: 0.5, display: 'block' }}
           >
-            ROUTINE NAME
+            ROUTINE NAME *
           </Typography>
           <TextField
             fullWidth
             value={routineName}
             onChange={(e) => setRoutineName(e.target.value)}
-            placeholder="e.g. Pull Day"
+            placeholder="e.g. Leg Day"
             variant="outlined"
             sx={{
               '& .MuiOutlinedInput-root': {
@@ -178,7 +198,32 @@ export default function RoutineEditorPage() {
           />
         </Box>
 
-        {/* Exercises Section */}
+        {/* Notes Field */}
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', fontWeight: 700, ml: 1, mb: 0.5, display: 'block' }}
+          >
+            NOTES (OPTIONAL)
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            minRows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Description or focus..."
+            variant="outlined"
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'background.paper',
+                borderRadius: 2,
+              },
+            }}
+          />
+        </Box>
+
+        {/* Exercises Section Header */}
         <Box
           sx={{
             mb: 1.5,
@@ -205,89 +250,107 @@ export default function RoutineEditorPage() {
         </Box>
 
         {/* Exercise List */}
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 2,
-            mb: 3,
-            overflow: 'hidden',
-          }}
-        >
-          <List sx={{ p: 0 }}>
-            {exercises.map((exercise, index) => (
-              <React.Fragment key={exercise.id}>
-                <ListItem
-                  draggable
-                  onDragStart={() => (dragItem.current = index)}
-                  onDragEnter={() => (dragOverItem.current = index)}
-                  onDragEnd={handleSort}
-                  onDragOver={(e) => e.preventDefault()}
-                  sx={{
-                    px: 2,
-                    py: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    bgcolor: 'background.paper',
-                    cursor: 'grab',
-                    '&:active': { cursor: 'grabbing' },
-                  }}
-                >
-                  {/* Drag Handle */}
-                  <DragIndicator sx={{ color: 'action.active', opacity: 0.5 }} />
-
-                  {/* Exercise Custom Number/Badge */}
-                  <Box
+        {exercises.length > 0 ? (
+          <Card
+            elevation={0}
+            sx={{
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 2,
+              mb: 3,
+              overflow: 'hidden',
+            }}
+          >
+            <List sx={{ p: 0 }}>
+              {exercises.map((exercise, index) => (
+                <React.Fragment key={exercise.id}>
+                  <ListItem
+                    draggable
+                    onDragStart={() => (dragItem.current = index)}
+                    onDragEnter={() => (dragOverItem.current = index)}
+                    onDragEnd={handleSort}
+                    onDragOver={(e) => e.preventDefault()}
                     sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: 'primary.main',
-                      flexShrink: 0,
+                      px: 2,
+                      py: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      bgcolor: 'background.paper',
+                      cursor: 'grab',
+                      '&:active': { cursor: 'grabbing' },
                     }}
-                  />
+                  >
+                    {/* Drag Handle */}
+                    <DragIndicator sx={{ color: 'action.active', opacity: 0.5 }} />
 
-                  {/* Exercise Details */}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 700 }}>
-                      {exercise.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'text.secondary', fontSize: '0.85rem', fontWeight: 500 }}
-                    >
-                      {exercise.sets} Sets × {exercise.reps} Reps
-                    </Typography>
-                  </Box>
+                    {/* Exercise Custom Number/Badge */}
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: 'primary.main',
+                        flexShrink: 0,
+                      }}
+                    />
 
-                  {/* Actions */}
-                  <Box sx={{ display: 'flex' }}>
-                    <IconButton
-                      size="small"
-                      sx={{ color: 'text.secondary' }}
-                      onClick={() => handleEditClick(exercise)}
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      sx={{ color: 'error.main', opacity: 0.8 }}
-                      onClick={() => handleDeleteExercise(exercise.id)}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </ListItem>
-                {index < exercises.length - 1 && (
-                  <Divider sx={{ borderColor: 'divider', opacity: 0.5 }} />
-                )}
-              </React.Fragment>
-            ))}
-          </List>
-        </Card>
+                    {/* Exercise Details */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 700 }}>
+                        {exercise.name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', fontSize: '0.85rem', fontWeight: 500 }}
+                      >
+                        {exercise.sets} Sets × {exercise.reps} Reps
+                      </Typography>
+                    </Box>
+
+                    {/* Actions */}
+                    <Box sx={{ display: 'flex' }}>
+                      <IconButton
+                        size="small"
+                        sx={{ color: 'text.secondary' }}
+                        onClick={() => handleEditClick(exercise)}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        sx={{ color: 'error.main', opacity: 0.8 }}
+                        onClick={() => handleDeleteExercise(exercise.id)}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </ListItem>
+                  {index < exercises.length - 1 && (
+                    <Divider sx={{ borderColor: 'divider', opacity: 0.5 }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </List>
+          </Card>
+        ) : (
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 4,
+              mb: 3,
+              bgcolor: 'background.paper',
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              No exercises added yet.
+            </Typography>
+          </Box>
+        )}
 
         {/* Add Exercise Button */}
         <Button
@@ -314,22 +377,10 @@ export default function RoutineEditorPage() {
         >
           Add Exercise
         </Button>
-
-        {/* Helper Text */}
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" sx={{ color: 'text.disabled', fontSize: '0.8rem' }}>
-            Drag to reorder • Tap pencil to edit details
-          </Typography>
-        </Box>
       </Container>
 
       {/* Edit Dialog */}
-      <Dialog
-        open={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        fullWidth
-        maxWidth="xs"
-      >
+      <Dialog open={editDialogOpen} onClose={handleCancelEdit} fullWidth maxWidth="xs">
         <DialogTitle>Edit Exercise</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -340,6 +391,7 @@ export default function RoutineEditorPage() {
               onChange={(e) =>
                 setEditingExercise((prev) => (prev ? { ...prev, name: e.target.value } : null))
               }
+              autoFocus
             />
             <Stack direction="row" spacing={2}>
               <TextField
@@ -365,7 +417,7 @@ export default function RoutineEditorPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCancelEdit}>Cancel</Button>
           <Button onClick={handleSaveEdit} variant="contained">
             Save
           </Button>
