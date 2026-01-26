@@ -11,10 +11,15 @@ import {
   Toolbar,
   Button,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Divider,
+  Stack,
+  Chip,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -23,36 +28,98 @@ import {
   AccessTime,
   FormatListBulleted,
   FitnessCenter,
+  DeleteOutline,
 } from '@mui/icons-material'
+
+type SetType = 'N' | 'W' | 'D' | 'F'
+
+interface RoutineSet {
+  id: string
+  type: SetType
+  weight: string
+  reps: string
+}
+
+interface Exercise {
+  id: string
+  name: string
+  sets: RoutineSet[]
+}
 
 export default function RoutineDetailPage() {
   const router = useRouter()
   const params = useParams()
 
-  // Mock data - would normally fetch based on params.id
+  // Mock data - structured to match new data model
   const routine = {
     id: params.id,
     name: 'Push Day',
     description: 'Chest, Shoulders, Triceps focus for hypertrophy.',
     duration: '45-60 min',
     exercises: [
-      { id: 1, name: 'Bench Press', sets: 4, reps: '8-10', restSeconds: 90 },
-      { id: 2, name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', restSeconds: 60 },
-      { id: 3, name: 'Shoulder Press', sets: 4, reps: '10-12', restSeconds: 60 },
-      { id: 4, name: 'Lateral Raises', sets: 3, reps: '12-15', restSeconds: 45 },
-      { id: 5, name: 'Tricep Pushdowns', sets: 3, reps: '12-15', restSeconds: 45 },
-      { id: 6, name: 'Overhead Tricep Extension', sets: 3, reps: '10-12', restSeconds: 45 },
+      {
+        id: '1',
+        name: 'Bench Press',
+        sets: [
+          { id: '1-1', type: 'W' as SetType, weight: '40', reps: '15' },
+          { id: '1-2', type: 'W' as SetType, weight: '60', reps: '10' },
+          { id: '1-3', type: 'N' as SetType, weight: '80', reps: '8' },
+          { id: '1-4', type: 'N' as SetType, weight: '80', reps: '8' },
+          { id: '1-5', type: 'N' as SetType, weight: '80', reps: '8' },
+        ],
+      },
+      {
+        id: '2',
+        name: 'Incline Dumbbell Press',
+        sets: [
+          { id: '2-1', type: 'N' as SetType, weight: '30', reps: '10' },
+          { id: '2-2', type: 'N' as SetType, weight: '30', reps: '10' },
+          { id: '2-3', type: 'N' as SetType, weight: '30', reps: '10' },
+        ],
+      },
+      {
+        id: '3',
+        name: 'Shoulder Press',
+        sets: [
+          { id: '3-1', type: 'N' as SetType, weight: '40', reps: '12' },
+          { id: '3-2', type: 'N' as SetType, weight: '40', reps: '12' },
+          { id: '3-3', type: 'N' as SetType, weight: '40', reps: '12' },
+          { id: '3-4', type: 'D' as SetType, weight: '20', reps: '15' },
+        ],
+      },
+      {
+        id: '4',
+        name: 'Lateral Raises',
+        sets: [
+          { id: '4-1', type: 'N' as SetType, weight: '12', reps: '15' },
+          { id: '4-2', type: 'N' as SetType, weight: '12', reps: '15' },
+          { id: '4-3', type: 'F' as SetType, weight: '12', reps: '20' },
+        ],
+      },
     ],
   }
 
-  const totalSets = routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)
+  const totalSets = routine.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
+
+  // Helper for numbering sets logic
+  const getSetLabel = (sets: RoutineSet[], currentIndex: number) => {
+    const currentSet = sets[currentIndex]
+    if (currentSet.type !== 'N') return currentSet.type
+
+    // Count how many 'N' sets appear before this one
+    let normalCount = 0
+    for (let i = 0; i <= currentIndex; i++) {
+      if (sets[i].type === 'N') normalCount++
+    }
+    return normalCount
+  }
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 4,
+        pb: 12,
       }}
     >
       {/* Top AppBar */}
@@ -177,117 +244,156 @@ export default function RoutineDetailPage() {
           Workout Plan
         </Typography>
 
-        <Card
-          elevation={0}
-          sx={{
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 2,
-            mb: 4,
-            overflow: 'hidden',
-          }}
-        >
-          <List sx={{ p: 0 }}>
-            {routine.exercises.map((exercise, index) => (
-              <React.Fragment key={exercise.id}>
-                <ListItem
-                  sx={{
-                    px: 2.5,
-                    py: 2,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 1,
-                      bgcolor: 'action.hover',
-                      border: 1,
-                      borderColor: 'divider',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mr: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
-                      {index + 1}
-                    </Typography>
-                  </Box>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ color: 'text.primary', fontWeight: 700, mb: 0.5 }}
-                      >
-                        {exercise.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: 'text.secondary',
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                          }}
-                        >
-                          <FitnessCenter sx={{ fontSize: '0.8rem' }} /> {exercise.sets} Sets
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'text.secondary', fontWeight: 500 }}
-                        >
-                          {exercise.reps} Reps
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'text.secondary', fontWeight: 500, opacity: 0.7 }}
-                        >
-                          {exercise.restSeconds}s Rest
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                </ListItem>
-                {index < routine.exercises.length - 1 && (
-                  <Divider sx={{ borderColor: 'divider', opacity: 0.5 }} />
-                )}
-              </React.Fragment>
-            ))}
-          </List>
-        </Card>
+        <Stack spacing={2}>
+          {routine.exercises.map((exercise) => (
+            <Card
+              key={exercise.id}
+              elevation={0}
+              sx={{
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Exercise Header */}
+              <Box
+                sx={{
+                  p: 2,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  bgcolor: 'background.default',
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {exercise.name}
+                </Typography>
+              </Box>
 
-        {/* Start Workout Button */}
-        <Button
-          fullWidth
-          variant="contained"
-          size="large"
-          startIcon={<PlayArrow />}
-          onClick={() => router.push('/workout')}
-          sx={{
-            py: 2,
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            textTransform: 'none',
-            borderRadius: 3,
-            boxShadow: 4,
-            '&:hover': {
-              bgcolor: 'primary.dark',
-              boxShadow: 6,
-            },
-          }}
-        >
-          Start Workout
-        </Button>
+              {/* Sets Table */}
+              <TableContainer sx={{ bgcolor: 'transparent' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell
+                        align="center"
+                        width="20%"
+                        sx={{
+                          borderBottomColor: 'divider',
+                          color: 'text.secondary',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Set
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        width="40%"
+                        sx={{
+                          borderBottomColor: 'divider',
+                          color: 'text.secondary',
+                          fontWeight: 600,
+                        }}
+                      >
+                        kg
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        width="40%"
+                        sx={{
+                          borderBottomColor: 'divider',
+                          color: 'text.secondary',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Reps
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {exercise.sets.map((set, index) => (
+                      <TableRow
+                        key={set.id}
+                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                      >
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              minWidth: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              color: set.type === 'N' ? 'text.secondary' : 'white',
+                              bgcolor:
+                                set.type === 'N'
+                                  ? 'action.hover'
+                                  : set.type === 'W'
+                                    ? 'warning.main'
+                                    : 'error.main',
+                            }}
+                          >
+                            {getSetLabel(exercise.sets, index)}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                          {set.weight || '-'}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 600 }}>
+                          {set.reps || '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
+          ))}
+        </Stack>
       </Container>
+
+      {/* Start Workout Button (Bottom Sticky) */}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          p: 2,
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+          zIndex: 1100,
+        }}
+      >
+        <Container maxWidth="sm" disableGutters>
+          <Button
+            fullWidth
+            variant="contained"
+            size="large"
+            startIcon={<PlayArrow />}
+            onClick={() => router.push('/workout')}
+            sx={{
+              py: 1.5,
+              fontWeight: 700,
+              fontSize: '1rem',
+              borderRadius: 2,
+              boxShadow: 4,
+              '&:hover': {
+                boxShadow: 6,
+              },
+            }}
+          >
+            Start Workout
+          </Button>
+        </Container>
+      </Box>
     </Box>
   )
 }
