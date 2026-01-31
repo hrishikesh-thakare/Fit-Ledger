@@ -26,7 +26,6 @@ import {
   CloudDownload,
   Edit,
   ChevronRight,
-  History,
   Info,
 } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
@@ -38,7 +37,6 @@ export default function ProfilePage() {
   const [_theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
   const [darkModeEnabled, setDarkModeEnabled] = useState(true)
-  const [updatePrevWeights, setUpdatePrevWeights] = useState(true)
 
   const handleThemeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setDarkModeEnabled(event.target.checked)
@@ -233,36 +231,6 @@ export default function ProfilePage() {
                   <MenuItem value="kg">kg</MenuItem>
                   <MenuItem value="lb">lb</MenuItem>
                 </Select>
-              </ListItem>
-
-              <Divider sx={{ bgcolor: 'divider' }} />
-
-              <ListItem sx={{ py: 1.5 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <History sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Update Previous Weights"
-                  secondary="Sync last performed weights to new workouts"
-                  primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
-                  }}
-                  secondaryTypographyProps={{
-                    sx: { color: 'text.secondary', fontSize: '0.8rem', mt: 0.5 },
-                  }}
-                />
-                <Switch
-                  checked={updatePrevWeights}
-                  onChange={(e) => setUpdatePrevWeights(e.target.checked)}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: 'primary.main',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: 'primary.main',
-                    },
-                  }}
-                />
               </ListItem>
             </List>
           </Card>

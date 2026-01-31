@@ -138,7 +138,7 @@ export default function HistoryPage() {
           zIndex: 1100,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar>
           <Typography
             variant="h6"
             sx={{
@@ -146,6 +146,7 @@ export default function HistoryPage() {
               fontWeight: 900,
               letterSpacing: '0.05em',
               textTransform: 'uppercase',
+              flexGrow: 1,
             }}
           >
             History

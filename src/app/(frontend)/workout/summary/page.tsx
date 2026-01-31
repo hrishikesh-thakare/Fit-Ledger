@@ -1,23 +1,26 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
   Container,
   Typography,
   Card,
-  CardContent,
   AppBar,
   Toolbar,
   Button,
   List,
   ListItem,
   Divider,
+  Stack,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 
 export default function WorkoutSummaryPage() {
   const router = useRouter()
+  const [updatePrevWeights, setUpdatePrevWeights] = useState(true)
 
   const workoutData = {
     duration: '45:32',
@@ -32,6 +35,8 @@ export default function WorkoutSummaryPage() {
   }
 
   const handleSave = () => {
+    // Logic to save workout and optionally update previous weights
+    console.log('Saving workout, update weights:', updatePrevWeights)
     router.push('/dashboard')
   }
 
@@ -54,27 +59,35 @@ export default function WorkoutSummaryPage() {
         sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
       >
         <Toolbar>
-          <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
-              Workout Complete! 🎉
-            </Typography>
-          </Box>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.primary',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em',
+              fontSize: '1rem',
+              flexGrow: 1,
+            }}
+          >
+            Workout Complete
+          </Typography>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.5 }}>
-            Workout Complete
+        <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+            Good Job! 🎉
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Review your session
+          <Typography variant="body2" color="text.secondary">
+            You crushed your chest day session.
           </Typography>
         </Box>
 
         {/* Stats Cards */}
-        <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <Card
             elevation={0}
             sx={{
@@ -82,17 +95,20 @@ export default function WorkoutSummaryPage() {
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
+              p: 2,
+              textAlign: 'center',
             }}
           >
-            <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}>
-                {workoutData.duration}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Duration
-              </Typography>
-            </CardContent>
+            <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, mb: 0 }}>
+              {workoutData.duration}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+            >
+              Duration
+            </Typography>
           </Card>
 
           <Card
@@ -102,97 +118,116 @@ export default function WorkoutSummaryPage() {
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
+              p: 2,
+              textAlign: 'center',
             }}
           >
-            <CardContent sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 0.25 }}>
-                {workoutData.totalVolume}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Volume (kg)
-              </Typography>
-            </CardContent>
+            <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, mb: 0 }}>
+              {workoutData.totalVolume}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+            >
+              Volume (kg)
+            </Typography>
           </Card>
         </Box>
 
         {/* Exercises Summary */}
-        <Box sx={{ mb: 3 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 600,
-              mb: 1.5,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
-            Exercises
-          </Typography>
+        <Stack spacing={2} sx={{ mb: 4 }}>
+          {workoutData.exercises.map((exercise, index) => (
+            <Card
+              key={exercise.id}
+              elevation={0}
+              sx={{
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1,
+                    bgcolor: 'surfaceContainerHighest',
+                    color: 'text.secondary',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mr: 2,
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  {index + 1}
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                    {exercise.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                    {exercise.sets} sets • {exercise.weight} best
+                  </Typography>
+                </Box>
+              </Box>
+            </Card>
+          ))}
+        </Stack>
 
+        {/* Settings & Actions */}
+        <Box sx={{ mb: 3 }}>
           <Card
             elevation={0}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
+              mb: 3,
+              p: 2,
             }}
           >
-            <CardContent sx={{ p: 0 }}>
-              <List sx={{ p: 0 }}>
-                {workoutData.exercises.map((exercise, index) => (
-                  <React.Fragment key={exercise.id}>
-                    <ListItem
-                      sx={{
-                        px: 2,
-                        py: 1.25,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '4px',
-                          bgcolor: 'surfaceContainer',
-                          border: 1,
-                          borderColor: 'divider',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: 1.5,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.7rem' }}
-                        >
-                          {index + 1}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
-                          {exercise.name}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {exercise.sets} sets × {exercise.weight}
-                        </Typography>
-                      </Box>
-                    </ListItem>
-                    {index < workoutData.exercises.length - 1 && (
-                      <Divider sx={{ bgcolor: 'divider' }} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </List>
-            </CardContent>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={updatePrevWeights}
+                  onChange={(e) => setUpdatePrevWeights(e.target.checked)}
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'primary.main',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'primary.main',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>
+                    Update Previous Weights
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Sync last performed weights to new workouts
+                  </Typography>
+                </Box>
+              }
+              sx={{
+                width: '100%',
+                ml: 0,
+                justifyContent: 'space-between',
+                flexDirection: 'row-reverse',
+                m: 0,
+              }}
+            />
           </Card>
-        </Box>
 
-        {/* Action Buttons */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Button
             fullWidth
             variant="contained"
@@ -200,42 +235,31 @@ export default function WorkoutSummaryPage() {
             onClick={handleSave}
             sx={{
               py: 1.5,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: '1rem',
-              textTransform: 'none',
-              borderRadius: 1,
-              boxShadow: 'none',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-                boxShadow: 'none',
-              },
+              borderRadius: 2,
+              mb: 2,
             }}
           >
             Save Workout
           </Button>
 
-          <Button
-            fullWidth
-            variant="text"
-            size="large"
-            onClick={handleDiscard}
-            sx={{
-              py: 1.5,
-              color: 'text.secondary',
-              fontWeight: 500,
-              fontSize: '0.9rem',
-              textTransform: 'none',
-              borderRadius: 1,
-              '&:hover': {
-                color: 'text.primary',
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            Discard
-          </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              color="error"
+              size="large"
+              onClick={handleDiscard}
+              sx={{
+                fontWeight: 600,
+                px: 4,
+                borderRadius: 2,
+                boxShadow: 'none',
+              }}
+            >
+              Discard
+            </Button>
+          </Box>
         </Box>
       </Container>
     </Box>

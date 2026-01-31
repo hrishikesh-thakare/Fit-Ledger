@@ -17,7 +17,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  Drawer,
+  SwipeableDrawer,
   Stack,
   Divider,
   Chip,
@@ -45,6 +45,7 @@ import {
   MoreVert,
   DragHandle,
 } from '@mui/icons-material'
+import DrawerHandle from '@/components/ui/DrawerHandle'
 
 // dnd-kit imports
 import {
@@ -375,8 +376,14 @@ export default function EditRoutinePage() {
           justifyContent: 'center',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => router.back()}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="back"
+            onClick={() => router.back()}
+            sx={{ mr: 2 }}
+          >
             <ArrowBack />
           </IconButton>
 
@@ -388,6 +395,7 @@ export default function EditRoutinePage() {
               letterSpacing: '0.02em',
               textTransform: 'uppercase',
               fontSize: '1rem',
+              flexGrow: 1,
             }}
           >
             Edit Routine
@@ -611,7 +619,11 @@ export default function EditRoutinePage() {
                                     handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)
                                   }
                                   inputProps={{
-                                    style: { textAlign: 'center', fontWeight: 600 },
+                                    style: {
+                                      textAlign: 'center',
+                                      fontWeight: 600,
+                                      fontFamily: 'var(--font-mono)',
+                                    },
                                     inputMode: 'decimal',
                                   }}
                                   InputProps={{ disableUnderline: true }}
@@ -627,7 +639,11 @@ export default function EditRoutinePage() {
                                     handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)
                                   }
                                   inputProps={{
-                                    style: { textAlign: 'center', fontWeight: 600 },
+                                    style: {
+                                      textAlign: 'center',
+                                      fontWeight: 600,
+                                      fontFamily: 'var(--font-mono)',
+                                    },
                                     inputMode: 'numeric',
                                   }}
                                   InputProps={{ disableUnderline: true }}
@@ -701,10 +717,12 @@ export default function EditRoutinePage() {
       </Box>
 
       {/* Add Exercise Drawer */}
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={openExerciseDrawer}
         onClose={() => setOpenExerciseDrawer(false)}
+        onOpen={() => setOpenExerciseDrawer(true)}
+        disableSwipeToOpen={false}
         PaperProps={{
           sx: {
             height: '85vh',
@@ -713,6 +731,7 @@ export default function EditRoutinePage() {
           },
         }}
       >
+        <DrawerHandle />
         {/* Drawer Header */}
         <Box sx={{ px: 2, py: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Box
@@ -772,13 +791,15 @@ export default function EditRoutinePage() {
             ))}
           </List>
         </Box>
-      </Drawer>
+      </SwipeableDrawer>
 
       {/* Set Options Drawer */}
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={!!activeSet}
         onClose={() => setActiveSet(null)}
+        onOpen={() => {}}
+        disableSwipeToOpen={true}
         PaperProps={{
           sx: {
             borderTopLeftRadius: 16,
@@ -786,49 +807,72 @@ export default function EditRoutinePage() {
           },
         }}
       >
+        <DrawerHandle />
         <Box sx={{ pb: 3 }}>
           <Box
             sx={{
-              px: 2,
-              py: 2,
-              borderBottom: 1,
-              borderColor: 'divider',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              px: 3,
+              mb: 3,
+              borderBottom: 1,
+              borderColor: 'divider',
+              pb: 2,
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Typography variant="h6" fontWeight="700">
               Set Options
             </Typography>
             <IconButton onClick={() => setActiveSet(null)} size="small">
               <Close />
             </IconButton>
           </Box>
-          <List>
-            {(Object.keys(SET_TYPE_LABELS) as SetType[]).map((type) => (
-              <ListItemButton key={type} onClick={() => handleChangeSetType(type)}>
-                <ListItemText
-                  primary={SET_TYPE_LABELS[type]}
-                  primaryTypographyProps={{ fontWeight: 500 }}
-                />
-                {currentActiveSet?.type === type && <Check color="primary" />}
-              </ListItemButton>
-            ))}
-            <Divider sx={{ my: 1 }} />
-            <ListItemButton
-              onClick={handleRemoveSet}
-              disabled={exercises.find((ex) => ex.id === activeSet?.exerciseId)?.sets.length === 1}
-            >
+
+          <Stack spacing={0}>
+            <ListItemButton onClick={() => handleChangeSetType('N')} sx={{ px: 3, py: 2 }}>
               <ListItemText
-                primary="Delete Set"
-                primaryTypographyProps={{ color: 'error.main', fontWeight: 600 }}
+                primary="Normal Set"
+                secondary="Standard weight and reps"
+                primaryTypographyProps={{ fontWeight: 600 }}
               />
-              <DeleteOutline color="error" />
+              {currentActiveSet?.type === 'N' && <Check color="primary" />}
             </ListItemButton>
-          </List>
+            <Divider variant="middle" />
+            <ListItemButton onClick={() => handleChangeSetType('W')} sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary="Warm Up"
+                secondary="Lighter weight to prepare"
+                primaryTypographyProps={{ fontWeight: 600 }}
+              />
+              {currentActiveSet?.type === 'W' && <Check color="primary" />}
+            </ListItemButton>
+            <Divider variant="middle" />
+            <ListItemButton onClick={() => handleChangeSetType('D')} sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary="Drop Set"
+                secondary="Lower weight immediately after"
+                primaryTypographyProps={{ fontWeight: 600 }}
+              />
+              {currentActiveSet?.type === 'D' && <Check color="primary" />}
+            </ListItemButton>
+            <Divider variant="middle" />
+            <ListItemButton onClick={() => handleChangeSetType('F')} sx={{ px: 3, py: 2 }}>
+              <ListItemText
+                primary="Failure"
+                secondary="Until you can't lift anymore"
+                primaryTypographyProps={{ fontWeight: 600 }}
+              />
+              {currentActiveSet?.type === 'F' && <Check color="primary" />}
+            </ListItemButton>
+            <Divider variant="middle" />
+            <ListItemButton onClick={handleRemoveSet} sx={{ px: 3, py: 2, color: 'error.main' }}>
+              <ListItemText primary="Delete Set" primaryTypographyProps={{ fontWeight: 700 }} />
+              <DeleteOutline />
+            </ListItemButton>
+          </Stack>
         </Box>
-      </Drawer>
+      </SwipeableDrawer>
 
       {/* Reorder Dialog - using dnd-kit */}
       <Dialog

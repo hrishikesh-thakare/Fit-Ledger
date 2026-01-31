@@ -15,6 +15,7 @@ import {
   ListItem,
   Divider,
   Chip,
+  Fab,
 } from '@mui/material'
 import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
@@ -76,13 +77,10 @@ export default function BodyweightLogPage() {
           zIndex: 1100,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar>
           <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
             Bodyweight Log
           </Typography>
-          <IconButton onClick={() => setIsPickerOpen(true)} color="primary">
-            <Add />
-          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -214,6 +212,21 @@ export default function BodyweightLogPage() {
           </Card>
         </Box>
       </Container>
+
+      <Fab
+        color="primary"
+        aria-label="add"
+        onClick={() => setIsPickerOpen(true)}
+        sx={{
+          position: 'fixed',
+          bottom: 80,
+          right: 16,
+          zIndex: 1200,
+        }}
+      >
+        <Add />
+      </Fab>
+
       <BottomNav />
     </Box>
   )

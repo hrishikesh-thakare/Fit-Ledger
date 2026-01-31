@@ -1,7 +1,8 @@
 /* Minimal custom styles - most styling handled by MUI theme */
 
 :root {
-  --font-mono: 'Roboto Mono', monospace;
+  --font-mono: var(--font-roboto-mono);
+  --font-sans: var(--font-roboto);
 }
 
 /* Reset handled by MuiCssBaseline in theme */

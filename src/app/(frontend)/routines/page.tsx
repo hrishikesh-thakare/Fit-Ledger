@@ -21,6 +21,7 @@ import {
   FormatListBulleted,
 } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
+import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
 
 // Mock Data
 const routines = [
@@ -68,6 +69,14 @@ const routines = [
 
 export default function RoutinesPage() {
   const router = useRouter()
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <Box
@@ -88,7 +97,7 @@ export default function RoutinesPage() {
           zIndex: 1100,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar>
           <Typography
             variant="h6"
             sx={{
@@ -130,110 +139,121 @@ export default function RoutinesPage() {
             New Routine
           </Button>
         </Box>
-        {/* Routines List */}
-        {routines.map((routine) => (
-          <Card
-            key={routine.id}
-            elevation={0}
-            onClick={() => router.push(`/routines/${routine.id}`)}
-            sx={{
-              bgcolor: 'background.paper',
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: 2,
-              mb: 1.5,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              '&:active': {
-                bgcolor: 'action.selected',
-              },
-            }}
-          >
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-              {/* Header: Name + Arrow */}
-              <Box
+
+        {loading ? (
+          <>
+            <RoutineCardSkeleton />
+            <RoutineCardSkeleton />
+            <RoutineCardSkeleton />
+          </>
+        ) : (
+          <>
+            {/* Routines List */}
+            {routines.map((routine) => (
+              <Card
+                key={routine.id}
+                elevation={0}
+                onClick={() => router.push(`/routines/${routine.id}`)}
                 sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mb: 0.5,
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  mb: 1.5,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  '&:active': {
+                    bgcolor: 'action.selected',
+                  },
                 }}
               >
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 800,
-                    color: 'text.primary',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  {routine.name}
+                <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                  {/* Header: Name + Arrow */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 0.5,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 800,
+                        color: 'text.primary',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {routine.name}
+                    </Typography>
+                    <ChevronRight sx={{ color: 'text.disabled' }} />
+                  </Box>
+
+                  {/* Description */}
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
+                    {routine.description}
+                  </Typography>
+
+                  <Divider sx={{ borderColor: 'divider', mb: 2.5, opacity: 0.5 }} />
+
+                  {/* Metrics Row */}
+                  <Box sx={{ display: 'flex', gap: 4 }}>
+                    {/* Exercises */}
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <FormatListBulleted sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                        <Typography
+                          variant="caption"
+                          sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}
+                        >
+                          EXERCISES
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                        {routine.exerciseCount}
+                      </Typography>
+                    </Box>
+
+                    {/* Duration */}
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <AccessTime sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                        <Typography
+                          variant="caption"
+                          sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}
+                        >
+                          EST. TIME
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                        {routine.duration}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Empty state if needed */}
+            {routines.length === 0 && (
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  py: 8,
+                }}
+              >
+                <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                  No routines yet
                 </Typography>
-                <ChevronRight sx={{ color: 'text.disabled' }} />
+                <Typography variant="body2" color="text.disabled">
+                  Create your first workout routine to get started
+                </Typography>
               </Box>
-
-              {/* Description */}
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                {routine.description}
-              </Typography>
-
-              <Divider sx={{ borderColor: 'divider', mb: 2.5, opacity: 0.5 }} />
-
-              {/* Metrics Row */}
-              <Box sx={{ display: 'flex', gap: 4 }}>
-                {/* Exercises */}
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                    <FormatListBulleted sx={{ fontSize: '1rem', color: 'primary.main' }} />
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}
-                    >
-                      EXERCISES
-                    </Typography>
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                    {routine.exerciseCount}
-                  </Typography>
-                </Box>
-
-                {/* Duration */}
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                    <AccessTime sx={{ fontSize: '1rem', color: 'primary.main' }} />
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.05em' }}
-                    >
-                      EST. TIME
-                    </Typography>
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                    {routine.duration}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
-
-        {/* Empty state if needed */}
-        {routines.length === 0 && (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 8,
-            }}
-          >
-            <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-              No routines yet
-            </Typography>
-            <Typography variant="body2" color="text.disabled">
-              Create your first workout routine to get started
-            </Typography>
-          </Box>
+            )}
+          </>
         )}
       </Container>
 

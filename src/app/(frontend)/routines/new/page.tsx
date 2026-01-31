@@ -17,7 +17,7 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  Drawer,
+  SwipeableDrawer,
   Stack,
   Divider,
   Chip,
@@ -37,6 +37,7 @@ import {
   FitnessCenter,
   Check,
 } from '@mui/icons-material'
+import DrawerHandle from '@/components/ui/DrawerHandle'
 
 type SetType = 'N' | 'W' | 'D' | 'F'
 
@@ -215,8 +216,14 @@ export default function NewRoutinePage() {
           justifyContent: 'center',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <IconButton edge="start" color="inherit" aria-label="back" onClick={() => router.back()}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="back"
+            onClick={() => router.back()}
+            sx={{ mr: 2 }}
+          >
             <ArrowBack />
           </IconButton>
 
@@ -228,13 +235,11 @@ export default function NewRoutinePage() {
               letterSpacing: '0.02em',
               textTransform: 'uppercase',
               fontSize: '1rem',
+              flexGrow: 1,
             }}
           >
             Create Routine
           </Typography>
-
-          {/* Spacer for centering logic if needed, or empty box since Button moved */}
-          <Box sx={{ width: 48 }} />
         </Toolbar>
       </AppBar>
 
@@ -431,7 +436,11 @@ export default function NewRoutinePage() {
                                     handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)
                                   }
                                   inputProps={{
-                                    style: { textAlign: 'center', fontWeight: 600 },
+                                    style: {
+                                      textAlign: 'center',
+                                      fontWeight: 600,
+                                      fontFamily: 'var(--font-mono)',
+                                    },
                                     inputMode: 'decimal',
                                   }}
                                   InputProps={{ disableUnderline: true }}
@@ -447,7 +456,11 @@ export default function NewRoutinePage() {
                                     handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)
                                   }
                                   inputProps={{
-                                    style: { textAlign: 'center', fontWeight: 600 },
+                                    style: {
+                                      textAlign: 'center',
+                                      fontWeight: 600,
+                                      fontFamily: 'var(--font-mono)',
+                                    },
                                     inputMode: 'numeric',
                                   }}
                                   InputProps={{ disableUnderline: true }}
@@ -520,10 +533,12 @@ export default function NewRoutinePage() {
       </Box>
 
       {/* Add Exercise Drawer */}
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={openExerciseDrawer}
         onClose={() => setOpenExerciseDrawer(false)}
+        onOpen={() => setOpenExerciseDrawer(true)}
+        disableSwipeToOpen={false}
         PaperProps={{
           sx: {
             height: '85vh',
@@ -532,6 +547,7 @@ export default function NewRoutinePage() {
           },
         }}
       >
+        <DrawerHandle />
         {/* Drawer Header */}
         <Box sx={{ px: 2, py: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Box
@@ -591,13 +607,15 @@ export default function NewRoutinePage() {
             ))}
           </List>
         </Box>
-      </Drawer>
+      </SwipeableDrawer>
 
       {/* Set Options Drawer */}
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={!!activeSet}
         onClose={() => setActiveSet(null)}
+        onOpen={() => {}}
+        disableSwipeToOpen={true}
         PaperProps={{
           sx: {
             borderTopLeftRadius: 16,
@@ -605,6 +623,7 @@ export default function NewRoutinePage() {
           },
         }}
       >
+        <DrawerHandle />
         <Box sx={{ pb: 3 }}>
           <Box
             sx={{
@@ -647,7 +666,7 @@ export default function NewRoutinePage() {
             </ListItemButton>
           </List>
         </Box>
-      </Drawer>
+      </SwipeableDrawer>
     </Box>
   )
 }
