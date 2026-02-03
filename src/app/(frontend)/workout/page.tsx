@@ -282,7 +282,7 @@ export default function WorkoutLoggingPage() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 12, // Space for bottom button
+        pb: 4, // Standard padding
       }}
     >
       {/* Top AppBar */}
@@ -315,10 +315,6 @@ export default function WorkoutLoggingPage() {
           >
             Log Workout
           </Typography>
-
-          <Button variant="text" sx={{ fontWeight: 600 }} onClick={handleFinishWorkout}>
-            Finish
-          </Button>
         </Toolbar>
       </AppBar>
 
@@ -347,92 +343,135 @@ export default function WorkoutLoggingPage() {
           <Box
             sx={{
               position: 'fixed',
-              bottom: 90, // Adjusted margin
-              left: 16,
-              right: 16,
-              bgcolor: '#1a1a1a', // Dark modern background
+              bottom: 0,
+              left: 0,
+              right: 0,
+              bgcolor: '#1e1e1e', // Dark background matching the image
               color: 'white',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)', // Deep shadow
-              borderRadius: 4,
-              p: 2.5,
               zIndex: 1200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              border: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
+              pb: 'safe-area-inset-bottom', // Handle safe area
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+            {/* Progress Bar Line */}
+            <Box
+              sx={{
+                height: 2,
+                width: '100%',
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                position: 'relative',
+              }}
+            >
               <Box
                 sx={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  height: '100%',
+                  bgcolor: 'primary.main',
+                  width: `${(remainingRest / activeRestTimer.duration) * 100}%`,
+                  transition: 'width 0.2s linear',
+                }}
+              />
+            </Box>
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 2,
+                py: 2,
+                gap: 2,
+              }}
+            >
+              {/* -15s Button */}
+              <Button
+                variant="contained"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setActiveRestTimer((prev) =>
+                    prev ? { ...prev, endTime: prev.endTime - 15000 } : null,
+                  )
+                  setRemainingRest((prev) => Math.max(0, prev - 15))
+                }}
+                sx={{
+                  bgcolor: '#333',
+                  color: 'white',
+                  minWidth: 'auto',
+                  height: 48,
+                  px: 2,
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#444' },
                 }}
               >
-                <TimerIcon sx={{ fontSize: 32, color: 'primary.light' }} />
-              </Box>
-              <Box>
-                <Typography
-                  variant="caption"
+                -15
+              </Button>
+
+              {/* Timer Text */}
+              <Typography
+                variant="h4"
+                sx={{
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  flex: 1,
+                  textAlign: 'center',
+                }}
+              >
+                {formatTime(remainingRest)}
+              </Typography>
+
+              {/* Right Side Buttons */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {/* +15s Button */}
+                <Button
+                  variant="contained"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveRestTimer((prev) =>
+                      prev ? { ...prev, endTime: prev.endTime + 15000 } : null,
+                    )
+                    setRemainingRest((prev) => prev + 15)
+                  }}
                   sx={{
-                    color: 'rgba(255,255,255,0.6)',
+                    bgcolor: '#333',
+                    color: 'white',
+                    minWidth: 'auto',
+                    height: 48,
+                    px: 2,
                     fontWeight: 700,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    display: 'block',
-                    mb: 0.5,
+                    fontSize: '0.9rem',
+                    borderRadius: 2,
+                    '&:hover': { bgcolor: '#444' },
                   }}
                 >
-                  Resting
-                </Typography>
-                <Typography
-                  variant="h4"
-                  fontWeight={700}
-                  sx={{ fontFamily: 'var(--font-mono)', lineHeight: 1 }}
+                  +15
+                </Button>
+
+                {/* Skip Button */}
+                <Button
+                  variant="contained"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveRestTimer(null)
+                  }}
+                  sx={{
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    minWidth: 'auto',
+                    height: 48,
+                    px: 3,
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    borderRadius: 2,
+                    '&:hover': { bgcolor: 'primary.dark' },
+                  }}
                 >
-                  {formatTime(remainingRest)}
-                </Typography>
+                  Skip
+                </Button>
               </Box>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                size="small"
-                onClick={() => {
-                  setActiveRestTimer((prev) =>
-                    prev ? { ...prev, endTime: prev.endTime + 30000 } : null,
-                  )
-                }}
-                sx={{
-                  minWidth: 'auto',
-                  px: 1.5,
-                  fontWeight: 700,
-                  color: 'primary.light',
-                  bgcolor: 'rgba(255,255,255,0.05)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                  borderRadius: 2,
-                }}
-              >
-                +30s
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setActiveRestTimer(null)}
-                sx={{
-                  minWidth: 'auto',
-                  px: 1.5,
-                  fontWeight: 700,
-                  color: '#ff5252',
-                  bgcolor: 'rgba(255, 82, 82, 0.1)',
-                  '&:hover': { bgcolor: 'rgba(255, 82, 82, 0.2)' },
-                  borderRadius: 2,
-                }}
-              >
-                Skip
-              </Button>
             </Box>
           </Box>
         )}
@@ -441,8 +480,9 @@ export default function WorkoutLoggingPage() {
           {exercises.map((exercise) => (
             <Card
               key={exercise.id}
-              elevation={0}
+              elevation={1}
               sx={{
+                bgcolor: 'background.paper',
                 border: 1,
                 borderColor: 'divider',
                 borderRadius: 2,
@@ -453,7 +493,6 @@ export default function WorkoutLoggingPage() {
               <Box
                 sx={{
                   p: 2,
-                  bgcolor: 'background.default',
                   borderBottom: 1,
                   borderColor: 'divider',
                 }}
@@ -549,10 +588,14 @@ export default function WorkoutLoggingPage() {
                           borderBottomColor: 'divider',
                           color: 'text.secondary',
                           fontWeight: 600,
-                          py: 1,
+                          p: 0,
                         }}
                       >
-                        <CheckCircle fontSize="small" />
+                        <Box
+                          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                        >
+                          <Check fontSize="small" />
+                        </Box>
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -562,16 +605,13 @@ export default function WorkoutLoggingPage() {
                         key={set.id}
                         sx={{
                           '&:last-child td, &:last-child th': { border: 0 },
-                          bgcolor: set.completed ? 'action.selected' : 'transparent',
+                          bgcolor: 'transparent',
                         }}
                       >
                         {/* Set Number / Type Button */}
                         <TableCell align="center">
                           <Button
-                            variant={set.type === 'N' ? 'text' : 'contained'}
-                            color={
-                              set.type === 'N' ? 'inherit' : set.type === 'W' ? 'warning' : 'error'
-                            }
+                            variant="text"
                             disableElevation
                             size="small"
                             onClick={() => setActiveSet({ exerciseId: exercise.id, setId: set.id })}
@@ -581,9 +621,19 @@ export default function WorkoutLoggingPage() {
                               p: 0,
                               borderRadius: 1,
                               fontWeight: 700,
-                              color: set.type === 'N' ? 'text.secondary' : 'white',
-                              fontSize: '0.75rem',
-                              bgcolor: set.type === 'N' ? 'action.hover' : undefined,
+                              fontSize: '0.875rem',
+                              color:
+                                set.type === 'N'
+                                  ? 'text.secondary'
+                                  : set.type === 'W'
+                                    ? 'warning.main'
+                                    : set.type === 'D'
+                                      ? 'info.main'
+                                      : 'error.main',
+                              bgcolor: 'transparent',
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                              },
                             }}
                           >
                             {getSetLabel(exercise.sets, index)}
@@ -592,7 +642,18 @@ export default function WorkoutLoggingPage() {
 
                         {/* Previous Data */}
                         <TableCell align="center">
-                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                          <Typography
+                            variant="body1"
+                            color="text.secondary"
+                            fontWeight={600}
+                            sx={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '1rem',
+                              textAlign: 'center',
+                              width: '100%',
+                              display: 'block',
+                            }}
+                          >
                             {set.previous || '-'}
                           </Typography>
                         </TableCell>
@@ -681,6 +742,24 @@ export default function WorkoutLoggingPage() {
             </Card>
           ))}
         </Stack>
+
+        {/* Finish Workout Button (Static at end of list) */}
+        <Box sx={{ mt: 4, mb: 10 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            size="large"
+            onClick={handleFinishWorkout}
+            sx={{
+              py: 1.5,
+              fontWeight: 700,
+              fontSize: '1rem',
+              borderRadius: 2,
+            }}
+          >
+            Finish Workout
+          </Button>
+        </Box>
       </Container>
 
       {/* Set Options Drawer */}
@@ -741,42 +820,6 @@ export default function WorkoutLoggingPage() {
           </List>
         </Box>
       </SwipeableDrawer>
-
-      {/* Sticky Bottom Button */}
-      {/* Kept wrapper for visual consistency, even though Finish is now in AppBar for better UX with timer, 
-          but usually apps have it at bottom. The user didn't ask to move it to top, but adding timer might crowd AppBar.
-          Let's keep bottom button as primary action as per original design.
-      */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          p: 2,
-          bgcolor: 'background.paper',
-          borderTop: 1,
-          borderColor: 'divider',
-          zIndex: 1100,
-        }}
-      >
-        <Container maxWidth="sm" disableGutters>
-          <Button
-            fullWidth
-            variant="contained"
-            size="large"
-            onClick={handleFinishWorkout}
-            sx={{
-              py: 1.5,
-              fontWeight: 700,
-              fontSize: '1rem',
-              borderRadius: 2,
-            }}
-          >
-            Finish Workout
-          </Button>
-        </Container>
-      </Box>
 
       {/* Rest Time Picker Drawer */}
       <RestTimePickerDrawer

@@ -38,6 +38,7 @@ import {
   Check,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import { useSnackbar } from '@/hooks/useSnackbar'
 
 type SetType = 'N' | 'W' | 'D' | 'F'
 
@@ -90,6 +91,8 @@ export default function NewRoutinePage() {
   // State for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
+  const { showSnackbar } = useSnackbar()
+
   const handleAddExercise = (exercise: { name: string; bodyPart: string }) => {
     const newExercise: Exercise = {
       id: Math.random().toString(36).substr(2, 9),
@@ -99,6 +102,13 @@ export default function NewRoutinePage() {
     }
     setExercises([...exercises, newExercise])
     setOpenExerciseDrawer(false)
+  }
+
+  const handleCustomExercise = () => {
+    showSnackbar({
+      message: 'Custom exercise functionality coming soon',
+      severity: 'info',
+    })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -320,8 +330,9 @@ export default function NewRoutinePage() {
                 {exercises.map((exercise) => (
                   <Card
                     key={exercise.id}
-                    elevation={0}
+                    elevation={1}
                     sx={{
+                      bgcolor: 'background.paper',
                       border: 1,
                       borderColor: 'divider',
                       borderRadius: 2,
@@ -335,7 +346,6 @@ export default function NewRoutinePage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        bgcolor: 'background.default',
                         borderBottom: 1,
                         borderColor: 'divider',
                       }}
@@ -400,14 +410,7 @@ export default function NewRoutinePage() {
                             >
                               <TableCell align="center">
                                 <Button
-                                  variant={set.type === 'N' ? 'text' : 'contained'}
-                                  color={
-                                    set.type === 'N'
-                                      ? 'inherit'
-                                      : set.type === 'W'
-                                        ? 'warning'
-                                        : 'error'
-                                  }
+                                  variant="text"
                                   disableElevation
                                   size="small"
                                   onClick={() =>
@@ -419,9 +422,19 @@ export default function NewRoutinePage() {
                                     p: 0,
                                     borderRadius: 1,
                                     fontWeight: 700,
-                                    color: set.type === 'N' ? 'text.secondary' : 'white',
-                                    fontSize: '0.75rem',
-                                    bgcolor: set.type === 'N' ? 'action.hover' : undefined,
+                                    fontSize: '0.875rem',
+                                    color:
+                                      set.type === 'N'
+                                        ? 'text.secondary'
+                                        : set.type === 'W'
+                                          ? 'warning.main'
+                                          : set.type === 'D'
+                                            ? 'info.main'
+                                            : 'error.main',
+                                    bgcolor: 'transparent',
+                                    '&:hover': {
+                                      bgcolor: 'action.hover',
+                                    },
                                   }}
                                 >
                                   {getSetLabel(exercise.sets, index)}
@@ -556,9 +569,14 @@ export default function NewRoutinePage() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Select Exercise
             </Typography>
-            <IconButton onClick={() => setOpenExerciseDrawer(false)} size="small">
-              <Close />
-            </IconButton>
+            <Box>
+              <IconButton onClick={handleCustomExercise} size="small" sx={{ mr: 1 }}>
+                <Add />
+              </IconButton>
+              <IconButton onClick={() => setOpenExerciseDrawer(false)} size="small">
+                <Close />
+              </IconButton>
+            </Box>
           </Box>
 
           {/* Horizontal Body Part Filter */}
@@ -599,7 +617,18 @@ export default function NewRoutinePage() {
                       primaryTypographyProps={{ fontWeight: 500 }}
                       secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
                     />
-                    <ChevronRight color="action" />
+                    <IconButton
+                      edge="end"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
+                        // Use window.location.href or router.push based on preference, but router is available.
+                        // Assuming router is imported from next/navigation
+                        router.push(`/exercises/${slug}`)
+                      }}
+                    >
+                      <ChevronRight color="action" />
+                    </IconButton>
                   </ListItemButton>
                 </ListItem>
                 <Divider component="li" />

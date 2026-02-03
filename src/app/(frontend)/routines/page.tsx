@@ -8,10 +8,10 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
   Button,
   Divider,
+  Fab,
 } from '@mui/material'
 import {
   FitnessCenter,
@@ -19,9 +19,18 @@ import {
   ChevronRight,
   AccessTime,
   FormatListBulleted,
+  Edit,
+  ContentCopy,
+  Share,
+  Delete,
 } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
+
+import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
+import { useSnackbar } from '@/hooks/useSnackbar'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
+import EmptyState from '@/components/EmptyState'
 
 // Mock Data
 const routines = [
@@ -69,6 +78,7 @@ const routines = [
 
 export default function RoutinesPage() {
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -78,6 +88,23 @@ export default function RoutinesPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  const handleEdit = (routineId: number, routineName: string) => {
+    router.push(`/routines/${routineId}/edit`)
+  }
+
+  const handleDelete = (routineId: number, routineName: string) => {
+    showSnackbar({
+      message: `"${routineName}" deleted`,
+      severity: 'success',
+      action: (
+        <Button color="inherit" size="small">
+          UNDO
+        </Button>
+      ),
+      duration: 5000,
+    })
+  }
+
   return (
     <Box
       sx={{
@@ -86,17 +113,7 @@ export default function RoutinesPage() {
         pb: 12, // Space for FAB + BottomNav
       }}
     >
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
           <Typography
             variant="h6"
@@ -110,36 +127,9 @@ export default function RoutinesPage() {
             ROUTINES
           </Typography>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
-        {/* Add Routine Button */}
-        <Box sx={{ mb: 3 }}>
-          <Button
-            fullWidth
-            variant="contained"
-            size="large"
-            startIcon={<Add />}
-            onClick={() => router.push('/routines/new')}
-            sx={{
-              py: 2,
-              textTransform: 'none',
-              fontWeight: 700,
-              fontSize: '1rem',
-              borderRadius: 3,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              boxShadow: 'none',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-                boxShadow: 'none',
-              },
-            }}
-          >
-            New Routine
-          </Button>
-        </Box>
-
         {loading ? (
           <>
             <RoutineCardSkeleton />
@@ -152,7 +142,7 @@ export default function RoutinesPage() {
             {routines.map((routine) => (
               <Card
                 key={routine.id}
-                elevation={0}
+                elevation={1}
                 onClick={() => router.push(`/routines/${routine.id}`)}
                 sx={{
                   bgcolor: 'background.paper',
@@ -161,14 +151,10 @@ export default function RoutinesPage() {
                   borderRadius: 2,
                   mb: 1.5,
                   cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  '&:active': {
-                    bgcolor: 'action.selected',
-                  },
                 }}
               >
                 <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-                  {/* Header: Name + Arrow */}
+                  {/* Header: Name + Overflow Menu */}
                   <Box
                     sx={{
                       display: 'flex',
@@ -184,11 +170,18 @@ export default function RoutinesPage() {
                         color: 'text.primary',
                         textTransform: 'uppercase',
                         letterSpacing: '0.02em',
+                        flex: 1,
                       }}
                     >
                       {routine.name}
                     </Typography>
-                    <ChevronRight sx={{ color: 'text.disabled' }} />
+                    <CardOverflowMenu
+                      title={routine.name}
+                      actions={[
+                        commonActions.edit(() => handleEdit(routine.id, routine.name)),
+                        commonActions.delete(() => handleDelete(routine.id, routine.name)),
+                      ]}
+                    />
                   </Box>
 
                   {/* Description */}
@@ -256,6 +249,21 @@ export default function RoutinesPage() {
           </>
         )}
       </Container>
+
+      <Fab
+        variant="extended"
+        color="primary"
+        onClick={() => router.push('/routines/new')}
+        sx={{
+          position: 'fixed',
+          right: 16,
+          bottom: 'calc(72px + 16px + env(safe-area-inset-bottom))',
+          zIndex: 1050,
+        }}
+      >
+        <Add sx={{ mr: 1 }} />
+        Create Routine
+      </Fab>
 
       {/* Bottom Navigation */}
       <BottomNav />

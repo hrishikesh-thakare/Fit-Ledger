@@ -248,8 +248,9 @@ export default function RoutineDetailPage() {
           {routine.exercises.map((exercise) => (
             <Card
               key={exercise.id}
-              elevation={0}
+              elevation={1}
               sx={{
+                bgcolor: 'background.paper', // User requested bg.ppr
                 border: 1,
                 borderColor: 'divider',
                 borderRadius: 2,
@@ -263,7 +264,6 @@ export default function RoutineDetailPage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  bgcolor: 'background.default',
                   borderBottom: 1,
                   borderColor: 'divider',
                 }}
@@ -320,27 +320,22 @@ export default function RoutineDetailPage() {
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                       >
                         <TableCell align="center">
-                          <Box
+                          <Typography
+                            variant="body2"
                             sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: 32,
-                              height: 32,
-                              borderRadius: 1,
                               fontWeight: 700,
-                              fontSize: '0.75rem',
-                              color: set.type === 'N' ? 'text.secondary' : 'white',
-                              bgcolor:
+                              color:
                                 set.type === 'N'
-                                  ? 'action.hover'
+                                  ? 'text.secondary'
                                   : set.type === 'W'
                                     ? 'warning.main'
-                                    : 'error.main',
+                                    : set.type === 'D'
+                                      ? 'info.main'
+                                      : 'error.main',
                             }}
                           >
                             {getSetLabel(exercise.sets, index)}
-                          </Box>
+                          </Typography>
                         </TableCell>
                         <TableCell align="center" sx={{ fontWeight: 600 }}>
                           {set.weight || '-'}

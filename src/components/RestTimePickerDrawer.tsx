@@ -124,8 +124,8 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
       disableSwipeToOpen={true}
       PaperProps={{
         sx: {
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
         },
       }}
     >

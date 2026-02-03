@@ -8,21 +8,30 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
   IconButton,
   Divider,
 } from '@mui/material'
 import {
   History as HistoryIcon,
-  ChevronRight,
   AccessTime,
   FitnessCenter,
   CalendarMonth,
+  Add,
+  Edit,
+  ContentCopy,
+  Share,
+  Delete,
 } from '@mui/icons-material'
 import dayjs, { Dayjs } from 'dayjs'
 import BottomNav from '@/components/BottomNav'
 import HistoryDatePicker from '@/components/HistoryDatePicker'
+import ExtendedFab from '@/components/fabs/ExtendedFab'
+import ChipFilter from '@/components/ChipFilter'
+
+import { useSnackbar } from '@/hooks/useSnackbar'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
+import EmptyState from '@/components/EmptyState'
 
 // Mock Data
 const rawWorkouts = [
@@ -84,9 +93,12 @@ const rawWorkouts = [
 
 export default function HistoryPage() {
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
   // Default to null (Show all)
   const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [selectedPeriod, setSelectedPeriod] = useState('All')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -126,18 +138,8 @@ export default function HistoryPage() {
         pb: 10,
       }}
     >
-      {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
+      {/* Top AppBar with scroll elevation */}
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
           <Typography
             variant="h6"
@@ -159,7 +161,7 @@ export default function HistoryPage() {
             <CalendarMonth />
           </IconButton>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <HistoryDatePicker
         open={isPickerOpen}
@@ -172,6 +174,17 @@ export default function HistoryPage() {
       />
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 2 }}>
+        {/* Chip Filters */}
+        <Box sx={{ mb: 3 }}>
+          <ChipFilter
+            options={['All', 'This Week', 'This Month', 'Last Month']}
+            selected={selectedPeriod}
+            onChange={(value) => setSelectedPeriod(value as string)}
+            label="Time Period"
+            multiSelect={false}
+          />
+        </Box>
+
         {Object.keys(groupedWorkouts).length > 0 ? (
           Object.keys(groupedWorkouts).map((header) => (
             <Box key={header} sx={{ mb: 4 }}>
@@ -215,7 +228,7 @@ export default function HistoryPage() {
               {groupedWorkouts[header].map((workout) => (
                 <Card
                   key={workout.id}
-                  elevation={0}
+                  elevation={1}
                   onClick={() => router.push(`/history/${workout.id}`)}
                   sx={{
                     bgcolor: 'background.paper',
@@ -224,14 +237,10 @@ export default function HistoryPage() {
                     borderRadius: 2,
                     mb: 1.5,
                     cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    '&:active': {
-                      bgcolor: 'action.selected',
-                    },
                   }}
                 >
                   <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-                    {/* Top Row: Name + Arrow */}
+                    {/* Top Row: Name + Overflow Menu */}
                     <Box
                       sx={{
                         display: 'flex',
@@ -247,11 +256,11 @@ export default function HistoryPage() {
                           fontWeight: 800,
                           textTransform: 'uppercase',
                           letterSpacing: '0.02em',
+                          flex: 1,
                         }}
                       >
                         {workout.name}
                       </Typography>
-                      <ChevronRight sx={{ color: 'text.disabled' }} />
                     </Box>
 
                     {/* Date Subtitle */}

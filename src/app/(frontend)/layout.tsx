@@ -1,5 +1,6 @@
 import React from 'react'
 import { ThemeProvider } from '../../theme'
+import { SnackbarProvider } from '../../contexts/SnackbarContext'
 import './styles.css'
 
 export const metadata = {
@@ -29,7 +30,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
     <html lang="en">
       <body className={`${roboto.variable} ${robotoMono.variable}`}>
         <ThemeProvider>
-          <main>{children}</main>
+          <SnackbarProvider>
+            <main>{children}</main>
+          </SnackbarProvider>
         </ThemeProvider>
       </body>
     </html>

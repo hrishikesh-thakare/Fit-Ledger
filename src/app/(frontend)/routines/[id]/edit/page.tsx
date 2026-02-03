@@ -46,6 +46,7 @@ import {
   DragHandle,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import { useSnackbar } from '@/hooks/useSnackbar'
 
 // dnd-kit imports
 import {
@@ -245,6 +246,8 @@ export default function EditRoutinePage() {
     }
   }
 
+  const { showSnackbar } = useSnackbar()
+
   const handleAddExercise = (exercise: { name: string; bodyPart: string }) => {
     const newExercise: Exercise = {
       id: Math.random().toString(36).substr(2, 9),
@@ -254,6 +257,13 @@ export default function EditRoutinePage() {
     }
     setExercises([...exercises, newExercise])
     setOpenExerciseDrawer(false)
+  }
+
+  const handleCustomExercise = () => {
+    showSnackbar({
+      message: 'Custom exercise functionality coming soon',
+      severity: 'info',
+    })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -501,8 +511,9 @@ export default function EditRoutinePage() {
                 {exercises.map((exercise, index) => (
                   <Card
                     key={exercise.id}
-                    elevation={0}
+                    elevation={1}
                     sx={{
+                      bgcolor: 'background.paper',
                       border: 1,
                       borderColor: 'divider',
                       borderRadius: 2,
@@ -516,7 +527,6 @@ export default function EditRoutinePage() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        bgcolor: 'background.default',
                         borderBottom: 1,
                         borderColor: 'divider',
                       }}
@@ -583,14 +593,7 @@ export default function EditRoutinePage() {
                             >
                               <TableCell align="center">
                                 <Button
-                                  variant={set.type === 'N' ? 'text' : 'contained'}
-                                  color={
-                                    set.type === 'N'
-                                      ? 'inherit'
-                                      : set.type === 'W'
-                                        ? 'warning'
-                                        : 'error'
-                                  }
+                                  variant="text"
                                   disableElevation
                                   size="small"
                                   onClick={() =>
@@ -602,9 +605,19 @@ export default function EditRoutinePage() {
                                     p: 0,
                                     borderRadius: 1,
                                     fontWeight: 700,
-                                    color: set.type === 'N' ? 'text.secondary' : 'white',
-                                    fontSize: '0.75rem',
-                                    bgcolor: set.type === 'N' ? 'action.hover' : undefined,
+                                    fontSize: '0.875rem',
+                                    color:
+                                      set.type === 'N'
+                                        ? 'text.secondary'
+                                        : set.type === 'W'
+                                          ? 'warning.main'
+                                          : set.type === 'D'
+                                            ? 'info.main'
+                                            : 'error.main',
+                                    bgcolor: 'transparent',
+                                    '&:hover': {
+                                      bgcolor: 'action.hover',
+                                    },
                                   }}
                                 >
                                   {getSetLabel(exercise.sets, index)}
@@ -740,9 +753,14 @@ export default function EditRoutinePage() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Select Exercise
             </Typography>
-            <IconButton onClick={() => setOpenExerciseDrawer(false)} size="small">
-              <Close />
-            </IconButton>
+            <Box>
+              <IconButton onClick={handleCustomExercise} size="small" sx={{ mr: 1 }}>
+                <Add />
+              </IconButton>
+              <IconButton onClick={() => setOpenExerciseDrawer(false)} size="small">
+                <Close />
+              </IconButton>
+            </Box>
           </Box>
 
           {/* Horizontal Body Part Filter */}
@@ -783,7 +801,16 @@ export default function EditRoutinePage() {
                       primaryTypographyProps={{ fontWeight: 500 }}
                       secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
                     />
-                    <ChevronRight color="action" />
+                    <IconButton
+                      edge="end"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
+                        router.push(`/exercises/${slug}`)
+                      }}
+                    >
+                      <ChevronRight color="action" />
+                    </IconButton>
                   </ListItemButton>
                 </ListItem>
                 <Divider component="li" />
@@ -831,38 +858,22 @@ export default function EditRoutinePage() {
 
           <Stack spacing={0}>
             <ListItemButton onClick={() => handleChangeSetType('N')} sx={{ px: 3, py: 2 }}>
-              <ListItemText
-                primary="Normal Set"
-                secondary="Standard weight and reps"
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
+              <ListItemText primary="Normal Set" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'N' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />
             <ListItemButton onClick={() => handleChangeSetType('W')} sx={{ px: 3, py: 2 }}>
-              <ListItemText
-                primary="Warm Up"
-                secondary="Lighter weight to prepare"
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
+              <ListItemText primary="Warm Up" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'W' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />
             <ListItemButton onClick={() => handleChangeSetType('D')} sx={{ px: 3, py: 2 }}>
-              <ListItemText
-                primary="Drop Set"
-                secondary="Lower weight immediately after"
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
+              <ListItemText primary="Drop Set" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'D' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />
             <ListItemButton onClick={() => handleChangeSetType('F')} sx={{ px: 3, py: 2 }}>
-              <ListItemText
-                primary="Failure"
-                secondary="Until you can't lift anymore"
-                primaryTypographyProps={{ fontWeight: 600 }}
-              />
+              <ListItemText primary="Failure" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'F' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />

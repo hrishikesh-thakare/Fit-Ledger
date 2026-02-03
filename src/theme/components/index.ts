@@ -5,6 +5,7 @@
 
 import { Components, Theme } from '@mui/material/styles';
 import MuiButton from './MuiButton';
+import MuiButtonBase from './MuiButtonBase';
 import MuiCard from './MuiCard';
 import MuiCardContent from './MuiCardContent';
 import MuiTextField from './MuiTextField';
@@ -22,9 +23,17 @@ import MuiListItemButton from './MuiListItemButton';
 import MuiDivider from './MuiDivider';
 import MuiCheckbox from './MuiCheckbox';
 import MuiDialog from './MuiDialog';
+import MuiSpeedDial from './MuiSpeedDial';
+import MuiSpeedDialAction from './MuiSpeedDialAction';
+import MuiSnackbar from './MuiSnackbar';
+import MuiSkeleton from './MuiSkeleton';
+import MuiDrawer from './MuiDrawer';
+import MuiPaper from './MuiPaper';
+import MuiList from './MuiList';
 
 const components: Components<Theme> = {
   MuiButton,
+  MuiButtonBase,
   MuiCard,
   MuiCardContent,
   MuiTextField,
@@ -42,6 +51,13 @@ const components: Components<Theme> = {
   MuiDivider,
   MuiCheckbox,
   MuiDialog,
+  MuiSpeedDial,
+  MuiSpeedDialAction,
+  MuiSnackbar,
+  MuiSkeleton,
+  MuiDrawer,
+  MuiPaper,
+  MuiList,
   
   // CssBaseline for global resets
   MuiCssBaseline: {

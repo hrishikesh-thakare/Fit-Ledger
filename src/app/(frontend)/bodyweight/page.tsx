@@ -8,9 +8,7 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
-  IconButton,
   List,
   ListItem,
   Divider,
@@ -20,6 +18,7 @@ import {
 import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import WeightPicker from '@/components/WeightPicker'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
 
 export default function BodyweightLogPage() {
   const [isPickerOpen, setIsPickerOpen] = useState(false)
@@ -62,63 +61,61 @@ export default function BodyweightLogPage() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 9, // Increased from 4 to 12 to clear the fixed BottomNav
+        pb: 12, // Increased from 4 to 12 to clear the fixed BottomNav
       }}
     >
-      {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
+      {/* Top AppBar with scroll elevation */}
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.primary',
+              fontWeight: 900,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
             Bodyweight Log
           </Typography>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Current Weight Card */}
         <Card
-          elevation={0}
+          elevation={1}
           sx={{
             bgcolor: 'background.paper',
             border: 1,
-            borderColor: 'primary.main',
-            borderRadius: 1,
+            borderColor: 'divider',
+            borderRadius: 2,
             mb: 3,
           }}
         >
           <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
               <MonitorWeight sx={{ color: 'primary.main', mr: 1, fontSize: '1.25rem' }} />
-              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700 }}>
                 Current Weight
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 1.5 }}>
-              <Typography variant="h2" sx={{ color: 'text.primary', fontWeight: 'bold', mr: 0.5 }}>
+              <Typography variant="h2" sx={{ color: 'text.primary', fontWeight: 800, mr: 0.5 }}>
                 {currentWeight}
               </Typography>
-              <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                 kg
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                 Target: {targetWeight}kg
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.disabled' }}>
                 •
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                 {(currentWeight - targetWeight).toFixed(1)}kg to go
               </Typography>
             </Box>
@@ -134,13 +131,24 @@ export default function BodyweightLogPage() {
 
         {/* Weight History */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.primary',
+              fontWeight: 800,
+              mb: 2,
+              textTransform: 'uppercase',
+              fontSize: '1rem',
+              letterSpacing: '0.02em',
+            }}
+          >
             History
           </Typography>
 
           <Card
+            elevation={1}
             sx={{
-              bgcolor: 'surfaceContainer',
+              bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               borderRadius: 2,
@@ -160,15 +168,22 @@ export default function BodyweightLogPage() {
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                         <CalendarToday
-                          sx={{ fontSize: '0.9rem', color: 'text.secondary', mr: 1 }}
+                          sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }}
                         />
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.secondary', fontWeight: 500 }}
+                        >
                           {log.date}
                         </Typography>
                       </Box>
-                      <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+                      <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 800 }}>
                         {log.weight}{' '}
-                        <span style={{ fontSize: '0.9rem', color: 'text.secondary' }}>kg</span>
+                        <span
+                          style={{ fontSize: '0.9rem', color: 'text.secondary', fontWeight: 500 }}
+                        >
+                          kg
+                        </span>
                       </Typography>
                     </Box>
 
@@ -204,7 +219,7 @@ export default function BodyweightLogPage() {
                     </Box>
                   </ListItem>
                   {index < weightLogs.length - 1 && (
-                    <Divider sx={{ bgcolor: 'divider', mx: 2.5 }} />
+                    <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
                   )}
                 </React.Fragment>
               ))}

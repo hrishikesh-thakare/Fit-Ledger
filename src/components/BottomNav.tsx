@@ -41,6 +41,7 @@ export default function BottomNav() {
         borderTop: 1,
         borderColor: 'divider',
         zIndex: 1000,
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <BottomNavigation
@@ -49,18 +50,23 @@ export default function BottomNav() {
         showLabels
         sx={{
           height: 72,
+          bgcolor: 'transparent',
           '& .MuiBottomNavigationAction-root': {
             color: 'text.secondary',
             minWidth: 'auto',
             padding: '6px 0',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             '&.Mui-selected': {
               color: 'primary.main',
+              transform: 'scale(1.05)',
             },
           },
           '& .MuiBottomNavigationAction-label': {
             fontSize: '0.75rem',
+            fontWeight: 500,
             '&.Mui-selected': {
               fontSize: '0.75rem',
+              fontWeight: 700,
             },
           },
         }}

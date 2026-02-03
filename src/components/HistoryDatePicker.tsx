@@ -1,15 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import {
-  Box,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-} from '@mui/material'
+import { Box, Typography, SwipeableDrawer, Button, IconButton } from '@mui/material'
+import { Close } from '@mui/icons-material'
+import DrawerHandle from './ui/DrawerHandle'
 
 interface HistoryDatePickerProps {
   open: boolean
@@ -135,33 +129,49 @@ const HistoryDatePicker: React.FC<HistoryDatePickerProps> = ({
   }
 
   return (
-    <Dialog
+    <SwipeableDrawer
+      anchor="bottom"
       open={open}
       onClose={onClose}
-      fullWidth
-      maxWidth="xs"
+      onOpen={() => {}}
+      disableSwipeToOpen={true}
       PaperProps={{
         sx: {
-          borderRadius: 4,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
           bgcolor: 'background.paper',
-          overflow: 'hidden',
         },
       }}
     >
-      <DialogTitle component="div" sx={{ textAlign: 'center', pb: 0 }}>
-        <Typography component="div" variant="h6" fontWeight="bold">
-          Filter History
-        </Typography>
-      </DialogTitle>
+      <DrawerHandle />
 
-      <DialogContent sx={{ pb: 1, px: 2 }}>
+      <Box sx={{ px: 2, pb: 4 }}>
+        {/* Header */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+            px: 1,
+          }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            Filter History
+          </Typography>
+          <IconButton onClick={onClose} size="small">
+            <Close />
+          </IconButton>
+        </Box>
+
         <Box
           sx={{
             height: 200,
             display: 'flex',
             position: 'relative',
             overflow: 'hidden',
-            mt: 2,
+            mt: 1,
+            mb: 3,
           }}
         >
           {/* Month Column */}
@@ -240,22 +250,24 @@ const HistoryDatePicker: React.FC<HistoryDatePickerProps> = ({
             }}
           />
         </Box>
-      </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3, pt: 1, justifyContent: 'space-between' }}>
-        <Button onClick={onClose} variant="text" size="large" sx={{ color: 'text.secondary' }}>
-          Cancel
-        </Button>
+        {/* Action Buttons */}
         <Button
-          onClick={handleSave}
+          fullWidth
           variant="contained"
           size="large"
-          sx={{ px: 4, borderRadius: 2 }}
+          onClick={handleSave}
+          sx={{
+            py: 1.5,
+            fontSize: '1rem',
+            fontWeight: 700,
+            borderRadius: 3,
+          }}
         >
-          Apply
+          Apply Filter
         </Button>
-      </DialogActions>
-    </Dialog>
+      </Box>
+    </SwipeableDrawer>
   )
 }
 

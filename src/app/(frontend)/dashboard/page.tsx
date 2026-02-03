@@ -1,25 +1,11 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  AppBar,
-  Toolbar,
-  Divider,
-  Stack,
-} from '@mui/material'
-import { FitnessCenter } from '@mui/icons-material'
+import { Box, Typography, Toolbar } from '@mui/material'
 import BottomNav from '@/components/BottomNav'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
 
 export default function DashboardPage() {
-  const router = useRouter()
-
   return (
     <Box
       sx={{
@@ -28,14 +14,21 @@ export default function DashboardPage() {
         pb: 10,
       }}
     >
-      {/* Top AppBar */}
-      <AppBar position="static">
+      {/* Top AppBar with scroll elevation */}
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
-          <Typography variant="titleLarge" sx={{ fontWeight: 'bold' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 900,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
             Dashboard
           </Typography>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <h1 style={{ textAlign: 'center', marginTop: '50px' }}>Coming Soon!</h1>
 

@@ -8,7 +8,6 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
   IconButton,
   List,
@@ -17,6 +16,7 @@ import {
   Chip,
 } from '@mui/material'
 import { ArrowBack, TrendingUp, CalendarToday } from '@mui/icons-material'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
 
 export default function ExerciseDetailPage() {
   const router = useRouter()
@@ -49,67 +49,65 @@ export default function ExerciseDetailPage() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 4,
+        pb: 12, // Consistent bottom padding
       }}
     >
-      {/* Top AppBar */}
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
-      >
+      {/* Top AppBar with Scroll Elevation */}
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
           <IconButton
             edge="start"
-            onClick={() => router.push('/exercises')}
+            onClick={() => router.back()}
             sx={{ color: 'text.primary', mr: 2 }}
           >
             <ArrowBack />
           </IconButton>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'text.primary',
+                fontWeight: 900,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+              }}
+            >
               {exercise.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
               {exercise.muscleGroup}
             </Typography>
           </Box>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* Personal Best Card */}
         <Card
-          elevation={0}
+          elevation={1}
           sx={{
             bgcolor: 'background.paper',
             border: 1,
-            borderColor: 'primary.main',
-            borderRadius: 1,
+            borderColor: 'divider',
+            borderRadius: 2,
             mb: 3,
           }}
         >
           <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
               <TrendingUp sx={{ color: 'primary.main', mr: 1, fontSize: '1.25rem' }} />
-              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700 }}>
                 Personal Best
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.5 }}>
-              <Typography variant="h3" sx={{ color: 'text.primary', fontWeight: 'bold', mr: 0.5 }}>
-                {exercise.personalBest.weight}
+              <Typography variant="h3" sx={{ color: 'text.primary', fontWeight: 800, mr: 0.5 }}>
+                {exercise.personalBest.weight} kg
               </Typography>
-              <Typography variant="body1" sx={{ color: 'text.secondary', mr: 2 }}>
-                kg
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{ color: 'text.secondary', fontWeight: 'bold', mr: 0.5 }}
-              >
+              <Typography variant="h4" sx={{ color: 'text.secondary', fontWeight: 800, mr: 0.5 }}>
                 ×
               </Typography>
-              <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
                 {exercise.personalBest.reps}
               </Typography>
             </Box>
@@ -119,44 +117,26 @@ export default function ExerciseDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Progress Chart Placeholder */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
-            Progress Chart
-          </Typography>
-          <Card
-            sx={{
-              bgcolor: 'surfaceContainer',
-              border: 1,
-              borderColor: 'divider',
-              borderRadius: 2,
-              height: 200,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Box sx={{ textAlign: 'center' }}>
-              <TrendingUp sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1 }} />
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Chart visualization placeholder
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Performance over time
-              </Typography>
-            </Box>
-          </Card>
-        </Box>
-
         {/* Historical Performances */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', mb: 2 }}>
-            Performance History
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.primary',
+              fontWeight: 800,
+              mb: 2,
+              textTransform: 'uppercase',
+              fontSize: '1rem',
+              letterSpacing: '0.02em',
+            }}
+          >
+            History
           </Typography>
 
           <Card
+            elevation={1}
             sx={{
-              bgcolor: 'surfaceContainer',
+              bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
               borderRadius: 2,
@@ -175,8 +155,11 @@ export default function ExerciseDetailPage() {
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                      <CalendarToday sx={{ fontSize: '0.9rem', color: 'text.secondary', mr: 1 }} />
-                      <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+                      <CalendarToday sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }} />
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', flex: 1, fontWeight: 500 }}
+                      >
                         {entry.date}
                       </Typography>
                       {index === 2 && (
@@ -187,27 +170,33 @@ export default function ExerciseDetailPage() {
                             bgcolor: 'primary.main',
                             color: 'primary.contrastText',
                             fontWeight: 'bold',
-                            fontSize: '0.7rem',
+                            fontSize: '0.65rem',
                             height: 20,
                           }}
                         />
                       )}
                     </Box>
 
-                    <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 0.5 }}>
                       <Box>
-                        <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
+                        <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 800 }}>
                           <span style={{ color: 'var(--mui-palette-primary-main)' }}>
                             {entry.weight}kg
                           </span>{' '}
                           × {entry.reps}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: 'text.secondary', fontWeight: 500 }}
+                        >
                           Best set
                         </Typography>
                       </Box>
                       <Box sx={{ ml: 'auto', textAlign: 'right' }}>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.secondary', fontWeight: 600 }}
+                        >
                           {entry.sets} sets
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -217,7 +206,7 @@ export default function ExerciseDetailPage() {
                     </Box>
                   </ListItem>
                   {index < exercise.history.length - 1 && (
-                    <Divider sx={{ bgcolor: 'divider', mx: 2.5 }} />
+                    <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
                   )}
                 </React.Fragment>
               ))}

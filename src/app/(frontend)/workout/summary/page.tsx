@@ -16,11 +16,17 @@ import {
   Stack,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 
 export default function WorkoutSummaryPage() {
   const router = useRouter()
   const [updatePrevWeights, setUpdatePrevWeights] = useState(true)
+  const [openDiscardDialog, setOpenDiscardDialog] = useState(false)
 
   const workoutData = {
     duration: '45:32',
@@ -41,6 +47,11 @@ export default function WorkoutSummaryPage() {
   }
 
   const handleDiscard = () => {
+    setOpenDiscardDialog(true)
+  }
+
+  const handleConfirmDiscard = () => {
+    setOpenDiscardDialog(false)
     router.push('/dashboard')
   }
 
@@ -54,9 +65,15 @@ export default function WorkoutSummaryPage() {
     >
       {/* Top AppBar */}
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
-        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          top: 0,
+          zIndex: 1100,
+        }}
       >
         <Toolbar>
           <Typography
@@ -246,7 +263,7 @@ export default function WorkoutSummaryPage() {
 
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button
-              variant="contained"
+              variant="text"
               color="error"
               size="large"
               onClick={handleDiscard}
@@ -254,14 +271,46 @@ export default function WorkoutSummaryPage() {
                 fontWeight: 600,
                 px: 4,
                 borderRadius: 2,
-                boxShadow: 'none',
               }}
             >
-              Discard
+              Discard Workout
             </Button>
           </Box>
         </Box>
       </Container>
+
+      {/* Discard Confirmation Dialog */}
+      <Dialog
+        open={openDiscardDialog}
+        onClose={() => setOpenDiscardDialog(false)}
+        PaperProps={{
+          sx: { borderRadius: 3, bgcolor: 'background.paper', m: 2 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Discard Workout?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'text.secondary' }}>
+            Are you sure you want to discard this workout? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button
+            onClick={() => setOpenDiscardDialog(false)}
+            sx={{ fontWeight: 600, color: 'text.primary' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDiscard}
+            color="error"
+            variant="contained"
+            disableElevation
+            sx={{ fontWeight: 600, borderRadius: 2 }}
+          >
+            Discard
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

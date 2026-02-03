@@ -157,7 +157,7 @@ export default function HistoryDetailPage() {
           {workoutDetails.exercises.map((exercise) => (
             <Card
               key={exercise.id}
-              elevation={0}
+              elevation={1}
               sx={{
                 bgcolor: 'background.paper',
                 border: 1,
@@ -166,8 +166,8 @@ export default function HistoryDetailPage() {
                 overflow: 'hidden',
               }}
             >
-              <Box sx={{ p: 2, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
                   {exercise.name}
                 </Typography>
               </Box>
@@ -224,29 +224,19 @@ export default function HistoryDetailPage() {
                         key={set.id}
                         sx={{
                           '&:last-child td, &:last-child th': { border: 0 },
-                          bgcolor:
-                            set.type === 'Warmup' ? 'rgba(255, 255, 255, 0.02)' : 'transparent', // Subtle hint for warmup
+                          bgcolor: 'transparent',
                         }}
                       >
                         <TableCell
                           align="center"
                           scope="row"
-                          sx={{ color: 'text.secondary', fontSize: '0.9rem' }}
+                          sx={{
+                            color: set.type === 'Warmup' ? 'warning.main' : 'text.secondary',
+                            fontSize: '0.9rem',
+                            fontWeight: set.type === 'Warmup' ? 700 : 400,
+                          }}
                         >
-                          {index + 1}
-                          {set.type === 'Warmup' && (
-                            <Box
-                              component="span"
-                              sx={{
-                                display: 'block',
-                                fontSize: '0.65rem',
-                                color: 'text.disabled',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              Warmup
-                            </Box>
-                          )}
+                          {set.type === 'Warmup' ? 'W' : index + 1}
                         </TableCell>
                         <TableCell align="center" sx={{ fontWeight: '600', fontSize: '1rem' }}>
                           {set.weight}

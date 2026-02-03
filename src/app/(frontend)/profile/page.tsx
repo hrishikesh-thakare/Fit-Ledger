@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -19,6 +19,8 @@ import {
   Switch,
   Select,
   MenuItem,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import {
   Brightness4,
@@ -37,6 +39,16 @@ export default function ProfilePage() {
   const [_theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
   const [darkModeEnabled, setDarkModeEnabled] = useState(true)
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 0)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleThemeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setDarkModeEnabled(event.target.checked)
@@ -60,9 +72,16 @@ export default function ProfilePage() {
     >
       {/* Top AppBar */}
       <AppBar
-        position="static"
-        elevation={0}
-        sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+        position="sticky"
+        elevation={scrolled ? 2 : 0}
+        sx={{
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          top: 0,
+          zIndex: 1100,
+          transition: 'box-shadow 0.3s ease',
+        }}
       >
         <Toolbar>
           <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flex: 1 }}>
@@ -88,7 +107,7 @@ export default function ProfilePage() {
               sx={{
                 width: 80,
                 height: 80,
-                bgcolor: 'surfaceContainer',
+                bgcolor: 'action.selected',
                 color: 'text.secondary',
                 margin: '0 auto',
                 mb: 2,
@@ -116,7 +135,7 @@ export default function ProfilePage() {
 
             {/* Edit Profile Button (Inside Card) */}
             <ListItem
-              onClick={() => router.push('/profile/edit')}
+              onClick={() => setSnackbarOpen(true)}
               sx={{
                 cursor: 'pointer',
                 py: 1,
@@ -362,6 +381,32 @@ export default function ProfilePage() {
       >
         <BottomNav />
       </Box>
+
+      {/* Coming Soon Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: 80 }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="info"
+          variant="filled"
+          sx={{
+            width: '100%',
+            alignItems: 'center',
+            '& .MuiAlert-action': {
+              paddingTop: 0,
+              paddingBottom: 0,
+              alignItems: 'center',
+            },
+          }}
+        >
+          Coming soon
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
