@@ -5,6 +5,8 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+console.log('RUNTIME DATABASE_URL =', process.env.DATABASE_URL);
+
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { MuscleGroups } from './collections/MuscleGroups'
