@@ -16,31 +16,86 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Switch,
   Select,
   MenuItem,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Skeleton,
 } from '@mui/material'
 import {
-  Brightness4,
   FitnessCenter,
   CloudDownload,
   Edit,
   ChevronRight,
   Info,
+  Flag,
+  Logout,
 } from '@mui/icons-material'
+import { useAuth } from '@/contexts/AuthContext'
+import apiFetch from '@/lib/api/client'
+import { useSnackbar } from '@/hooks/useSnackbar'
+import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import BottomNav from '@/components/BottomNav'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { user: authUser, logout } = useAuth()
+  const { showSnackbar } = useSnackbar()
+
+  // User data State
+  const [userData, setUserData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   // Settings State
-  const [_theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark')
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
-  const [darkModeEnabled, setDarkModeEnabled] = useState(true)
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+
+  // Target Weight Dialog State
+  const [targetWeightDialogOpen, setTargetWeightDialogOpen] = useState(false)
+  const [targetWeight, setTargetWeight] = useState('')
+  const [savingTargetWeight, setSavingTargetWeight] = useState(false)
+
+  // Edit Profile Dialog State
+  const [editProfileDialogOpen, setEditProfileDialogOpen] = useState(false)
+  const [displayName, setDisplayName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!authUser) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const response = await apiFetch(`/users/${authUser.id}`)
+        console.log('User data:', response)
+        setUserData(response)
+        setUnits(response.preferredUnit || 'kg')
+        setDisplayName(response.displayName || '')
+        if (response.targetWeight) {
+          // Convert from kg (database) to user's preferred unit for display
+          const displayWeight = fromKg(response.targetWeight, response.preferredUnit || 'kg')
+          setTargetWeight(displayWeight.toString())
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error)
+        showSnackbar({ message: 'Failed to load profile data', severity: 'error' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [authUser])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,16 +105,91 @@ export default function ProfilePage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleThemeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setDarkModeEnabled(event.target.checked)
-    setTheme(event.target.checked ? 'dark' : 'light')
+  const handleUnitsChange = async (newUnits: 'kg' | 'lb') => {
+    if (!authUser) return
+
+    try {
+      setUnits(newUnits)
+      await apiFetch(`/users/${authUser.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ preferredUnit: newUnits }),
+      })
+      showSnackbar({ message: 'Units updated successfully', severity: 'success' })
+    } catch (error) {
+      console.error('Failed to update units:', error)
+      showSnackbar({ message: 'Failed to update units', severity: 'error' })
+      setUnits(units) // Revert on error
+    }
   }
 
-  // Mock data
-  const user = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    joinDate: 'December 2025',
+  const handleSaveTargetWeight = async () => {
+    if (!authUser) return
+
+    const weight = parseFloat(targetWeight)
+    if (isNaN(weight) || weight <= 0) {
+      showSnackbar({ message: 'Please enter a valid weight', severity: 'error' })
+      return
+    }
+
+    try {
+      setSavingTargetWeight(true)
+      // Convert user input (in their preferred unit) to kg for database
+      const weightInKg = toKg(weight, units)
+
+      await apiFetch(`/users/${authUser.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ targetWeight: weightInKg }),
+      })
+      setUserData({ ...userData, targetWeight: weightInKg })
+      showSnackbar({ message: 'Target weight updated successfully', severity: 'success' })
+      setTargetWeightDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to update target weight:', error)
+      showSnackbar({ message: 'Failed to update target weight', severity: 'error' })
+    } finally {
+      setSavingTargetWeight(false)
+    }
+  }
+
+  const handleOpenTargetWeightDialog = () => {
+    if (userData?.targetWeight) {
+      // Convert from kg (database) to user's preferred unit for editing
+      const displayWeight = fromKg(userData.targetWeight, units)
+      setTargetWeight(displayWeight.toString())
+    } else {
+      setTargetWeight('')
+    }
+    setTargetWeightDialogOpen(true)
+  }
+
+  const handleOpenEditProfileDialog = () => {
+    setDisplayName(userData?.displayName || '')
+    setEditProfileDialogOpen(true)
+  }
+
+  const handleSaveProfile = async () => {
+    if (!authUser) return
+
+    if (!displayName.trim()) {
+      showSnackbar({ message: 'Please enter a display name', severity: 'error' })
+      return
+    }
+
+    try {
+      setSavingProfile(true)
+      await apiFetch(`/users/${authUser.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ displayName: displayName.trim() }),
+      })
+      setUserData({ ...userData, displayName: displayName.trim() })
+      showSnackbar({ message: 'Profile updated successfully', severity: 'success' })
+      setEditProfileDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to update profile:', error)
+      showSnackbar({ message: 'Failed to update profile', severity: 'error' })
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   return (
@@ -103,39 +233,66 @@ export default function ProfilePage() {
           }}
         >
           <CardContent sx={{ p: 3, textAlign: 'center' }}>
-            <Avatar
-              sx={{
-                width: 80,
-                height: 80,
-                bgcolor: 'action.selected',
-                color: 'text.secondary',
-                margin: '0 auto',
-                mb: 2,
-                fontSize: '2rem',
-                fontWeight: 600,
-              }}
-            >
-              {user.name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')}
-            </Avatar>
-            <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5 }}>
-              {user.name}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-              @{user.name.toLowerCase().replace(' ', '_')}
-            </Typography>
+            {loading ? (
+              <>
+                <Skeleton
+                  variant="circular"
+                  width={80}
+                  height={80}
+                  sx={{ margin: '0 auto', mb: 2 }}
+                />
+                <Skeleton variant="text" width="60%" height={32} sx={{ margin: '0 auto', mb: 1 }} />
+                <Skeleton variant="text" width="40%" height={24} sx={{ margin: '0 auto', mb: 2 }} />
+                <Skeleton variant="text" width="50%" height={20} sx={{ margin: '0 auto' }} />
+              </>
+            ) : (
+              <>
+                <Avatar
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    bgcolor: 'action.selected',
+                    color: 'text.secondary',
+                    margin: '0 auto',
+                    mb: 2,
+                    fontSize: '2rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {userData?.displayName
+                    ?.split(' ')
+                    .map((n: string) => n[0])
+                    .join('') || authUser?.email?.[0].toUpperCase()}
+                </Avatar>
+                <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5 }}>
+                  {userData?.displayName || authUser?.email}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                  {authUser?.email}
+                </Typography>
 
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-              Member since {user.joinDate}
-            </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                  Member since{' '}
+                  {userData?.createdAt
+                    ? new Date(userData.createdAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : userData?.updatedAt
+                      ? new Date(userData.updatedAt).toLocaleDateString('en-US', {
+                          month: 'long',
+                          year: 'numeric',
+                        })
+                      : 'N/A'}
+                </Typography>
+              </>
+            )}
 
             <Divider sx={{ my: 2 }} />
 
             {/* Edit Profile Button (Inside Card) */}
             <ListItem
-              onClick={() => setSnackbarOpen(true)}
+              onClick={handleOpenEditProfileDialog}
               sx={{
                 cursor: 'pointer',
                 py: 1,
@@ -190,32 +347,6 @@ export default function ProfilePage() {
             <List sx={{ p: 0 }}>
               <ListItem sx={{ py: 1.5 }}>
                 <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Brightness4 sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Dark Mode"
-                  primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
-                  }}
-                />
-                <Switch
-                  checked={darkModeEnabled}
-                  onChange={handleThemeChange}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: 'primary.main',
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: 'primary.main',
-                    },
-                  }}
-                />
-              </ListItem>
-
-              <Divider sx={{ bgcolor: 'divider' }} />
-
-              <ListItem sx={{ py: 1.5 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
                   <FitnessCenter sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
                 </ListItemIcon>
                 <ListItemText
@@ -226,8 +357,9 @@ export default function ProfilePage() {
                 />
                 <Select
                   value={units}
-                  onChange={(e) => setUnits(e.target.value as 'kg' | 'lb')}
+                  onChange={(e) => handleUnitsChange(e.target.value as 'kg' | 'lb')}
                   size="small"
+                  disabled={loading}
                   sx={{
                     color: 'text.primary',
                     bgcolor: 'background.paper',
@@ -250,6 +382,38 @@ export default function ProfilePage() {
                   <MenuItem value="kg">kg</MenuItem>
                   <MenuItem value="lb">lb</MenuItem>
                 </Select>
+              </ListItem>
+
+              <Divider sx={{ bgcolor: 'divider' }} />
+
+              <ListItem
+                onClick={handleOpenTargetWeightDialog}
+                sx={{
+                  cursor: 'pointer',
+                  py: 1.5,
+                  '&:active': {
+                    bgcolor: 'action.selected',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Flag sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Target Weight"
+                  secondary={
+                    userData?.targetWeight
+                      ? `${formatWeight(userData.targetWeight, units)} ${units}`
+                      : 'Not set'
+                  }
+                  primaryTypographyProps={{
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                  }}
+                  secondaryTypographyProps={{
+                    sx: { color: 'text.secondary', fontSize: '0.85rem' },
+                  }}
+                />
+                <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
               </ListItem>
             </List>
           </Card>
@@ -359,6 +523,29 @@ export default function ProfilePage() {
           </Card>
         </Box>
 
+        {/* Logout Section */}
+        <Box sx={{ mb: 3 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={logout}
+            sx={{
+              bgcolor: 'error.dark',
+              color: 'white',
+              py: 1.5,
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              textAlign: 'center',
+              borderRadius: 1,
+              '&:hover': {
+                bgcolor: '#b71c1c',
+              },
+            }}
+          >
+            Log Out
+          </Button>
+        </Box>
+
         {/* App Version */}
         <Box sx={{ textAlign: 'center', py: 2 }}>
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -381,6 +568,79 @@ export default function ProfilePage() {
       >
         <BottomNav />
       </Box>
+
+      {/* Edit Profile Dialog */}
+      <Dialog
+        open={editProfileDialogOpen}
+        onClose={() => !savingProfile && setEditProfileDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Display Name"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            disabled={savingProfile}
+            helperText="This name will be displayed on your profile"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditProfileDialogOpen(false)} disabled={savingProfile}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveProfile} variant="contained" disabled={savingProfile}>
+            {savingProfile ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Target Weight Dialog */}
+      <Dialog
+        open={targetWeightDialogOpen}
+        onClose={() => !savingTargetWeight && setTargetWeightDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Set Target Weight</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Target Weight"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={targetWeight}
+            onChange={(e) => setTargetWeight(e.target.value)}
+            disabled={savingTargetWeight}
+            InputProps={{
+              endAdornment: (
+                <Typography sx={{ color: 'text.secondary', ml: 1 }}>{units}</Typography>
+              ),
+            }}
+            helperText="Enter your target body weight goal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTargetWeightDialogOpen(false)} disabled={savingTargetWeight}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveTargetWeight}
+            variant="contained"
+            disabled={savingTargetWeight}
+          >
+            {savingTargetWeight ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Coming Soon Snackbar */}
       <Snackbar

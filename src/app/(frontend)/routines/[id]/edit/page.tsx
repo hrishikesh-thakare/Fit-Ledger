@@ -1,7 +1,10 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
+import apiFetch from '@/lib/api/client'
 import {
   Box,
   Container,
@@ -33,6 +36,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  Alert,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -47,6 +52,12 @@ import {
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useSnackbar } from '@/hooks/useSnackbar'
+import {
+  fetchRoutineDetails,
+  fetchExercises,
+  saveRoutine,
+  type AvailableExercise,
+} from '@/lib/api/routines'
 
 // dnd-kit imports
 import {
@@ -78,29 +89,13 @@ interface RoutineSet {
 
 interface Exercise {
   id: string
+  exerciseId?: string // The actual Exercise ID from the database
   name: string
   bodyPart?: string
   sets: RoutineSet[]
 }
 
-// Dummy Data for Selection
-const AVAILABLE_EXERCISES = [
-  { name: 'Bench Press', bodyPart: 'Chest' },
-  { name: 'Push Up', bodyPart: 'Chest' },
-  { name: 'Squat', bodyPart: 'Legs' },
-  { name: 'Leg Press', bodyPart: 'Legs' },
-  { name: 'Deadlift', bodyPart: 'Back' },
-  { name: 'Pull Up', bodyPart: 'Back' },
-  { name: 'Dumbbell Row', bodyPart: 'Back' },
-  { name: 'Overhead Press', bodyPart: 'Shoulders' },
-  { name: 'Lateral Raise', bodyPart: 'Shoulders' },
-  { name: 'Bicep Curl', bodyPart: 'Arms' },
-  { name: 'Tricep Extension', bodyPart: 'Arms' },
-  { name: 'Plank', bodyPart: 'Core' },
-  { name: 'Crunches', bodyPart: 'Core' },
-]
-
-const BODY_PARTS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
+// Body parts will be derived from exercises
 
 const SET_TYPE_LABELS: { [key in SetType]: string } = {
   N: 'Normal',
@@ -167,9 +162,11 @@ function SortableExerciseItem(props: { id: string; name: string }) {
 export default function EditRoutinePage() {
   const router = useRouter()
   const params = useParams()
+  const { user } = useAuth()
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   // State for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
@@ -178,53 +175,68 @@ export default function EditRoutinePage() {
   const [reorderDialogOpen, setReorderDialogOpen] = useState(false)
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null)
 
-  // Initialize with Mock Data for "Push Day"
-  const [routineName, setRoutineName] = useState('Push Day')
-  const [exercises, setExercises] = useState<Exercise[]>([
-    {
-      id: '1',
-      name: 'Bench Press',
-      bodyPart: 'Chest',
-      sets: [
-        { id: '1-1', type: 'W', weight: '40', reps: '15' },
-        { id: '1-2', type: 'W', weight: '60', reps: '10' },
-        { id: '1-3', type: 'N', weight: '80', reps: '8' },
-        { id: '1-4', type: 'N', weight: '80', reps: '8' },
-        { id: '1-5', type: 'N', weight: '80', reps: '8' },
-      ],
-    },
-    {
-      id: '2',
-      name: 'Incline Dumbbell Press',
-      bodyPart: 'Chest',
-      sets: [
-        { id: '2-1', type: 'N', weight: '30', reps: '10' },
-        { id: '2-2', type: 'N', weight: '30', reps: '10' },
-        { id: '2-3', type: 'N', weight: '30', reps: '10' },
-      ],
-    },
-    {
-      id: '3',
-      name: 'Shoulder Press',
-      bodyPart: 'Shoulders',
-      sets: [
-        { id: '3-1', type: 'N', weight: '40', reps: '12' },
-        { id: '3-2', type: 'N', weight: '40', reps: '12' },
-        { id: '3-3', type: 'N', weight: '40', reps: '12' },
-        { id: '3-4', type: 'D', weight: '20', reps: '15' },
-      ],
-    },
-    {
-      id: '4',
-      name: 'Lateral Raises',
-      bodyPart: 'Shoulders',
-      sets: [
-        { id: '4-1', type: 'N', weight: '12', reps: '15' },
-        { id: '4-2', type: 'N', weight: '12', reps: '15' },
-        { id: '4-3', type: 'F', weight: '12', reps: '20' },
-      ],
-    },
-  ])
+  // Data states
+  const [routineName, setRoutineName] = useState('')
+  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [availableExercises, setAvailableExercises] = useState<AvailableExercise[]>([])
+
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const routineId = params.id as string
+
+        // Fetch user's preferred unit
+        let userUnit: 'kg' | 'lb' = 'kg'
+        if (user) {
+          const userProfile = await apiFetch(`/users/${user.id}`)
+          userUnit = userProfile.preferredUnit || 'kg'
+          setPreferredUnit(userUnit)
+        }
+
+        // Fetch routine details and available exercises in parallel
+        const [routineData, exercisesData] = await Promise.all([
+          fetchRoutineDetails(routineId),
+          fetchExercises(),
+        ])
+
+        // Set routine data
+        setRoutineName(routineData.name)
+
+        // Map exercises to UI format and convert weights from kg to user's unit
+        const mappedExercises: Exercise[] = routineData.exercises.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          bodyPart: ex.bodyPart,
+          exerciseId: ex.exerciseId,
+          sets: ex.sets.map((set) => ({
+            id: set.id,
+            type: set.type,
+            weight: set.weight ? formatWeight(parseFloat(set.weight), userUnit) : set.weight,
+            reps: set.reps,
+          })),
+        }))
+
+        setExercises(mappedExercises)
+        setAvailableExercises(exercisesData)
+      } catch (err: any) {
+        console.error('Error loading routine:', err)
+        setError(err.message || 'Failed to load routine')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [params.id, user])
 
   // dnd-kit sensors
   const sensors = useSensors(
@@ -248,9 +260,10 @@ export default function EditRoutinePage() {
 
   const { showSnackbar } = useSnackbar()
 
-  const handleAddExercise = (exercise: { name: string; bodyPart: string }) => {
+  const handleAddExercise = (exercise: AvailableExercise) => {
     const newExercise: Exercise = {
       id: Math.random().toString(36).substr(2, 9),
+      exerciseId: exercise.id,
       name: exercise.name,
       bodyPart: exercise.bodyPart,
       sets: [{ id: Math.random().toString(36).substr(2, 9), type: 'N', weight: '', reps: '' }],
@@ -315,9 +328,55 @@ export default function EditRoutinePage() {
     )
   }
 
-  const handleSave = () => {
-    // Mock save logic
-    router.push(`/routines/${params.id}`)
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setError(null)
+
+      const routineId = params.id as string
+
+      // Validate that all exercises have an exerciseId
+      const invalidExercises = exercises.filter((ex) => !ex.exerciseId)
+      if (invalidExercises.length > 0) {
+        throw new Error('Some exercises are missing required data. Please remove and re-add them.')
+      }
+
+      // Map exercises to API format and convert weights to kg
+      const exercisesToSave = exercises.map((ex, index) => ({
+        id: ex.id,
+        exerciseId: ex.exerciseId!,
+        sets: ex.sets.map((set) => ({
+          ...set,
+          weight: set.weight
+            ? String(Math.round(toKg(parseFloat(set.weight), preferredUnit)))
+            : set.weight,
+        })),
+        order: index,
+      }))
+
+      await saveRoutine({
+        id: routineId,
+        name: routineName,
+        description: '',
+        exercises: exercisesToSave,
+      })
+
+      showSnackbar({
+        message: 'Routine updated successfully',
+        severity: 'success',
+      })
+
+      router.push(`/routines/${routineId}`)
+    } catch (err: any) {
+      console.error('Error saving routine:', err)
+      setError(err.message || 'Failed to save routine')
+      showSnackbar({
+        message: 'Failed to save routine',
+        severity: 'error',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleChangeSetType = (type: SetType) => {
@@ -337,10 +396,17 @@ export default function EditRoutinePage() {
     setActiveSet(null)
   }
 
+  // Derive body parts from available exercises
+  const bodyParts = useMemo(() => {
+    const parts = new Set<string>()
+    availableExercises.forEach((ex) => parts.add(ex.bodyPart))
+    return ['All', ...Array.from(parts).sort()]
+  }, [availableExercises])
+
   const filteredExercises = useMemo(() => {
-    if (selectedBodyPart === 'All') return AVAILABLE_EXERCISES
-    return AVAILABLE_EXERCISES.filter((ex) => ex.bodyPart === selectedBodyPart)
-  }, [selectedBodyPart])
+    if (selectedBodyPart === 'All') return availableExercises
+    return availableExercises.filter((ex) => ex.bodyPart === selectedBodyPart)
+  }, [selectedBodyPart, availableExercises])
 
   const appBarHeight = 64
 
@@ -362,6 +428,23 @@ export default function EditRoutinePage() {
       if (sets[i].type === 'N') normalCount++
     }
     return normalCount
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    )
   }
 
   return (
@@ -434,6 +517,11 @@ export default function EditRoutinePage() {
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
         <Stack spacing={3}>
           {/* Routine Info */}
           <Box sx={{ px: 1 }}>
@@ -570,7 +658,7 @@ export default function EditRoutinePage() {
                                 fontWeight: 600,
                               }}
                             >
-                              kg
+                              {preferredUnit}
                             </TableCell>
                             <TableCell
                               align="center"
@@ -717,6 +805,7 @@ export default function EditRoutinePage() {
             fullWidth
             size="large"
             onClick={handleSave}
+            disabled={saving || !routineName.trim()}
             sx={{
               py: 1.5,
               fontWeight: 700,
@@ -724,7 +813,14 @@ export default function EditRoutinePage() {
               borderRadius: 2,
             }}
           >
-            Update Routine
+            {saving ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                Saving...
+              </>
+            ) : (
+              'Update Routine'
+            )}
           </Button>
         </Container>
       </Box>
@@ -775,7 +871,7 @@ export default function EditRoutinePage() {
               scrollbarWidth: 'none',
             }}
           >
-            {BODY_PARTS.map((part) => (
+            {bodyParts.map((part) => (
               <Chip
                 key={part}
                 label={part}

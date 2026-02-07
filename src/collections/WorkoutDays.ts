@@ -32,6 +32,48 @@ export const WorkoutDays: CollectionConfig = {
         return data
       },
     ],
+    beforeDelete: [
+      async ({ req, id }) => {
+        // Delete all related workout exercises and sets when a workout day is deleted
+        try {
+          // Find all workout exercises for this workout day
+          const workoutExercises = await req.payload.find({
+            collection: 'workout-exercises',
+            where: {
+              workoutDay: {
+                equals: id,
+              },
+            },
+            limit: 1000,
+          })
+
+          // Delete all workout sets for each exercise
+          for (const exercise of workoutExercises.docs) {
+            await req.payload.delete({
+              collection: 'workout-sets',
+              where: {
+                workoutExercise: {
+                  equals: exercise.id,
+                },
+              },
+            })
+          }
+
+          // Delete all workout exercises for this workout day
+          await req.payload.delete({
+            collection: 'workout-exercises',
+            where: {
+              workoutDay: {
+                equals: id,
+              },
+            },
+          })
+        } catch (error) {
+          console.error('Error in beforeDelete hook for workout-days:', error)
+          throw error
+        }
+      },
+    ],
   },
 
   admin: {

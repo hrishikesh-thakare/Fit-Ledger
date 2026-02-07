@@ -142,6 +142,10 @@ export interface User {
   id: number;
   displayName: string;
   preferredUnit: 'kg' | 'lb';
+  /**
+   * Your target body weight goal
+   */
+  targetWeight?: number | null;
   role: 'admin' | 'user';
   isActive: 'active' | 'inactive';
   updatedAt: string;
@@ -236,7 +240,7 @@ export interface RoutineSet {
   id: number;
   routineExercise: number | RoutineExercise;
   setOrder: number;
-  setLabel: 'warmup' | 'working' | 'drop';
+  setLabel: 'warmup' | 'working' | 'drop' | 'failure';
   reps: number;
   weight: number;
   updatedAt: string;
@@ -278,7 +282,7 @@ export interface WorkoutSet {
   workoutDay: number | WorkoutDay;
   workoutExercise: number | WorkoutExercise;
   setOrder: number;
-  setLabel: 'warmup' | 'working' | 'drop';
+  setLabel: 'warmup' | 'working' | 'drop' | 'failure';
   reps: number;
   weight: number;
   previousWeight?: number | null;
@@ -415,6 +419,7 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
   preferredUnit?: T;
+  targetWeight?: T;
   role?: T;
   isActive?: T;
   updatedAt?: T;

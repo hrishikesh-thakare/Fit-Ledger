@@ -1,7 +1,11 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import apiFetch from '@/lib/api/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { toKg } from '@/lib/utils/weightConversion'
+import type { Exercise as DBExercise, MuscleGroup } from '@/payload-types'
 import {
   Box,
   Container,
@@ -27,6 +31,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -54,6 +59,13 @@ interface Exercise {
   name: string
   bodyPart?: string
   sets: RoutineSet[]
+  dbId?: number
+}
+
+interface ExerciseOption {
+  id: number
+  name: string
+  bodyPart: string
 }
 
 // Dummy Data for Selection
@@ -84,20 +96,71 @@ const SET_TYPE_LABELS: { [key in SetType]: string } = {
 
 export default function NewRoutinePage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [routineName, setRoutineName] = useState('')
+  const [routineNotes, setRoutineNotes] = useState('')
+
+  // API Data
+  const [availableExercises, setAvailableExercises] = useState<ExerciseOption[]>([])
+  const [bodyParts, setBodyParts] = useState<string[]>(['All'])
+  const [loadingExercises, setLoadingExercises] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   // State for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
   const { showSnackbar } = useSnackbar()
 
-  const handleAddExercise = (exercise: { name: string; bodyPart: string }) => {
+  // Fetch exercises and muscle groups from API
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        setLoadingExercises(true)
+
+        // Fetch user's preferred unit
+        if (user) {
+          const userProfile = await apiFetch(`/users/${user.id}`)
+          const userUnit = userProfile.preferredUnit || 'kg'
+          setPreferredUnit(userUnit)
+        }
+
+        // Fetch muscle groups
+        const muscleGroupsRes = await apiFetch<{ docs: MuscleGroup[] }>('/muscle-groups')
+        const muscleGroupMap = new Map(muscleGroupsRes.docs.map((mg) => [mg.id, mg.name]))
+        setBodyParts(['All', ...muscleGroupsRes.docs.map((mg) => mg.name)])
+
+        // Fetch exercises
+        const exercisesRes = await apiFetch<{ docs: DBExercise[] }>('/exercises?limit=1000')
+        const formattedExercises = exercisesRes.docs.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          bodyPart:
+            typeof ex.muscleGroup === 'number'
+              ? muscleGroupMap.get(ex.muscleGroup) || 'Other'
+              : ex.muscleGroup.name,
+        }))
+        setAvailableExercises(formattedExercises)
+      } catch (err) {
+        console.error('Error fetching exercises:', err)
+        showSnackbar({ message: 'Failed to load exercises', severity: 'error' })
+      } finally {
+        setLoadingExercises(false)
+      }
+    }
+
+    fetchExercises()
+  }, [user])
+
+  const handleAddExercise = (exercise: ExerciseOption) => {
     const newExercise: Exercise = {
       id: Math.random().toString(36).substr(2, 9),
       name: exercise.name,
       bodyPart: exercise.bodyPart,
+      dbId: exercise.id,
       sets: [{ id: Math.random().toString(36).substr(2, 9), type: 'N', weight: '', reps: '' }],
     }
     setExercises([...exercises, newExercise])
@@ -178,9 +241,9 @@ export default function NewRoutinePage() {
   }
 
   const filteredExercises = useMemo(() => {
-    if (selectedBodyPart === 'All') return AVAILABLE_EXERCISES
-    return AVAILABLE_EXERCISES.filter((ex) => ex.bodyPart === selectedBodyPart)
-  }, [selectedBodyPart])
+    if (selectedBodyPart === 'All') return availableExercises
+    return availableExercises.filter((ex) => ex.bodyPart === selectedBodyPart)
+  }, [selectedBodyPart, availableExercises])
 
   const appBarHeight = 64
 
@@ -190,6 +253,81 @@ export default function NewRoutinePage() {
     const exercise = exercises.find((e) => e.id === activeSet.exerciseId)
     return exercise?.sets.find((s) => s.id === activeSet.setId)
   }, [activeSet, exercises])
+
+  // Save Routine to Database
+  const handleSaveRoutine = async () => {
+    if (!routineName.trim()) {
+      showSnackbar({ message: 'Please enter a routine name', severity: 'error' })
+      return
+    }
+
+    if (exercises.length === 0) {
+      showSnackbar({ message: 'Please add at least one exercise', severity: 'error' })
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      // 1. Create the routine
+      const routineRes = await apiFetch<{ doc: { id: number } }>('/routines', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: routineName,
+          notes: routineNotes || null,
+          isActive: 'active',
+        }),
+      })
+
+      const routineId = routineRes.doc.id
+
+      // 2. For each exercise, create routine-exercise entries
+      for (let i = 0; i < exercises.length; i++) {
+        const exercise = exercises[i]
+
+        const routineExerciseRes = await apiFetch<{ doc: { id: number } }>('/routine-exercises', {
+          method: 'POST',
+          body: JSON.stringify({
+            routine: routineId,
+            exercise: exercise.dbId,
+            exerciseOrder: i + 1,
+          }),
+        })
+
+        const routineExerciseId = routineExerciseRes.doc.id
+
+        // 3. For each set in the exercise, create routine-set entries
+        for (let j = 0; j < exercise.sets.length; j++) {
+          const set = exercise.sets[j]
+          const setLabelMap: { [key in SetType]: 'warmup' | 'working' | 'drop' } = {
+            N: 'working',
+            W: 'warmup',
+            D: 'drop',
+            F: 'working',
+          }
+
+          await apiFetch('/routine-sets', {
+            method: 'POST',
+            body: JSON.stringify({
+              routineExercise: routineExerciseId,
+              setOrder: j + 1,
+              setLabel: setLabelMap[set.type],
+              reps: parseInt(set.reps) || 0,
+              weight: set.weight ? Math.round(toKg(parseFloat(set.weight), preferredUnit)) : 0,
+            }),
+          })
+        }
+      }
+
+      showSnackbar({ message: 'Routine saved successfully!', severity: 'success' })
+      router.push('/routines')
+    } catch (err: any) {
+      console.error('Error saving routine:', err)
+      showSnackbar({ message: 'Failed to save routine', severity: 'error' })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Helper for numbering sets logic
   const getSetLabel = (sets: RoutineSet[], currentIndex: number) => {
@@ -263,6 +401,25 @@ export default function NewRoutinePage() {
               label="Routine Name"
               placeholder="e.g., Push Day"
               variant="outlined"
+              value={routineName}
+              onChange={(e) => setRoutineName(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.paper',
+                },
+                mb: 2,
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Notes (Optional)"
+              placeholder="Add any notes about this routine..."
+              variant="outlined"
+              multiline
+              rows={3}
+              value={routineNotes}
+              onChange={(e) => setRoutineNotes(e.target.value)}
               InputLabelProps={{ shrink: true }}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -533,6 +690,8 @@ export default function NewRoutinePage() {
             variant="contained"
             fullWidth
             size="large"
+            disabled={saving}
+            onClick={handleSaveRoutine}
             sx={{
               py: 1.5,
               fontWeight: 700,
@@ -540,7 +699,7 @@ export default function NewRoutinePage() {
               borderRadius: 2,
             }}
           >
-            Save Routine
+            {saving ? <CircularProgress size={24} /> : 'Save Routine'}
           </Button>
         </Container>
       </Box>
@@ -591,7 +750,7 @@ export default function NewRoutinePage() {
               scrollbarWidth: 'none',
             }}
           >
-            {BODY_PARTS.map((part) => (
+            {bodyParts.map((part) => (
               <Chip
                 key={part}
                 label={part}
@@ -606,35 +765,39 @@ export default function NewRoutinePage() {
 
         {/* Exercises List */}
         <Box sx={{ overflowY: 'auto', flex: 1 }}>
-          <List>
-            {filteredExercises.map((exercise) => (
-              <React.Fragment key={exercise.name}>
-                <ListItem disablePadding>
-                  <ListItemButton onClick={() => handleAddExercise(exercise)}>
-                    <ListItemText
-                      primary={exercise.name}
-                      secondary={exercise.bodyPart}
-                      primaryTypographyProps={{ fontWeight: 500 }}
-                      secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                    />
-                    <IconButton
-                      edge="end"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
-                        // Use window.location.href or router.push based on preference, but router is available.
-                        // Assuming router is imported from next/navigation
-                        router.push(`/exercises/${slug}`)
-                      }}
-                    >
-                      <ChevronRight color="action" />
-                    </IconButton>
-                  </ListItemButton>
-                </ListItem>
-                <Divider component="li" />
-              </React.Fragment>
-            ))}
-          </List>
+          {loadingExercises ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <List>
+              {filteredExercises.map((exercise) => (
+                <React.Fragment key={exercise.name}>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => handleAddExercise(exercise)}>
+                      <ListItemText
+                        primary={exercise.name}
+                        secondary={exercise.bodyPart}
+                        primaryTypographyProps={{ fontWeight: 500 }}
+                        secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                      />
+                      <IconButton
+                        edge="end"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
+                          router.push(`/exercises/${slug}`)
+                        }}
+                      >
+                        <ChevronRight color="action" />
+                      </IconButton>
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
         </Box>
       </SwipeableDrawer>
 

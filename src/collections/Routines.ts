@@ -32,6 +32,41 @@ export const Routines: CollectionConfig = {
         return data
       },
     ],
+    beforeDelete: [
+      async ({ req, id }) => {
+        // Delete related routine-exercises and their sets before deleting the routine
+        const routineExercises = await req.payload.find({
+          collection: 'routine-exercises',
+          where: {
+            routine: {
+              equals: id,
+            },
+          },
+        })
+
+        // For each routine-exercise, delete its sets
+        for (const routineExercise of routineExercises.docs) {
+          await req.payload.delete({
+            collection: 'routine-sets',
+            where: {
+              routineExercise: {
+                equals: routineExercise.id,
+              },
+            },
+          })
+        }
+
+        // Delete all routine-exercises for this routine
+        await req.payload.delete({
+          collection: 'routine-exercises',
+          where: {
+            routine: {
+              equals: id,
+            },
+          },
+        })
+      },
+    ],
   },
 
   admin: {

@@ -1,7 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import apiFetch from '@/lib/api/client'
+import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
+import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
   Container,
@@ -11,6 +15,7 @@ import {
   Toolbar,
   IconButton,
   Divider,
+  Skeleton,
 } from '@mui/material'
 import {
   History as HistoryIcon,
@@ -33,72 +38,114 @@ import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
 import EmptyState from '@/components/EmptyState'
 
-// Mock Data
-const rawWorkouts = [
-  {
-    id: 1,
-    name: 'Leg Day A',
-    date: '2023-10-23', // Monday
-    time: '2:30 PM',
-    duration: '01:12:45',
-    volume: '14,250 lbs',
-    exercises: 6,
-  },
-  {
-    id: 2,
-    name: 'Push Routine',
-    date: '2023-10-21', // Saturday
-    time: '10:00 AM',
-    duration: '00:58:12',
-    volume: '8,120 lbs',
-    exercises: 7,
-  },
-  {
-    id: 3,
-    name: 'Pull Strength',
-    date: '2023-10-19', // Thursday
-    time: '3:00 PM',
-    duration: '01:05:30',
-    volume: '11,400 lbs',
-    exercises: 5,
-  },
-  {
-    id: 4,
-    name: 'Upper Body Power',
-    date: '2023-09-28',
-    time: '2:00 PM',
-    duration: '00:55:00',
-    volume: '9,500 lbs',
-    exercises: 6,
-  },
-  {
-    id: 5,
-    name: 'Core & Abs',
-    date: '2023-09-25',
-    time: '7:00 PM',
-    duration: '00:30:00',
-    volume: '0 lbs',
-    exercises: 4,
-  },
-  {
-    id: 6,
-    name: 'Leg Day B',
-    date: '2023-09-22',
-    time: '10:30 AM',
-    duration: '01:10:00',
-    volume: '13,800 lbs',
-    exercises: 7,
-  },
-]
+interface WorkoutHistoryItem {
+  id: number
+  name: string
+  date: string
+  time: string
+  duration: string
+  volume: string
+  exercises: number
+}
 
 export default function HistoryPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
-  // Default to null (Show all)
   const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('All')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [rawWorkouts, setRawWorkouts] = useState<WorkoutHistoryItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
+
+  useEffect(() => {
+    const fetchWorkoutHistory = async () => {
+      if (!user) {
+        console.log('No user found, skipping fetch')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        console.log('Fetching workout history for user:', user.id)
+
+        // Fetch user's preferred unit
+        const userProfile = await apiFetch(`/users/${user.id}`)
+        const userUnit = userProfile.preferredUnit || 'kg'
+        setPreferredUnit(userUnit)
+
+        // Fetch all workout days for the user
+        const workoutDaysResponse = await apiFetch<{ docs: WorkoutDay[] }>(
+          `/workout-days?where[user][equals]=${user.id}&sort=-date&limit=100`,
+        )
+
+        console.log('Workout days response:', workoutDaysResponse)
+
+        // For each workout, fetch exercise count and calculate volume
+        const workoutsWithDetails = await Promise.all(
+          workoutDaysResponse.docs.map(async (workout) => {
+            // Fetch workout exercises
+            const workoutExercisesResponse = await apiFetch<{ docs: WorkoutExercise[] }>(
+              `/workout-exercises?where[workoutDay][equals]=${workout.id}`,
+            )
+
+            // Fetch all sets for this workout and calculate volume
+            const setsResponse = await apiFetch<{ docs: WorkoutSet[] }>(
+              `/workout-sets?where[workoutDay][equals]=${workout.id}&limit=1000`,
+            )
+
+            // Calculate volume in kg, then convert to user's preferred unit
+            const totalVolumeKg = setsResponse.docs.reduce((sum, set) => {
+              return sum + (set.weight || 0) * (set.reps || 0)
+            }, 0)
+            const totalVolume = fromKg(totalVolumeKg, userUnit)
+
+            // Format duration
+            const durationSeconds = workout.durationSeconds || 0
+            const hours = Math.floor(durationSeconds / 3600)
+            const minutes = Math.floor((durationSeconds % 3600) / 60)
+            const seconds = durationSeconds % 60
+            const durationStr =
+              hours > 0
+                ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+
+            // Format date for display
+            const workoutDate = new Date(workout.date)
+            const dateStr = workoutDate.toISOString().split('T')[0]
+            const timeStr = workoutDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })
+
+            return {
+              id: workout.id,
+              name: workout.title || 'Workout',
+              date: dateStr,
+              time: timeStr,
+              duration: durationStr,
+              volume: `${totalVolume.toLocaleString()} ${userUnit}`,
+              exercises: workoutExercisesResponse.docs.length,
+            }
+          }),
+        )
+
+        console.log('Processed workouts:', workoutsWithDetails)
+        setRawWorkouts(workoutsWithDetails)
+      } catch (error) {
+        console.error('Error fetching workout history:', error)
+        showSnackbar({ message: 'Failed to load workout history', severity: 'error' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWorkoutHistory()
+  }, [user])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -185,7 +232,39 @@ export default function HistoryPage() {
           />
         </Box>
 
-        {Object.keys(groupedWorkouts).length > 0 ? (
+        {loading ? (
+          <Box>
+            {[1, 2, 3, 4].map((i) => (
+              <Card
+                key={i}
+                elevation={1}
+                sx={{
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  mb: 1.5,
+                }}
+              >
+                <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                  <Skeleton variant="text" width="60%" height={28} sx={{ mb: 0.5 }} />
+                  <Skeleton variant="text" width="40%" height={20} sx={{ mb: 2.5 }} />
+                  <Divider sx={{ mb: 2.5 }} />
+                  <Box sx={{ display: 'flex', gap: 4 }}>
+                    <Box>
+                      <Skeleton variant="text" width={80} height={20} sx={{ mb: 0.5 }} />
+                      <Skeleton variant="text" width={60} height={28} />
+                    </Box>
+                    <Box>
+                      <Skeleton variant="text" width={80} height={20} sx={{ mb: 0.5 }} />
+                      <Skeleton variant="text" width={80} height={28} />
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : Object.keys(groupedWorkouts).length > 0 ? (
           Object.keys(groupedWorkouts).map((header) => (
             <Box key={header} sx={{ mb: 4 }}>
               {/* Section Header */}

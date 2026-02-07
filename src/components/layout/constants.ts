@@ -1,0 +1,2 @@
+export const BOTTOM_NAV_HEIGHT = 80
+export const BOTTOM_ACTION_BAR_HEIGHT = 80

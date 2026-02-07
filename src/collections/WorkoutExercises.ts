@@ -55,7 +55,7 @@ export const WorkoutExercises: CollectionConfig = {
             collection: 'workout-days',
             id: data.workoutDay,
           })
-          
+
           // Check if workout day belongs to current user
           const userId = typeof workoutDay.user === 'object' ? workoutDay.user.id : workoutDay.user
           if (userId !== req.user.id && req.user.role !== 'admin') {
@@ -78,6 +78,7 @@ export const WorkoutExercises: CollectionConfig = {
       type: 'relationship',
       relationTo: 'workout-days',
       required: true,
+      onDelete: 'cascade',
     },
     {
       name: 'exercise',

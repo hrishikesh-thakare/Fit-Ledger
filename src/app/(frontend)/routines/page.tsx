@@ -1,7 +1,10 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import apiFetch from '@/lib/api/client'
+import type { Routine, RoutineExercise } from '@/payload-types'
 import {
   Box,
   Container,
@@ -12,97 +15,99 @@ import {
   Button,
   Divider,
   Fab,
+  Alert,
 } from '@mui/material'
-import {
-  FitnessCenter,
-  Add,
-  ChevronRight,
-  AccessTime,
-  FormatListBulleted,
-  Edit,
-  ContentCopy,
-  Share,
-  Delete,
-} from '@mui/icons-material'
+import { FitnessCenter, Add, FormatListBulleted, AccessTime } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
-
 import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
-import EmptyState from '@/components/EmptyState'
 
-// Mock Data
-const routines = [
-  {
-    id: 1,
-    name: 'Push Day',
-    exerciseCount: 6,
-    duration: '45-60 min',
-    description: 'Chest, Shoulders, Triceps focus',
-    lastPerformed: '2 days ago',
-  },
-  {
-    id: 2,
-    name: 'Pull Day',
-    exerciseCount: 5,
-    duration: '45-50 min',
-    description: 'Back, Biceps, Rear Delts focus',
-    lastPerformed: '5 days ago',
-  },
-  {
-    id: 3,
-    name: 'Leg Day',
-    exerciseCount: 7,
-    duration: '60-75 min',
-    description: 'Quads, Hamstrings, Calves focus',
-    lastPerformed: 'Today',
-  },
-  {
-    id: 4,
-    name: 'Upper Body',
-    exerciseCount: 8,
-    duration: '50-60 min',
-    description: 'Full upper body hypertrophy',
-    lastPerformed: '1 week ago',
-  },
-  {
-    id: 5,
-    name: 'Core & Abs',
-    exerciseCount: 4,
-    duration: '20-30 min',
-    description: 'High intensity core circuit',
-    lastPerformed: 'Never',
-  },
-]
+interface RoutineWithExerciseCount extends Routine {
+  exerciseCount: number
+  duration: string
+  description: string
+  lastPerformed: string
+}
 
 export default function RoutinesPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
-  const [loading, setLoading] = React.useState(true)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [routines, setRoutines] = useState<RoutineWithExerciseCount[]>([])
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  useEffect(() => {
+    const fetchRoutines = async () => {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch routines for the current user
+        const response = await apiFetch<{ docs: Routine[] }>(
+          `/routines?where[user][equals]=${user.id}&where[isActive][equals]=active&sort=-createdAt`,
+        )
+
+        // Fetch exercise counts for each routine
+        const routinesWithCounts = await Promise.all(
+          response.docs.map(async (routine) => {
+            const exercisesResponse = await apiFetch<{ docs: RoutineExercise[] }>(
+              `/routine-exercises?where[routine][equals]=${routine.id}`,
+            )
+            return {
+              ...routine,
+              exerciseCount: exercisesResponse.docs.length,
+              duration: '-',
+              description: routine.notes || '-',
+              lastPerformed: '-',
+            }
+          }),
+        )
+
+        setRoutines(routinesWithCounts)
+      } catch (err: any) {
+        console.error('Error fetching routines:', err)
+        setError('Failed to load routines')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRoutines()
+  }, [user])
 
   const handleEdit = (routineId: number, routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
   }
 
-  const handleDelete = (routineId: number, routineName: string) => {
-    showSnackbar({
-      message: `"${routineName}" deleted`,
-      severity: 'success',
-      action: (
-        <Button color="inherit" size="small">
-          UNDO
-        </Button>
-      ),
-      duration: 5000,
-    })
+  const handleDelete = async (routineId: number, routineName: string) => {
+    try {
+      console.log('Deleting routine:', routineId)
+      const response = await apiFetch(`/routines/${routineId}`, {
+        method: 'DELETE',
+      })
+      console.log('Delete response:', response)
+
+      // Remove from local state
+      setRoutines((prev) => prev.filter((r) => r.id !== routineId))
+
+      showSnackbar({
+        message: `"${routineName}" deleted`,
+        severity: 'success',
+        duration: 3000,
+      })
+    } catch (err: any) {
+      console.error('Delete error:', err)
+      showSnackbar({
+        message: `Failed to delete routine: ${err.message || 'Unknown error'}`,
+        severity: 'error',
+        duration: 3000,
+      })
+    }
   }
 
   return (
@@ -130,6 +135,12 @@ export default function RoutinesPage() {
       </AppBarWithScroll>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         {loading ? (
           <>
             <RoutineCardSkeleton />
@@ -160,7 +171,7 @@ export default function RoutinesPage() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      mb: 0.5,
+                      mb: routine.notes ? 0.5 : 2.5,
                     }}
                   >
                     <Typography
@@ -178,7 +189,7 @@ export default function RoutinesPage() {
                     <CardOverflowMenu
                       title={routine.name}
                       actions={[
-                        commonActions.edit(() => handleEdit(routine.id, routine.name)),
+                        commonActions.edit(() => router.push(`/routines/${routine.id}/edit`)),
                         commonActions.delete(() => handleDelete(routine.id, routine.name)),
                       ]}
                     />
@@ -229,7 +240,7 @@ export default function RoutinesPage() {
               </Card>
             ))}
 
-            {/* Empty state if needed */}
+            {/* Empty state */}
             {routines.length === 0 && (
               <Box
                 sx={{

@@ -1,7 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import apiFetch from '@/lib/api/client'
+import type { BodyWeightLog } from '@/payload-types'
+import { useSnackbar } from '@/hooks/useSnackbar'
+import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
   Container,
@@ -14,6 +18,7 @@ import {
   Divider,
   Chip,
   Fab,
+  Skeleton,
 } from '@mui/material'
 import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
@@ -21,39 +26,129 @@ import WeightPicker from '@/components/WeightPicker'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
 
 export default function BodyweightLogPage() {
+  const { user } = useAuth()
+  const { showSnackbar } = useSnackbar()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [weightLogs, setWeightLogs] = useState<
+    Array<{ date: string; weight: number; change: number }>
+  >([])
+  const [loading, setLoading] = useState(true)
+  const [targetWeight, setTargetWeight] = useState<number | null>(null)
+  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
-  // Mock data
-  const currentWeight = 75.5
-  const targetWeight = 72.0
-  const weightLogs = [
-    { date: 'January 20, 2026', weight: 75.5, change: -0.3 }, // Decrease (Red)
-    { date: 'January 18, 2026', weight: 75.8, change: 0.5 }, // Increase (Green)
-    { date: 'January 15, 2026', weight: 75.3, change: 1.2 }, // Increase (Green)
-    { date: 'January 13, 2026', weight: 74.1, change: 0.0 }, // Neutral (Grey)
-    { date: 'January 10, 2026', weight: 74.1, change: -0.4 }, // Decrease (Red)
-    { date: 'January 8, 2026', weight: 74.5, change: -0.2 },
-    { date: 'January 5, 2026', weight: 74.7, change: 0.0 },
-    { date: 'January 3, 2026', weight: 74.7, change: -0.5 },
-    { date: 'January 1, 2026', weight: 75.2, change: -0.3 },
-    { date: 'December 28, 2025', weight: 75.5, change: 0.5 },
-    { date: 'December 25, 2025', weight: 75.0, change: -0.2 },
-    { date: 'December 22, 2025', weight: 75.2, change: -0.4 },
-    { date: 'December 19, 2025', weight: 75.6, change: -0.1 },
-    { date: 'December 16, 2025', weight: 75.7, change: -0.3 },
-    { date: 'December 13, 2025', weight: 76.0, change: -0.2 },
-    { date: 'December 10, 2025', weight: 76.2, change: 0.0 },
-    { date: 'December 7, 2025', weight: 76.2, change: -0.5 },
-    { date: 'December 4, 2025', weight: 76.7, change: -0.3 },
-    { date: 'December 1, 2025', weight: 77.0, change: 0.0 },
-    { date: 'November 28, 2025', weight: 77.0, change: -0.5 },
-    { date: 'November 25, 2025', weight: 77.5, change: -0.5 },
-  ]
+  useEffect(() => {
+    const fetchWeightLogs = async () => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-  const handleSaveWeight = (weight: number, date: Date) => {
-    // UI only - would save to database
-    console.log('Saving weight:', weight, 'on date:', date)
-    setIsPickerOpen(false)
+      try {
+        setLoading(true)
+
+        // Fetch user profile to get target weight and preferred unit
+        const userProfile = await apiFetch(`/users/${user.id}`)
+        const userUnit = userProfile.preferredUnit || 'kg'
+        setPreferredUnit(userUnit)
+
+        if (userProfile.targetWeight) {
+          setTargetWeight(userProfile.targetWeight) // Already in kg
+        }
+
+        const response = await apiFetch<{ docs: BodyWeightLog[] }>(
+          `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50`,
+        )
+
+        // Calculate changes and convert to display unit
+        const logsWithChanges = response.docs.map((log, index) => {
+          const weightInKg = log.weight // Database stores in kg
+          const displayWeight = fromKg(weightInKg, userUnit)
+
+          const previousLog = response.docs[index + 1]
+          let change = 0
+          if (previousLog) {
+            const prevWeightInKg = previousLog.weight
+            const prevDisplayWeight = fromKg(prevWeightInKg, userUnit)
+            change = displayWeight - prevDisplayWeight
+          }
+
+          return {
+            date: new Date(log.loggedAt).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            weight: displayWeight,
+            change,
+          }
+        })
+
+        setWeightLogs(logsWithChanges)
+      } catch (error) {
+        console.error('Error fetching weight logs:', error)
+        showSnackbar({ message: 'Failed to load weight logs', severity: 'error' })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWeightLogs()
+  }, [user])
+
+  const currentWeight = weightLogs.length > 0 ? weightLogs[0].weight : 0
+
+  const handleSaveWeight = async (weight: number, date: Date) => {
+    if (!user) return
+
+    try {
+      // Convert user input (in their preferred unit) to kg for database
+      const weightInKg = toKg(weight, preferredUnit)
+
+      await apiFetch('/body-weight-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: weightInKg, // Save in kg (canonical unit)
+          loggedAt: date.toISOString(),
+        }),
+      })
+
+      showSnackbar({ message: 'Weight logged successfully', severity: 'success' })
+      setIsPickerOpen(false)
+
+      // Refresh the list
+      const response = await apiFetch<{ docs: BodyWeightLog[] }>(
+        `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50`,
+      )
+
+      const logsWithChanges = response.docs.map((log, index) => {
+        const weightInKg = log.weight
+        const displayWeight = fromKg(weightInKg, preferredUnit)
+
+        const previousLog = response.docs[index + 1]
+        let change = 0
+        if (previousLog) {
+          const prevWeightInKg = previousLog.weight
+          const prevDisplayWeight = fromKg(prevWeightInKg, preferredUnit)
+          change = displayWeight - prevDisplayWeight
+        }
+
+        return {
+          date: new Date(log.loggedAt).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          weight: displayWeight,
+          change,
+        }
+      })
+
+      setWeightLogs(logsWithChanges)
+    } catch (error) {
+      console.error('Error saving weight:', error)
+      showSnackbar({ message: 'Failed to save weight', severity: 'error' })
+    }
   }
 
   return (
@@ -102,22 +197,32 @@ export default function BodyweightLogPage() {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 1.5 }}>
               <Typography variant="h2" sx={{ color: 'text.primary', fontWeight: 800, mr: 0.5 }}>
-                {currentWeight}
+                {currentWeight.toFixed(1)}
               </Typography>
               <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                kg
+                {preferredUnit}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                Target: {targetWeight}kg
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                •
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                {(currentWeight - targetWeight).toFixed(1)}kg to go
-              </Typography>
+              {targetWeight ? (
+                <>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    Target: {formatWeight(targetWeight, preferredUnit)}
+                    {preferredUnit}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                    •
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    {Math.abs(currentWeight - fromKg(targetWeight, preferredUnit)).toFixed(1)}
+                    {preferredUnit} to go
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                  Set your target weight in settings
+                </Typography>
+              )}
             </Box>
           </CardContent>
         </Card>
@@ -154,76 +259,104 @@ export default function BodyweightLogPage() {
               borderRadius: 2,
             }}
           >
-            <List sx={{ p: 0 }}>
-              {weightLogs.map((log, index) => (
-                <React.Fragment key={index}>
-                  <ListItem
-                    sx={{
-                      px: 2.5,
-                      py: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                        <CalendarToday
-                          sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }}
-                        />
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 500 }}
-                        >
-                          {log.date}
+            {loading ? (
+              <List sx={{ p: 0 }}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <React.Fragment key={i}>
+                    <ListItem sx={{ px: 2.5, py: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="60%" height={20} sx={{ mb: 1 }} />
+                        <Skeleton variant="text" width="40%" height={32} />
+                      </Box>
+                      <Skeleton
+                        variant="rectangular"
+                        width={70}
+                        height={24}
+                        sx={{ borderRadius: 1 }}
+                      />
+                    </ListItem>
+                    {i < 5 && <Divider sx={{ mx: 2.5 }} />}
+                  </React.Fragment>
+                ))}
+              </List>
+            ) : weightLogs.length === 0 ? (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No weight logs yet. Tap the + button to add your first entry!
+                </Typography>
+              </Box>
+            ) : (
+              <List sx={{ p: 0 }}>
+                {weightLogs.map((log, index) => (
+                  <React.Fragment key={index}>
+                    <ListItem
+                      sx={{
+                        px: 2.5,
+                        py: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Box sx={{ flex: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                          <CalendarToday
+                            sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary', fontWeight: 500 }}
+                          >
+                            {log.date}
+                          </Typography>
+                        </Box>
+                        <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 800 }}>
+                          {log.weight.toFixed(1)}{' '}
+                          <span
+                            style={{ fontSize: '0.9rem', color: 'text.secondary', fontWeight: 500 }}
+                          >
+                            {preferredUnit}
+                          </span>
                         </Typography>
                       </Box>
-                      <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 800 }}>
-                        {log.weight}{' '}
-                        <span
-                          style={{ fontSize: '0.9rem', color: 'text.secondary', fontWeight: 500 }}
-                        >
-                          kg
-                        </span>
-                      </Typography>
-                    </Box>
 
-                    <Box sx={{ textAlign: 'right' }}>
-                      {log.change !== 0 && (
-                        <Chip
-                          label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}kg`}
-                          size="small"
-                          variant="filled"
-                          sx={{
-                            bgcolor: 'action.hover',
-                            color: log.change < 0 ? 'error.main' : 'success.main',
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            border: 'none',
-                          }}
-                        />
-                      )}
-                      {log.change === 0 && (
-                        <Chip
-                          label="No change"
-                          size="small"
-                          variant="filled"
-                          sx={{
-                            bgcolor: 'action.hover',
-                            color: 'text.secondary',
-                            fontWeight: 'bold', // Added for consistency
-                            fontSize: '0.8rem',
-                            border: 'none',
-                          }}
-                        />
-                      )}
-                    </Box>
-                  </ListItem>
-                  {index < weightLogs.length - 1 && (
-                    <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
-                  )}
-                </React.Fragment>
-              ))}
-            </List>
+                      <Box sx={{ textAlign: 'right' }}>
+                        {log.change !== 0 && (
+                          <Chip
+                            label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}${preferredUnit}`}
+                            size="small"
+                            variant="filled"
+                            sx={{
+                              bgcolor: 'action.hover',
+                              color: log.change < 0 ? 'error.main' : 'success.main',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              border: 'none',
+                            }}
+                          />
+                        )}
+                        {log.change === 0 && (
+                          <Chip
+                            label="No change"
+                            size="small"
+                            variant="filled"
+                            sx={{
+                              bgcolor: 'action.hover',
+                              color: 'text.secondary',
+                              fontWeight: 'bold', // Added for consistency
+                              fontSize: '0.8rem',
+                              border: 'none',
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </ListItem>
+                    {index < weightLogs.length - 1 && (
+                      <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </List>
+            )}
           </Card>
         </Box>
       </Container>

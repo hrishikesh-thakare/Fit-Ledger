@@ -45,6 +45,13 @@ export const Users: CollectionConfig = {
       required: true,
     },
     {
+      name: 'targetWeight',
+      type: 'number',
+      admin: {
+        description: 'Your target body weight goal',
+      },
+    },
+    {
       name: 'role',
       type: 'select',
       options: [

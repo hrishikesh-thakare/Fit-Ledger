@@ -1,5 +1,6 @@
 import React from 'react'
 import { ThemeProvider } from '../../theme'
+import { AuthProvider } from '../../contexts/AuthContext'
 import { SnackbarProvider } from '../../contexts/SnackbarContext'
 import './styles.css'
 
@@ -23,16 +24,18 @@ const robotoMono = Roboto_Mono({
   variable: '--font-roboto-mono',
 })
 
-export default async function RootLayout(props: { children: React.ReactNode }) {
+export default function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
 
   return (
     <html lang="en">
       <body className={`${roboto.variable} ${robotoMono.variable}`}>
         <ThemeProvider>
-          <SnackbarProvider>
-            <main>{children}</main>
-          </SnackbarProvider>
+          <AuthProvider>
+            <SnackbarProvider>
+              <main>{children}</main>
+            </SnackbarProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
