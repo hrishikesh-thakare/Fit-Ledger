@@ -165,7 +165,7 @@ export default function RoutineDetailPage() {
         )
 
         // Filter out any null entries (exercises that weren't found)
-        setExercises(exercisesWithSets.filter((ex): ex is Exercise => ex !== null))
+        setExercises(exercisesWithSets.filter((ex) => ex !== null) as Exercise[])
       } catch (err: any) {
         console.error('Error fetching routine details:', err)
         setError('Failed to load routine details')

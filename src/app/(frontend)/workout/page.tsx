@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Box,
@@ -72,7 +72,7 @@ interface WorkoutExercise {
   sets: WorkoutSet[]
 }
 
-export default function WorkoutLoggingPage() {
+function WorkoutLoggingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -155,9 +155,9 @@ export default function WorkoutLoggingPage() {
         const workoutData = await startWorkoutFromRoutine({ routineId })
 
         // Convert weights from kg (database) to user's preferred unit for display
-        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: WorkoutExercise) => ({
+        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
           ...ex,
-          sets: ex.sets.map((set: WorkoutSet) => {
+          sets: ex.sets.map((set: any) => {
             // Parse previous data in format "weightxreps"
             let previousDisplay = set.previous
             if (set.previous && set.previous !== '-' && set.previous.includes('x')) {
@@ -921,5 +921,13 @@ export default function WorkoutLoggingPage() {
         }
       />
     </Box>
+  )
+}
+
+export default function WorkoutLoggingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WorkoutLoggingContent />
+    </Suspense>
   )
 }

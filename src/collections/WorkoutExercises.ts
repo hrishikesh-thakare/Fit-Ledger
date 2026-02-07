@@ -78,7 +78,6 @@ export const WorkoutExercises: CollectionConfig = {
       type: 'relationship',
       relationTo: 'workout-days',
       required: true,
-      onDelete: 'cascade',
     },
     {
       name: 'exercise',

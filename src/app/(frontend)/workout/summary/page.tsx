@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { completeWorkout } from '@/lib/api/workout'
@@ -29,7 +29,7 @@ import {
   Skeleton,
 } from '@mui/material'
 
-export default function WorkoutSummaryPage() {
+function WorkoutSummaryContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
@@ -444,5 +444,13 @@ export default function WorkoutSummaryPage() {
         </DialogActions>
       </Dialog>
     </Box>
+  )
+}
+
+export default function WorkoutSummaryPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WorkoutSummaryContent />
+    </Suspense>
   )
 }
