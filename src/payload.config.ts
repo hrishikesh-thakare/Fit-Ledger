@@ -20,6 +20,10 @@ import { BodyWeightLogs } from './collections/BodyWeightLogs'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set');
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -47,7 +51,8 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URL || '',
+      connectionString: process.env.DATABASE_URL,
+      // connectionString: process.env.DATABASE_URL || '',
     },
   }),
   sharp,
