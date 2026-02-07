@@ -5,8 +5,6 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-console.log('RUNTIME DATABASE_URL =', process.env.DATABASE_URL);
-
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { MuscleGroups } from './collections/MuscleGroups'
@@ -21,10 +19,6 @@ import { BodyWeightLogs } from './collections/BodyWeightLogs'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set');
-}
 
 export default buildConfig({
   admin: {
@@ -53,8 +47,7 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URL,
-      // connectionString: process.env.DATABASE_URL || '',
+      connectionString: process.env.DATABASE_URL || '',
     },
   }),
   sharp,
