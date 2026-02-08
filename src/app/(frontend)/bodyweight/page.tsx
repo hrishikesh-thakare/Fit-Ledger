@@ -25,13 +25,20 @@ import BottomNav from '@/components/BottomNav'
 import WeightPicker from '@/components/WeightPicker'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
 
+interface ProcessedLog {
+  id: number
+  date: string
+  weight: number
+  rawWeight: number // kg
+  change: number
+  rawDate: string
+}
+
 export default function BodyweightLogPage() {
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
-  const [weightLogs, setWeightLogs] = useState<
-    Array<{ date: string; weight: number; change: number }>
-  >([])
+  const [weightLogs, setWeightLogs] = useState<ProcessedLog[]>([])
   const [loading, setLoading] = useState(true)
   const [targetWeight, setTargetWeight] = useState<number | null>(null)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
@@ -55,35 +62,12 @@ export default function BodyweightLogPage() {
           setTargetWeight(userProfile.targetWeight) // Already in kg
         }
 
+        // Optimized fetch: depth=0 to avoid joining user object
         const response = await apiFetch<{ docs: BodyWeightLog[] }>(
-          `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50`,
+          `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50&depth=0`,
         )
 
-        // Calculate changes and convert to display unit
-        const logsWithChanges = response.docs.map((log, index) => {
-          const weightInKg = log.weight // Database stores in kg
-          const displayWeight = fromKg(weightInKg, userUnit)
-
-          const previousLog = response.docs[index + 1]
-          let change = 0
-          if (previousLog) {
-            const prevWeightInKg = previousLog.weight
-            const prevDisplayWeight = fromKg(prevWeightInKg, userUnit)
-            change = displayWeight - prevDisplayWeight
-          }
-
-          return {
-            date: new Date(log.loggedAt).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            }),
-            weight: displayWeight,
-            change,
-          }
-        })
-
-        setWeightLogs(logsWithChanges)
+        processAndSetLogs(response.docs, userUnit)
       } catch (error) {
         console.error('Error fetching weight logs:', error)
         showSnackbar({ message: 'Failed to load weight logs', severity: 'error' })
@@ -95,20 +79,52 @@ export default function BodyweightLogPage() {
     fetchWeightLogs()
   }, [user])
 
+  const processAndSetLogs = (docs: BodyWeightLog[], unit: 'kg' | 'lb') => {
+    const logsWithChanges = docs.map((log, index) => {
+      const weightInKg = log.weight
+      const displayWeight = fromKg(weightInKg, unit)
+
+      const previousLog = docs[index + 1]
+      let change = 0
+      if (previousLog) {
+        const prevWeightInKg = previousLog.weight
+        const prevDisplayWeight = fromKg(prevWeightInKg, unit)
+        change = displayWeight - prevDisplayWeight
+      }
+
+      return {
+        id: log.id,
+        date: new Date(log.loggedAt).toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        rawDate: log.loggedAt,
+        weight: displayWeight,
+        rawWeight: weightInKg,
+        change,
+      }
+    })
+    setWeightLogs(logsWithChanges)
+  }
+
   const currentWeight = weightLogs.length > 0 ? weightLogs[0].weight : 0
 
   const handleSaveWeight = async (weight: number, date: Date) => {
     if (!user) return
 
     try {
-      // Convert user input (in their preferred unit) to kg for database
+      // Optimistic Update can be tricky with "change" calculation dependent on sort.
+      // But we can insert at top and recalc.
       const weightInKg = toKg(weight, preferredUnit)
 
-      await apiFetch('/body-weight-logs', {
+      // API call
+      const response = await apiFetch<{ doc: BodyWeightLog }>('/body-weight-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          weight: weightInKg, // Save in kg (canonical unit)
+          user: user.id,
+          weight: weightInKg,
           loggedAt: date.toISOString(),
         }),
       })
@@ -116,35 +132,27 @@ export default function BodyweightLogPage() {
       showSnackbar({ message: 'Weight logged successfully', severity: 'success' })
       setIsPickerOpen(false)
 
-      // Refresh the list
-      const response = await apiFetch<{ docs: BodyWeightLog[] }>(
-        `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50`,
+      // Add new log to state without re-fetching
+      const newLog = response.doc
+      // We need to re-process the list because "change" values might shift if we insert in middle,
+      // but usually logs are today, so top of list.
+      // Let's verify date sorting. If new log is older than top, we need to sort.
+      // Easiest is to reconstruct the "docs" array and re-run processAndSetLogs.
+
+      const currentDocs: BodyWeightLog[] = weightLogs.map((l) => ({
+        id: l.id,
+        weight: l.rawWeight,
+        loggedAt: l.rawDate,
+        user: user.id,
+        updatedAt: '',
+        createdAt: '',
+      }))
+
+      const updatedDocs = [newLog, ...currentDocs].sort(
+        (a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime(),
       )
 
-      const logsWithChanges = response.docs.map((log, index) => {
-        const weightInKg = log.weight
-        const displayWeight = fromKg(weightInKg, preferredUnit)
-
-        const previousLog = response.docs[index + 1]
-        let change = 0
-        if (previousLog) {
-          const prevWeightInKg = previousLog.weight
-          const prevDisplayWeight = fromKg(prevWeightInKg, preferredUnit)
-          change = displayWeight - prevDisplayWeight
-        }
-
-        return {
-          date: new Date(log.loggedAt).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-          }),
-          weight: displayWeight,
-          change,
-        }
-      })
-
-      setWeightLogs(logsWithChanges)
+      processAndSetLogs(updatedDocs, preferredUnit)
     } catch (error) {
       console.error('Error saving weight:', error)
       showSnackbar({ message: 'Failed to save weight', severity: 'error' })
