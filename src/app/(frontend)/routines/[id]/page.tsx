@@ -4,13 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
-import type {
-  Routine,
-  RoutineExercise,
-  RoutineSet as DBRoutineSet,
-  Exercise as DBExercise,
-} from '@/payload-types'
+import { formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
   Container,
@@ -28,10 +22,8 @@ import {
   TableRow,
   Divider,
   Stack,
-  Chip,
   CircularProgress,
   Alert,
-  Skeleton,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -40,7 +32,6 @@ import {
   AccessTime,
   FormatListBulleted,
   FitnessCenter,
-  DeleteOutline,
 } from '@mui/icons-material'
 
 type SetType = 'N' | 'W' | 'D' | 'F'
@@ -59,13 +50,40 @@ interface Exercise {
   sets: RoutineSet[]
 }
 
+// Matches the API response structure
+interface FetchedRoutineSet {
+  id: string
+  type: SetType
+  weight: string
+  reps: string
+  setOrder: number
+  previous?: string
+}
+
+interface FetchedExercise {
+  id: string
+  exerciseId: string
+  name: string
+  bodyPart?: string
+  sets: FetchedRoutineSet[]
+  order: number
+}
+
+interface FetchedRoutineDetails {
+  id: string
+  name: string
+  description?: string
+  exercises: FetchedExercise[]
+}
+
 export default function RoutineDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
   const routineId = params.id as string
 
-  const [routine, setRoutine] = useState<Routine | null>(null)
+  const [routineName, setRoutineName] = useState<string>('')
+  const [routineNotes, setRoutineNotes] = useState<string | undefined>(undefined)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -83,89 +101,52 @@ export default function RoutineDetailPage() {
           setPreferredUnit(userUnit)
         }
 
-        // 1. Fetch routine basic info
-        const routineRes = await apiFetch<Routine>(`/routines/${routineId}`)
-        setRoutine(routineRes)
+        // Optimized single fetch
+        const data = await apiFetch<FetchedRoutineDetails>(`/custom/routines/${routineId}`)
 
-        // 2. Fetch routine-exercises for this routine
-        const routineExercisesRes = await apiFetch<{ docs: RoutineExercise[] }>(
-          `/routine-exercises?where[routine][equals]=${routineId}&sort=exerciseOrder`,
-        )
+        setRoutineName(data.name)
+        setRoutineNotes(data.description)
 
-        // 3. For each routine-exercise, fetch its sets and exercise details
-        const exercisesWithSets = await Promise.all(
-          routineExercisesRes.docs.map(async (routineExercise) => {
-            // Fetch routine-sets for this routine-exercise
-            const setsRes = await apiFetch<{ docs: DBRoutineSet[] }>(
-              `/routine-sets?where[routineExercise][equals]=${routineExercise.id}&sort=setOrder`,
-            )
-
-            // Get exercise details
-            const exerciseId =
-              typeof routineExercise.exercise === 'number'
-                ? routineExercise.exercise
-                : routineExercise.exercise.id
-
-            console.log('Fetching exercise:', exerciseId)
-            const exerciseRes = await apiFetch<DBExercise>(`/exercises/${exerciseId}`)
-            console.log('Exercise response:', exerciseRes)
-
-            // Check if exercise was found
-            if (!exerciseRes || !exerciseRes.name) {
-              console.error(`Exercise ${exerciseId} not found`)
-              return null
-            }
-
-            // Map DB set types to display format
-            const setTypeMap: Record<string, SetType> = {
-              warmup: 'W',
-              working: 'N',
-              drop: 'D',
-            }
-
-            // Fetch previous workout data for this exercise
-            const previousWorkoutSets: { [key: number]: string } = {}
-            try {
-              // Find the most recent completed workout for this exercise
-              const recentWorkoutsRes = await apiFetch<{ docs: any[] }>(
-                `/workout-exercises?where[exercise][equals]=${exerciseId}&depth=1&sort=-createdAt&limit=1`,
-              )
-
-              if (recentWorkoutsRes.docs.length > 0) {
-                const recentWorkoutExercise = recentWorkoutsRes.docs[0]
-                // Fetch sets for this workout exercise
-                const workoutSetsRes = await apiFetch<{ docs: any[] }>(
-                  `/workout-sets?where[workoutExercise][equals]=${recentWorkoutExercise.id}&sort=setOrder`,
-                )
-
-                // Map previous sets by index
-                workoutSetsRes.docs.forEach((workoutSet: any, idx: number) => {
-                  if (workoutSet.weight && workoutSet.reps) {
-                    const convertedWeight = formatWeight(workoutSet.weight, preferredUnit)
-                    previousWorkoutSets[idx] = `${convertedWeight}x${workoutSet.reps}`
-                  }
-                })
+        // Map API response to UI state
+        // Note: weights in DB are KG. We need to convert them for display.
+        // The API returns raw stored values (KG).
+        const mappedExercises: Exercise[] = data.exercises.map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          sets: ex.sets.map((s) => {
+            // Format weight based on user preference
+            let displayWeight = '-'
+            if (s.weight) {
+              const weightVal = parseFloat(s.weight)
+              if (!isNaN(weightVal)) {
+                displayWeight = formatWeight(weightVal, preferredUnit || 'kg')
               }
-            } catch (err) {
-              console.error('Error fetching previous workout data:', err)
+            }
+
+            // Previous string is usually "weightxreps" or "-"
+            // If it's "weightxreps", the weight is likely in KG from the DB or formatted?
+            // The API returns "previous" constructed from DB values (KG).
+            // So we need to parse and convert previous string too.
+            let displayPrevious = s.previous || '-'
+            if (displayPrevious !== '-' && displayPrevious?.includes('x')) {
+              const [prevWeight, prevReps] = displayPrevious.split('x')
+              const prevWeightVal = parseFloat(prevWeight)
+              if (!isNaN(prevWeightVal)) {
+                displayPrevious = `${formatWeight(prevWeightVal, preferredUnit || 'kg')}x${prevReps}`
+              }
             }
 
             return {
-              id: String(exerciseId),
-              name: exerciseRes.name,
-              sets: setsRes.docs.map((set, idx) => ({
-                id: String(set.id),
-                type: setTypeMap[set.setLabel] || 'N',
-                weight: set.weight ? formatWeight(set.weight, preferredUnit) : '',
-                reps: set.reps?.toString() || '',
-                previous: previousWorkoutSets[idx] || '-',
-              })),
+              id: s.id,
+              type: s.type,
+              weight: displayWeight,
+              reps: s.reps,
+              previous: displayPrevious,
             }
           }),
-        )
+        }))
 
-        // Filter out any null entries (exercises that weren't found)
-        setExercises(exercisesWithSets.filter((ex) => ex !== null) as Exercise[])
+        setExercises(mappedExercises)
       } catch (err: any) {
         console.error('Error fetching routine details:', err)
         setError('Failed to load routine details')
@@ -248,7 +229,7 @@ export default function RoutineDetailPage() {
           </Box>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
-        ) : routine ? (
+        ) : (
           <>
             {/* Routine Header */}
             <Box sx={{ mb: 4 }}>
@@ -262,11 +243,11 @@ export default function RoutineDetailPage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                {routine.name}
+                {routineName}
               </Typography>
-              {routine.notes && (
+              {routineNotes && (
                 <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
-                  {routine.notes}
+                  {routineNotes}
                 </Typography>
               )}
 
@@ -338,7 +319,7 @@ export default function RoutineDetailPage() {
                   key={exercise.id}
                   elevation={1}
                   sx={{
-                    bgcolor: 'background.paper', // User requested bg.ppr
+                    bgcolor: 'background.paper',
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 2,
@@ -463,7 +444,7 @@ export default function RoutineDetailPage() {
               ))}
             </Stack>
           </>
-        ) : null}
+        )}
       </Container>
 
       {/* Start Workout Button (Bottom Sticky) */}

@@ -1,26 +1,6 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
-import { toKg, fromKg } from '@/lib/utils/weightConversion' // Wait, I can't import this easily if it depends on client stuff?
-// checking usage of weight conversion. It's a util. I'll check its content first or just implement logic here.
-// Actually I'll implement logic here to avoid importing frontend-specific code if it uses hooks.
-// Assuming simple math for now: logic was `fromKg(totalVolumeKg, userUnit)`.
-// The DB stores weight in... wait, `WorkoutSets` has `weight`. Is it always KG?
-// In `routines/[id]/edit/page.tsx`, it says `weight: set.weight ? formatWeight(parseFloat(set.weight), userUnit) : set.weight`.
-// In `history/page.tsx`, it calculates volume: `sum + (set.weight || 0) * (set.reps || 0)` and implies this is `totalVolumeKg`.
-// So DB stores KG.
-// I will return the volume in KG, and let the frontend convert it to user preference.
-// Or I can accept `unit` param.
-// The frontend `history/page.tsx` fetches `userProfile` to get `preferredUnit`.
-// I can accept `preferredUnit` as query param to do it server side, or just return KG and let frontend convert.
-// Returning KG is cleaner API design (standardized unit). Frontend already has conversion utils.
-// BUT, the frontend `history/page.tsx` expects `volume` as a string like "20,000 kg".
-// If I change the API to return raw number `volumeKg`, I need to update frontend.
-// I'll stick to returning `volume` string if I can, OR return `volumeKg` number and update frontend.
-// Updating frontend is better.
-// Let's check `src/lib/utils/weightConversion.ts` content first to be safe.
-
-import { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +25,7 @@ export async function GET(req: NextRequest) {
       },
       sort: '-date',
       limit: 100,
+      depth: 0,
     })
 
     const workoutDays = workoutDaysResponse.docs
@@ -67,6 +48,7 @@ export async function GET(req: NextRequest) {
         },
       },
       limit: 5000,
+      depth: 0,
       select: {
         workoutDay: true,
       },
@@ -85,6 +67,7 @@ export async function GET(req: NextRequest) {
         },
       },
       limit: 10000, // Large limit for sets
+      depth: 0,
       select: {
         workoutDay: true,
         weight: true,
@@ -136,18 +119,6 @@ export async function GET(req: NextRequest) {
         hours > 0
           ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
           : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-
-      const workoutDate = new Date(day.date)
-      // Format date/time helper? I'll just return raw ISO and let frontend format
-      // Wait, existing frontend expects `date` and `time` strings.
-      // `date: dateStr` (ISO split T), `time: timeStr` (toLocaleTimeString).
-      // I can return these strings to keep frontend simple.
-      // But `toLocaleTimeString` on server might be different locale (UTC vs user).
-      // BETTER: Return `date` as ISO string, and let frontend format it.
-      // `history/page.tsx` does `new Date(workout.date)`.
-      // `workout.date` from Payload is ISO string.
-      // The `rawWorkouts` state in frontend has `date` as string (split T).
-      // I will return the props expected by `WorkoutHistoryItem` but maybe updated.
 
       return {
         id: day.id,
