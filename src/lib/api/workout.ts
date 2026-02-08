@@ -1,5 +1,5 @@
 import apiFetch from './client'
-import type { WorkoutDay, WorkoutExercise, WorkoutSet, Exercise } from '@/payload-types'
+import type { WorkoutSet } from '@/payload-types'
 
 /**
  * Start a workout from a routine
@@ -41,111 +41,17 @@ export const startWorkoutFromRoutine = async (
   try {
     const { routineId, date = new Date().toISOString() } = params
 
-    // 1. Fetch routine details
-    const routine = await apiFetch(`/routines/${routineId}`)
-
-    // 2. Fetch routine exercises with sets
-    const routineExercisesResponse = await apiFetch<{ docs: any[] }>(
-      `/routine-exercises?where[routine][equals]=${routineId}&depth=1&sort=exerciseOrder&limit=100`,
-    )
-
-    // 3. Create workout day
-    const workoutDay = await apiFetch<{ doc: WorkoutDay }>('/workout-days', {
+    // Use the optimized server-side endpoint
+    const response = await apiFetch<ActiveWorkoutData>('/custom/workouts/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: routine.name,
+        routineId,
         date,
-        durationSeconds: 0,
       }),
     })
 
-    const workoutDayId = String(workoutDay.doc.id)
-
-    // 4. Create workout exercises and sets
-    const exercises: WorkoutExerciseData[] = []
-
-    for (let i = 0; i < routineExercisesResponse.docs.length; i++) {
-      const re = routineExercisesResponse.docs[i]
-      const exercise = typeof re.exercise === 'object' ? re.exercise : null
-
-      // Create workout exercise
-      const workoutExerciseResponse = await apiFetch<{ doc: WorkoutExercise }>(
-        '/workout-exercises',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            workoutDay: Number(workoutDayId),
-            exercise:
-              typeof re.exercise === 'object' ? Number(re.exercise.id) : Number(re.exercise),
-            exerciseOrder: i,
-          }),
-        },
-      )
-
-      const workoutExerciseId = String(workoutExerciseResponse.doc.id)
-
-      // Fetch routine sets for this exercise
-      const routineSetsResponse = await apiFetch<{ docs: any[] }>(
-        `/routine-sets?where[routineExercise][equals]=${re.id}&sort=setOrder&limit=100`,
-      )
-
-      // Create workout sets
-      const sets: WorkoutSetData[] = []
-
-      for (let j = 0; j < routineSetsResponse.docs.length; j++) {
-        const routineSet = routineSetsResponse.docs[j]
-
-        const workoutSetResponse = await apiFetch<{ doc: WorkoutSet }>('/workout-sets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            workoutDay: Number(workoutDayId),
-            workoutExercise: Number(workoutExerciseId),
-            setOrder: j,
-            setLabel: routineSet.setLabel,
-            reps: routineSet.reps,
-            weight: routineSet.weight,
-          }),
-        })
-
-        sets.push({
-          id: String(workoutSetResponse.doc.id),
-          type:
-            routineSet.setLabel === 'warmup'
-              ? 'W'
-              : routineSet.setLabel === 'drop'
-                ? 'D'
-                : routineSet.setLabel === 'failure'
-                  ? 'F'
-                  : 'N',
-          weight: String(routineSet.weight),
-          reps: String(routineSet.reps),
-          completed: false,
-          previous: workoutSetResponse.doc.previousWeight
-            ? `${workoutSetResponse.doc.previousWeight}x${workoutSetResponse.doc.previousReps}`
-            : '-',
-          setOrder: j,
-        })
-      }
-
-      exercises.push({
-        id: workoutExerciseId,
-        exerciseId: typeof re.exercise === 'object' ? String(re.exercise.id) : String(re.exercise),
-        name: exercise?.name || 'Unknown Exercise',
-        restTime: 60, // Default rest time
-        sets,
-        order: i,
-      })
-    }
-
-    return {
-      workoutDayId,
-      title: routine.name,
-      date,
-      exercises,
-    }
+    return response
   } catch (error) {
     console.error('Error starting workout from routine:', error)
     throw error
