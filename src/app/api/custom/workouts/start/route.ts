@@ -11,12 +11,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'routineId is required' }, { status: 400 })
     }
 
+    // Cast routineId to number for DB operations
+    const numericRoutineId = Number(routineId)
+
     const payload = await getPayload({ config })
 
     // 1. Fetch routine details
     const routine = await payload.findByID({
       collection: 'routines',
-      id: routineId,
+      id: numericRoutineId,
     })
 
     if (!routine) {
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
       collection: 'routine-exercises',
       where: {
         routine: {
-          equals: routineId,
+          equals: numericRoutineId,
         },
       },
       sort: 'exerciseOrder',

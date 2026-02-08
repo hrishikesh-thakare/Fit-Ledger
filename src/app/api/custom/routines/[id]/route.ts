@@ -33,11 +33,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const payload = await getPayload({ config })
 
+  // Cast ID to number
+  const numericId = Number(id)
+
   try {
     // 1. Fetch the routine
     const routine = await payload.findByID({
       collection: 'routines',
-      id,
+      id: numericId,
     })
 
     if (!routine) {
@@ -49,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       collection: 'routine-exercises',
       where: {
         routine: {
-          equals: id,
+          equals: numericId,
         },
       },
       sort: 'exerciseOrder',

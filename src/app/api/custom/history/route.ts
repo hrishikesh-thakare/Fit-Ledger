@@ -12,6 +12,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
   }
 
+  // Cast userId to number
+  const numericUserId = Number(userId)
+
   const payload = await getPayload({ config })
 
   try {
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
       collection: 'workout-days',
       where: {
         user: {
-          equals: userId,
+          equals: numericUserId,
         },
       },
       sort: '-date',

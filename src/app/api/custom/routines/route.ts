@@ -1,7 +1,6 @@
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { NextRequest, NextResponse } from 'next/server'
-import { Routine } from '@/payload-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,15 +12,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
   }
 
+  // Cast ID to number
+  const numericUserId = Number(userId)
+
   const payload = await getPayload({ config })
 
   try {
     // 1. Fetch all active routines for this user
+    // Optimized: Select only needed fields, depth 0
     const routinesResponse = await payload.find({
       collection: 'routines',
       where: {
         user: {
-          equals: userId,
+          equals: numericUserId,
         },
         isActive: {
           equals: 'active',
@@ -30,13 +33,16 @@ export async function GET(req: NextRequest) {
       sort: '-createdAt',
       limit: 100,
       depth: 0,
+      select: {
+        name: true,
+        notes: true,
+        id: true,
+      },
     })
 
     const routines = routinesResponse.docs
 
     // 2. Efficiently get exercise counts
-    // We can do this by fetching all routine exercises for these routines
-    // OR just doing a count aggregation if Payload supported it easily (it's MongoDB/Postgres under hood).
     // For < 100 routines, fetching all routine-exercises where routine IN [...] is efficiently manageable.
 
     const routineIds = routines.map((r) => r.id)
