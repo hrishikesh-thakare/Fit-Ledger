@@ -25,9 +25,6 @@ import {
   ListItemButton,
   ListItemText,
   Divider,
-  Menu,
-  MenuItem,
-  Chip,
   Skeleton,
 } from '@mui/material'
 import {
@@ -41,7 +38,7 @@ import {
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
-import { startWorkoutFromRoutine, completeWorkout } from '@/lib/api/workout'
+import { startWorkoutFromRoutine } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { toKg, fromKg } from '@/lib/utils/weightConversion'
@@ -77,7 +74,6 @@ function WorkoutLoggingContent() {
   const searchParams = useSearchParams()
   const { user } = useAuth()
   const [elapsedTime, setElapsedTime] = useState(0)
-  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   // Active Rest Timer State
   const [activeRestTimer, setActiveRestTimer] = useState<{
@@ -149,7 +145,6 @@ function WorkoutLoggingContent() {
         // Fetch user's preferred unit
         const userProfile = await apiFetch(`/users/${user.id}`)
         const userUnit = userProfile.preferredUnit || 'kg'
-        setPreferredUnit(userUnit)
 
         console.log('Starting workout from routine:', routineId)
         const workoutData = await startWorkoutFromRoutine({ routineId })

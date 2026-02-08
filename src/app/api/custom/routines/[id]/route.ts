@@ -224,7 +224,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       exercises,
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: {
+        // Short cache for routine details - 10s cache, revalidate in background for 1 min
+        'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+      },
+    })
   } catch (error) {
     console.error('Error fetching routine details:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

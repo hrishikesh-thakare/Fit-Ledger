@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
 import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
@@ -22,21 +21,14 @@ import {
   AccessTime,
   FitnessCenter,
   CalendarMonth,
-  Add,
-  Edit,
-  ContentCopy,
-  Share,
-  Delete,
 } from '@mui/icons-material'
 import dayjs, { Dayjs } from 'dayjs'
 import BottomNav from '@/components/BottomNav'
 import HistoryDatePicker from '@/components/HistoryDatePicker'
-import ExtendedFab from '@/components/fabs/ExtendedFab'
 import ChipFilter from '@/components/ChipFilter'
 
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
-import EmptyState from '@/components/EmptyState'
 
 interface WorkoutHistoryItem {
   id: number
@@ -55,10 +47,8 @@ export default function HistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('All')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [rawWorkouts, setRawWorkouts] = useState<WorkoutHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   useEffect(() => {
     const fetchWorkoutHistory = async () => {
@@ -71,10 +61,9 @@ export default function HistoryPage() {
       try {
         setLoading(true)
 
-        // Fetch user's preferred unit
+        // Fetch user profile
         const userProfile = await apiFetch(`/users/${user.id}`)
         const userUnit = userProfile.preferredUnit || 'kg'
-        setPreferredUnit(userUnit)
 
         // Calculate date range based on selectedMonth
         let queryParams = `?userId=${user.id}`
@@ -130,7 +119,7 @@ export default function HistoryPage() {
     }
 
     fetchWorkoutHistory()
-  }, [user, selectedMonth])
+  }, [user, selectedMonth, showSnackbar])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)

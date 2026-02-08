@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
+import { toKg, formatWeight } from '@/lib/utils/weightConversion'
 import apiFetch from '@/lib/api/client'
 import {
   Box,
@@ -14,7 +14,6 @@ import {
   IconButton,
   Button,
   Card,
-  CardContent,
   TextField,
   List,
   ListItem,
@@ -97,13 +96,6 @@ interface Exercise {
 }
 
 // Body parts will be derived from exercises
-
-const SET_TYPE_LABELS: { [key in SetType]: string } = {
-  N: 'Normal',
-  W: 'Warm Up',
-  D: 'Drop Set',
-  F: 'Failure',
-}
 
 // --- Sortable Item Component ---
 function SortableExerciseItem(props: { id: string; name: string }) {
@@ -655,7 +647,7 @@ export default function EditRoutinePage() {
                   </Box>
                 ) : (
                   <Stack spacing={2}>
-                    {exercises.map((exercise, index) => (
+                    {exercises.map((exercise) => (
                       <Card
                         key={exercise.id}
                         elevation={1}
