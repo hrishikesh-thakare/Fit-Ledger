@@ -70,71 +70,47 @@ export default function HistoryPage() {
 
       try {
         setLoading(true)
-        console.log('Fetching workout history for user:', user.id)
 
         // Fetch user's preferred unit
         const userProfile = await apiFetch(`/users/${user.id}`)
         const userUnit = userProfile.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
-        // Fetch all workout days for the user
-        const workoutDaysResponse = await apiFetch<{ docs: WorkoutDay[] }>(
-          `/workout-days?where[user][equals]=${user.id}&sort=-date&limit=100`,
-        )
+        // Fetch optimized history from custom endpoint
+        const response = await apiFetch<{
+          docs: {
+            id: number
+            name: string
+            dateRaw: string
+            duration: string
+            volumeKg: number
+            exercises: number
+          }[]
+        }>(`/custom/history?userId=${user.id}`)
 
-        console.log('Workout days response:', workoutDaysResponse)
+        // Map response to component state format
+        const workoutsWithDetails = response.docs.map((item) => {
+          const workoutDate = new Date(item.dateRaw)
+          const dateStr = workoutDate.toISOString().split('T')[0]
+          const timeStr = workoutDate.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          })
 
-        // For each workout, fetch exercise count and calculate volume
-        const workoutsWithDetails = await Promise.all(
-          workoutDaysResponse.docs.map(async (workout) => {
-            // Fetch workout exercises
-            const workoutExercisesResponse = await apiFetch<{ docs: WorkoutExercise[] }>(
-              `/workout-exercises?where[workoutDay][equals]=${workout.id}`,
-            )
+          const volumeVal = fromKg(item.volumeKg, userUnit)
 
-            // Fetch all sets for this workout and calculate volume
-            const setsResponse = await apiFetch<{ docs: WorkoutSet[] }>(
-              `/workout-sets?where[workoutDay][equals]=${workout.id}&limit=1000`,
-            )
+          return {
+            id: item.id,
+            name: item.name,
+            date: dateStr,
+            time: timeStr,
+            duration: item.duration,
+            volume: `${volumeVal.toLocaleString()} ${userUnit}`,
+            exercises: item.exercises,
+          }
+        })
 
-            // Calculate volume in kg, then convert to user's preferred unit
-            const totalVolumeKg = setsResponse.docs.reduce((sum, set) => {
-              return sum + (set.weight || 0) * (set.reps || 0)
-            }, 0)
-            const totalVolume = fromKg(totalVolumeKg, userUnit)
-
-            // Format duration
-            const durationSeconds = workout.durationSeconds || 0
-            const hours = Math.floor(durationSeconds / 3600)
-            const minutes = Math.floor((durationSeconds % 3600) / 60)
-            const seconds = durationSeconds % 60
-            const durationStr =
-              hours > 0
-                ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-
-            // Format date for display
-            const workoutDate = new Date(workout.date)
-            const dateStr = workoutDate.toISOString().split('T')[0]
-            const timeStr = workoutDate.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })
-
-            return {
-              id: workout.id,
-              name: workout.title || 'Workout',
-              date: dateStr,
-              time: timeStr,
-              duration: durationStr,
-              volume: `${totalVolume.toLocaleString()} ${userUnit}`,
-              exercises: workoutExercisesResponse.docs.length,
-            }
-          }),
-        )
-
-        console.log('Processed workouts:', workoutsWithDetails)
         setRawWorkouts(workoutsWithDetails)
       } catch (error) {
         console.error('Error fetching workout history:', error)

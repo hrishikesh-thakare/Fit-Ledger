@@ -231,60 +231,7 @@ export interface FetchedRoutineDetails {
 
 export const fetchRoutineDetails = async (routineId: string): Promise<FetchedRoutineDetails> => {
   try {
-    // 1. Fetch the routine
-    const routine = await apiFetch<Routine>(`/routines/${routineId}`)
-
-    // 2. Fetch routine exercises with exercise details populated
-    const routineExercisesResponse = await apiFetch<{ docs: RoutineExercise[] }>(
-      `/routine-exercises?where[routine][equals]=${routineId}&depth=1&sort=exerciseOrder&limit=100`,
-    )
-
-    // 3. For each routine exercise, fetch its sets
-    const exercises: FetchedExercise[] = await Promise.all(
-      routineExercisesResponse.docs.map(async (re) => {
-        const setsResponse = await apiFetch<{ docs: RoutineSet[] }>(
-          `/routine-sets?where[routineExercise][equals]=${re.id}&sort=setOrder&limit=100`,
-        )
-
-        // Map sets to our UI format
-        const sets: FetchedRoutineSet[] = setsResponse.docs.map((set) => ({
-          id: String(set.id),
-          type:
-            set.setLabel === 'warmup'
-              ? 'W'
-              : set.setLabel === 'drop'
-                ? 'D'
-                : set.setLabel === 'failure'
-                  ? 'F'
-                  : 'N',
-          weight: String(set.weight),
-          reps: String(set.reps),
-          setOrder: set.setOrder,
-        }))
-
-        // Get exercise details
-        const exercise = typeof re.exercise === 'object' ? re.exercise : null
-        const muscleGroup =
-          exercise && typeof exercise.muscleGroup === 'object' ? exercise.muscleGroup : null
-
-        return {
-          id: String(re.id),
-          exerciseId:
-            typeof re.exercise === 'object' ? String(re.exercise.id) : String(re.exercise),
-          name: exercise?.name || 'Unknown Exercise',
-          bodyPart: muscleGroup?.name || undefined,
-          sets,
-          order: re.exerciseOrder,
-        }
-      }),
-    )
-
-    return {
-      id: String(routine.id),
-      name: routine.name,
-      description: routine.notes || undefined,
-      exercises,
-    }
+    return await apiFetch<FetchedRoutineDetails>(`/custom/routines/${routineId}`)
   } catch (error) {
     console.error('Error fetching routine details:', error)
     throw error

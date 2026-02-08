@@ -24,11 +24,14 @@ import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
 
-interface RoutineWithExerciseCount extends Routine {
+interface RoutineWithExerciseCount {
+  id: number
+  name: string
+  description: string
   exerciseCount: number
   duration: string
-  description: string
   lastPerformed: string
+  notes?: string | null
 }
 
 export default function RoutinesPage() {
@@ -47,28 +50,11 @@ export default function RoutinesPage() {
         setLoading(true)
         setError(null)
 
-        // Fetch routines for the current user
-        const response = await apiFetch<{ docs: Routine[] }>(
-          `/routines?where[user][equals]=${user.id}&where[isActive][equals]=active&sort=-createdAt`,
+        const result = await apiFetch<{ docs: RoutineWithExerciseCount[] }>(
+          `/custom/routines?userId=${user.id}`,
         )
 
-        // Fetch exercise counts for each routine
-        const routinesWithCounts = await Promise.all(
-          response.docs.map(async (routine) => {
-            const exercisesResponse = await apiFetch<{ docs: RoutineExercise[] }>(
-              `/routine-exercises?where[routine][equals]=${routine.id}`,
-            )
-            return {
-              ...routine,
-              exerciseCount: exercisesResponse.docs.length,
-              duration: '-',
-              description: routine.notes || '-',
-              lastPerformed: '-',
-            }
-          }),
-        )
-
-        setRoutines(routinesWithCounts)
+        setRoutines(result.docs)
       } catch (err: any) {
         console.error('Error fetching routines:', err)
         setError('Failed to load routines')
