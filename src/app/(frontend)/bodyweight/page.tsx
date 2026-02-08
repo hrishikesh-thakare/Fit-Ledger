@@ -143,9 +143,9 @@ export default function BodyweightLogPage() {
         id: l.id,
         weight: l.rawWeight,
         loggedAt: l.rawDate,
-        user: user.id,
-        updatedAt: '',
-        createdAt: '',
+        user: Number(user.id), // Cast to number to match BodyWeightLog type
+        updatedAt: new Date().toISOString(), // Valid ISO string
+        createdAt: new Date().toISOString(), // Valid ISO string
       }))
 
       const updatedDocs = [newLog, ...currentDocs].sort(
