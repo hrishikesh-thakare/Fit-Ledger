@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(credentials),
     })
     await refreshUser()
-    router.push('/dashboard')
+    router.push('/routines')
   }
 
   const logout = async () => {

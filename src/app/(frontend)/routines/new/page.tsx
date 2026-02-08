@@ -115,7 +115,7 @@ export default function NewRoutinePage() {
 
   const { showSnackbar } = useSnackbar()
 
-  // Fetch exercises and muscle groups from API
+  // Fetch exercises on mount
   useEffect(() => {
     const fetchExercises = async () => {
       try {
@@ -128,22 +128,13 @@ export default function NewRoutinePage() {
           setPreferredUnit(userUnit)
         }
 
-        // Fetch muscle groups
-        const muscleGroupsRes = await apiFetch<{ docs: MuscleGroup[] }>('/muscle-groups')
-        const muscleGroupMap = new Map(muscleGroupsRes.docs.map((mg) => [mg.id, mg.name]))
-        setBodyParts(['All', ...muscleGroupsRes.docs.map((mg) => mg.name)])
+        // Fetch exercises from optimized endpoint
+        const exercisesRes = await apiFetch<{ docs: ExerciseOption[] }>('/custom/exercises')
+        setAvailableExercises(exercisesRes.docs)
 
-        // Fetch exercises
-        const exercisesRes = await apiFetch<{ docs: DBExercise[] }>('/exercises?limit=1000')
-        const formattedExercises = exercisesRes.docs.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          bodyPart:
-            typeof ex.muscleGroup === 'number'
-              ? muscleGroupMap.get(ex.muscleGroup) || 'Other'
-              : ex.muscleGroup.name,
-        }))
-        setAvailableExercises(formattedExercises)
+        // Derive body parts from exercises
+        const uniqueBodyParts = Array.from(new Set(exercisesRes.docs.map((ex) => ex.bodyPart)))
+        setBodyParts(['All', ...uniqueBodyParts.sort()])
       } catch (err) {
         console.error('Error fetching exercises:', err)
         showSnackbar({ message: 'Failed to load exercises', severity: 'error' })

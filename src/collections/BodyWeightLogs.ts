@@ -44,6 +44,7 @@ export const BodyWeightLogs: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
     },
     {
       name: 'weight',
@@ -54,6 +55,7 @@ export const BodyWeightLogs: CollectionConfig = {
       name: 'loggedAt',
       type: 'date',
       required: true,
+      index: true,
     },
   ],
 }

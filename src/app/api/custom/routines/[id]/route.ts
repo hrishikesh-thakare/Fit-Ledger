@@ -97,56 +97,75 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const previousStatsMap: Record<string, Record<number, string>> = {} // exerciseId -> { setIndex: "100x10" }
 
     if (exerciseIds.length > 0) {
-      await Promise.all(
-        exerciseIds.map(async (exId) => {
-          try {
-            // Find most recent workout-exercise for this exercise
-            const recentWeResponse = await payload.find({
-              collection: 'workout-exercises',
-              where: {
-                exercise: {
-                  equals: exId,
-                },
-                // Ensure it's for the same user?
-                // routines are user-specific, but better to be safe if checking history.
-                // We'd need to join on workoutDay.user or rely on the fact that we are in a user context?
-                // API route doesn't enforce user context automatically on 'find' unless we pass 'user' in options
-                // or replicate the access control query.
-                // For simplicity/speed, we assume routine.user is the owner.
-                // We should filter by workoutDay.user = routine.user
-              },
-              sort: '-createdAt',
-              limit: 1,
-              depth: 0,
-            })
+      // Optimized: Fetch latest workout exercises for ALL exercises in one go
+      // We'll fetch a batch of recent workout exercises and filter in memory.
+      // Since we need the *latest* for *each* exercise, and Payload/Mongo doesn't support complex distinct+sort in one easy query,
+      // we can fetch the last N workout exercises where exercise IN list.
 
-            if (recentWeResponse.docs.length > 0) {
-              const recentWe = recentWeResponse.docs[0]
-              // Fetch sets for this workout exercise
-              const recentSetsResponse = await payload.find({
-                collection: 'workout-sets',
-                where: {
-                  workoutExercise: {
-                    equals: recentWe.id,
-                  },
-                },
-                sort: 'setOrder',
-                limit: 20,
-              })
+      const recentWeResponse = await payload.find({
+        collection: 'workout-exercises',
+        where: {
+          exercise: {
+            in: exerciseIds,
+          },
+        },
+        sort: '-createdAt',
+        limit: 100, // Fetch enough to likely cover at least one per exercise
+        depth: 0,
+      })
 
-              const stats: Record<number, string> = {}
-              recentSetsResponse.docs.forEach((s, idx) => {
-                if (s.weight && s.reps) {
-                  stats[idx] = `${s.weight}x${s.reps}`
-                }
-              })
-              previousStatsMap[String(exId)] = stats
+      const distinctWorkoutExercises: Record<string, string> = {} // exerciseId -> workoutExerciseId
+
+      // Find the first (latest) occurrence for each exercise
+      for (const we of recentWeResponse.docs) {
+        const exId = typeof we.exercise === 'object' ? we.exercise.id : we.exercise
+        const exIdStr = String(exId)
+        if (!distinctWorkoutExercises[exIdStr]) {
+          distinctWorkoutExercises[exIdStr] = String(we.id)
+        }
+      }
+
+      const latestWeIds = Object.values(distinctWorkoutExercises)
+
+      if (latestWeIds.length > 0) {
+        // Fetch sets for these specific workout exercises
+        const recentSetsResponse = await payload.find({
+          collection: 'workout-sets',
+          where: {
+            workoutExercise: {
+              in: latestWeIds,
+            },
+          },
+          sort: 'setOrder',
+          limit: 1000, // Increased limit to ensure we get all sets for the identified exercises
+          depth: 0,
+        })
+
+        // Group sets by workoutExercise
+        const setsByWe: Record<string, any[]> = {}
+        recentSetsResponse.docs.forEach((set) => {
+          const weId =
+            typeof set.workoutExercise === 'object' ? set.workoutExercise.id : set.workoutExercise
+          const weIdStr = String(weId)
+          if (!setsByWe[weIdStr]) setsByWe[weIdStr] = []
+          setsByWe[weIdStr].push(set)
+        })
+
+        // Map back to exerciseId
+        Object.keys(distinctWorkoutExercises).forEach((exId) => {
+          const weId = distinctWorkoutExercises[exId]
+          const sets = setsByWe[weId] || []
+          const stats: Record<number, string> = {}
+
+          sets.forEach((s, idx) => {
+            if (s.weight && s.reps) {
+              stats[idx] = `${s.weight}x${s.reps}`
             }
-          } catch (err) {
-            console.error(`Error fetching stats for exercise ${exId}`, err)
-          }
-        }),
-      )
+          })
+
+          previousStatsMap[exId] = stats
+        })
+      }
     }
 
     // 5. In-memory aggregation

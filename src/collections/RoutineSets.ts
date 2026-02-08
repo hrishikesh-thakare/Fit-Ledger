@@ -57,6 +57,7 @@ export const RoutineSets: CollectionConfig = {
       type: 'relationship',
       relationTo: 'routine-exercises',
       required: true,
+      index: true,
     },
     {
       name: 'setOrder',

@@ -132,7 +132,7 @@ function WorkoutSummaryContent() {
 
     if (!workoutDayId || !duration) {
       console.error('Missing workoutDayId or duration')
-      router.push('/dashboard')
+      router.push('/routines')
       return
     }
 
@@ -140,11 +140,11 @@ function WorkoutSummaryContent() {
       // Save the workout with duration
       await completeWorkout(workoutDayId, parseInt(duration))
       console.log('Workout saved successfully')
-      router.push('/dashboard')
+      router.push('/routines')
     } catch (err) {
       console.error('Error saving workout:', err)
       // Still navigate even if save fails
-      router.push('/dashboard')
+      router.push('/routines')
     }
   }
 
@@ -168,7 +168,7 @@ function WorkoutSummaryContent() {
     }
 
     setOpenDiscardDialog(false)
-    router.push('/dashboard')
+    router.push('/routines')
   }
 
   return (
@@ -284,47 +284,49 @@ function WorkoutSummaryContent() {
 
             {/* Exercises Summary */}
             <Stack spacing={2} sx={{ mb: 4 }}>
-              {displayData.exercises.map((exercise: typeof displayData.exercises[number], index: number) => (
-                <Card
-                  key={exercise.id}
-                  elevation={0}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 1,
-                        bgcolor: 'surfaceContainerHighest',
-                        color: 'text.secondary',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mr: 2,
-                        fontWeight: 700,
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      {index + 1}
+              {displayData.exercises.map(
+                (exercise: (typeof displayData.exercises)[number], index: number) => (
+                  <Card
+                    key={exercise.id}
+                    elevation={0}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 1,
+                          bgcolor: 'surfaceContainerHighest',
+                          color: 'text.secondary',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2,
+                          fontWeight: 700,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        {index + 1}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                          {exercise.name}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                          {exercise.sets} sets • {exercise.weight} best
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                        {exercise.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        {exercise.sets} sets • {exercise.weight} best
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Card>
-              ))}
+                  </Card>
+                ),
+              )}
             </Stack>
 
             {/* Settings & Actions */}

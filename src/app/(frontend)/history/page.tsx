@@ -76,6 +76,15 @@ export default function HistoryPage() {
         const userUnit = userProfile.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
+        // Calculate date range based on selectedMonth
+        let queryParams = `?userId=${user.id}`
+
+        if (selectedMonth) {
+          const startDate = selectedMonth.startOf('month').toISOString()
+          const endDate = selectedMonth.endOf('month').toISOString()
+          queryParams += `&startDate=${startDate}&endDate=${endDate}`
+        }
+
         // Fetch optimized history from custom endpoint
         const response = await apiFetch<{
           docs: {
@@ -86,7 +95,7 @@ export default function HistoryPage() {
             volumeKg: number
             exercises: number
           }[]
-        }>(`/custom/history?userId=${user.id}`)
+        }>(`/custom/history${queryParams}`)
 
         // Map response to component state format
         const workoutsWithDetails = response.docs.map((item) => {
@@ -121,7 +130,7 @@ export default function HistoryPage() {
     }
 
     fetchWorkoutHistory()
-  }, [user])
+  }, [user, selectedMonth])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)

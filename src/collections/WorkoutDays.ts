@@ -47,13 +47,15 @@ export const WorkoutDays: CollectionConfig = {
             limit: 1000,
           })
 
-          // Delete all workout sets for each exercise
-          for (const exercise of workoutExercises.docs) {
+          // Delete all workout sets for ALL exercises in one go
+          const exerciseIds = workoutExercises.docs.map((ex) => ex.id)
+
+          if (exerciseIds.length > 0) {
             await req.payload.delete({
               collection: 'workout-sets',
               where: {
                 workoutExercise: {
-                  equals: exercise.id,
+                  in: exerciseIds,
                 },
               },
             })
@@ -86,6 +88,7 @@ export const WorkoutDays: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
     },
     {
       name: 'title',
@@ -96,6 +99,7 @@ export const WorkoutDays: CollectionConfig = {
       name: 'date',
       type: 'date',
       required: true,
+      index: true,
     },
     {
       name: 'durationSeconds',
