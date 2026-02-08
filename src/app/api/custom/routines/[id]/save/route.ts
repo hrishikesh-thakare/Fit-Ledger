@@ -24,7 +24,8 @@ interface SaveRoutinePayload {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id: routineId } = await params
+  const { id } = await params
+  const routineId = Number(id) // Cast to number
   const payload = await getPayload({ config })
   const data: SaveRoutinePayload = await req.json()
 
@@ -70,7 +71,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       let reId = exInput.id
 
       // Check if it's a new or existing RE
+      // Note: Frontend might send string ID, DB has number. We compare as strings.
       const isNew = !reId || !routineExerciseMap.has(reId)
+
+      // Cast IDs to numbers for payload operations
+      const numericExerciseId = Number(exInput.exerciseId)
 
       if (isNew) {
         // Create new RoutineExercise
@@ -78,16 +83,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           collection: 'routine-exercises',
           data: {
             routine: routineId,
-            exercise: exInput.exerciseId,
+            exercise: numericExerciseId,
             exerciseOrder: index,
           },
         })
         reId = String(newRE.id)
       } else {
         // Update existing RoutineExercise (order might change)
+        const numericReId = Number(reId)
         await payload.update({
           collection: 'routine-exercises',
-          id: reId!,
+          id: numericReId,
           data: {
             exerciseOrder: index,
           },
@@ -103,18 +109,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const setPromises = currentSets.map(async (setInput, setIndex) => {
         let setId = setInput.id
         const isSetNew = !setId || !routineSetMap.has(setId)
+        const numericReIdForSet = Number(reId) // Ensure it's a number
 
         const setPayload = {
-          routineExercise: reId!,
+          routineExercise: numericReIdForSet,
           setOrder: setIndex,
           setLabel:
             setInput.type === 'W'
-              ? 'warmup'
+              ? ('warmup' as const)
               : setInput.type === 'D'
-                ? 'drop'
+                ? ('drop' as const)
                 : setInput.type === 'F'
-                  ? 'failure'
-                  : 'working',
+                  ? ('failure' as const)
+                  : ('working' as const),
           reps: Number(setInput.reps) || 0,
           weight: Number(setInput.weight) || 0,
         }
@@ -126,9 +133,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           })
           setId = String(newSet.id)
         } else {
+          const numericSetId = Number(setId)
           await payload.update({
             collection: 'routine-sets',
-            id: setId!,
+            id: numericSetId,
             data: setPayload,
           })
         }
@@ -138,9 +146,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await Promise.all(setPromises)
 
       // Delete orphaned sets for this exercise
-      // We need to find sets that belong to this RE but are NOT in keptSetIds
-      // Since we don't have a map of sets per RE easily accessible without iterating,
-      // let's iterate existing sets and check if they belong to this RE and are not kept.
       const orphanedSets = existingRoutineSets.docs.filter((rs) => {
         const rsReId =
           typeof rs.routineExercise === 'object' ? rs.routineExercise.id : rs.routineExercise
@@ -159,9 +164,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const orphanedREs = existingRoutineExercises.docs.filter((re) => !keptREIds.has(String(re.id)))
 
     const deleteREPromises = orphanedREs.map(async (re) => {
-      // Delete associated sets first (cascade safety, though Payload hooks might handle it)
-      // We already handled sets for KEPT exercises, but for DELETED exercises we must clean up.
-      // (Assuming strict relationship handling)
       const setsToDelete = existingRoutineSets.docs.filter((rs) => {
         const rsReId =
           typeof rs.routineExercise === 'object' ? rs.routineExercise.id : rs.routineExercise
