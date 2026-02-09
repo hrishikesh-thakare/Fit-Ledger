@@ -87,7 +87,15 @@ export async function GET(req: NextRequest) {
       lastPerformed: '-',
     }))
 
-    return NextResponse.json({ docs: results })
+    return NextResponse.json(
+      { docs: results },
+      {
+        headers: {
+          // Short cache for user-specific data - 10s cache, revalidate in background
+          'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+        },
+      },
+    )
   } catch (error) {
     console.error('Error fetching routines:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

@@ -79,6 +79,7 @@ export const Routines: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       required: true,
+      index: true,
     },
     {
       name: 'name',
@@ -94,6 +95,7 @@ export const Routines: CollectionConfig = {
       type: 'select',
       required: true,
       defaultValue: 'active',
+      index: true,
       options: [
         { label: 'Active', value: 'active' },
         { label: 'Inactive', value: 'inactive' },

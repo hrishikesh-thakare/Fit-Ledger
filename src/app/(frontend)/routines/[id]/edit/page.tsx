@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
+import { toKg, formatWeight } from '@/lib/utils/weightConversion'
 import apiFetch from '@/lib/api/client'
 import {
   Box,
@@ -14,7 +14,6 @@ import {
   IconButton,
   Button,
   Card,
-  CardContent,
   TextField,
   List,
   ListItem,
@@ -38,6 +37,7 @@ import {
   DialogActions,
   CircularProgress,
   Alert,
+  Skeleton,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -96,13 +96,6 @@ interface Exercise {
 }
 
 // Body parts will be derived from exercises
-
-const SET_TYPE_LABELS: { [key in SetType]: string } = {
-  N: 'Normal',
-  W: 'Warm Up',
-  D: 'Drop Set',
-  F: 'Failure',
-}
 
 // --- Sortable Item Component ---
 function SortableExerciseItem(props: { id: string; name: string }) {
@@ -430,23 +423,6 @@ export default function EditRoutinePage() {
     return normalCount
   }
 
-  // Show loading state
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          minHeight: '100vh',
-          bgcolor: 'background.default',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    )
-  }
-
   return (
     <Box
       sx={{
@@ -517,272 +493,354 @@ export default function EditRoutinePage() {
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        <Stack spacing={3}>
-          {/* Routine Info */}
-          <Box sx={{ px: 1 }}>
-            <TextField
-              fullWidth
-              label="Routine Name"
-              value={routineName}
-              onChange={(e) => setRoutineName(e.target.value)}
-              placeholder="e.g., Push Day"
-              variant="outlined"
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'background.paper',
-                },
-              }}
-            />
-          </Box>
-
-          {/* Exercises Section */}
+        {loading ? (
           <Box>
+            {/* Routine Name Skeleton */}
+            <Box sx={{ px: 1, mb: 3 }}>
+              <Skeleton variant="text" width={120} height={20} sx={{ mb: 1 }} />
+              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+            </Box>
+
+            {/* Exercises Section Header Skeleton */}
             <Box
               sx={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 mb: 1.5,
+                px: 1,
               }}
             >
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 700,
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Exercises
-              </Typography>
-              <Button
-                startIcon={<Add />}
-                size="small"
-                onClick={() => setOpenExerciseDrawer(true)}
-                sx={{
-                  fontWeight: 600,
-                  textTransform: 'none',
-                }}
-              >
-                Add Exercise
-              </Button>
+              <Skeleton variant="text" width={100} height={24} />
+              <Skeleton variant="rectangular" width={140} height={36} sx={{ borderRadius: 1 }} />
             </Box>
 
-            {exercises.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  py: 6,
-                  bgcolor: 'background.paper',
-                  borderRadius: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderStyle: 'dashed',
-                }}
-              >
-                <FitnessCenter
-                  sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1.5, opacity: 0.5 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  No exercises added yet
-                </Typography>
-              </Box>
-            ) : (
-              <Stack spacing={2}>
-                {exercises.map((exercise, index) => (
-                  <Card
-                    key={exercise.id}
-                    elevation={1}
-                    sx={{
-                      bgcolor: 'background.paper',
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Exercise Header */}
+            {/* Exercise Cards Skeleton */}
+            <Stack spacing={2}>
+              {[1, 2, 3].map((i) => (
+                <Card
+                  key={i}
+                  elevation={1}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                  }}
+                >
+                  {/* Exercise Header */}
+                  <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                     <Box
                       sx={{
-                        p: 2,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        borderBottom: 1,
-                        borderColor: 'divider',
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                          {exercise.name}
-                        </Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="60%" height={24} sx={{ mb: 0.5 }} />
+                        <Skeleton variant="text" width="30%" height={18} />
                       </Box>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleRemoveExercise(exercise.id)}
-                      >
-                        <DeleteOutline fontSize="small" />
-                      </IconButton>
+                      <Skeleton variant="circular" width={32} height={32} />
                     </Box>
+                  </Box>
 
-                    {/* Sets Table */}
-                    <TableContainer sx={{ bgcolor: 'transparent' }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell
-                              align="center"
-                              width="20%"
-                              sx={{
-                                borderBottomColor: 'divider',
-                                color: 'text.secondary',
-                                fontWeight: 600,
-                              }}
-                            >
-                              Set
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              width="40%"
-                              sx={{
-                                borderBottomColor: 'divider',
-                                color: 'text.secondary',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {preferredUnit}
-                            </TableCell>
-                            <TableCell
-                              align="center"
-                              width="40%"
-                              sx={{
-                                borderBottomColor: 'divider',
-                                color: 'text.secondary',
-                                fontWeight: 600,
-                              }}
-                            >
-                              Reps
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {exercise.sets.map((set, index) => (
-                            <TableRow
-                              key={set.id}
-                              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                            >
-                              <TableCell align="center">
-                                <Button
-                                  variant="text"
-                                  disableElevation
-                                  size="small"
-                                  onClick={() =>
-                                    setActiveSet({ exerciseId: exercise.id, setId: set.id })
-                                  }
+                  {/* Sets Table Skeleton */}
+                  <Box sx={{ p: 2 }}>
+                    {[1, 2, 3].map((j) => (
+                      <Box key={j} sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'center' }}>
+                        <Skeleton variant="circular" width={24} height={24} />
+                        <Skeleton variant="text" width={80} />
+                        <Skeleton variant="text" width={80} />
+                        <Skeleton variant="circular" width={32} height={32} />
+                      </Box>
+                    ))}
+                    <Skeleton
+                      variant="rectangular"
+                      width={120}
+                      height={36}
+                      sx={{ borderRadius: 1, mt: 1 }}
+                    />
+                  </Box>
+                </Card>
+              ))}
+            </Stack>
+          </Box>
+        ) : (
+          <>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            <Stack spacing={3}>
+              {/* Routine Info */}
+              <Box sx={{ px: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Routine Name"
+                  value={routineName}
+                  onChange={(e) => setRoutineName(e.target.value)}
+                  placeholder="e.g., Push Day"
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      bgcolor: 'background.paper',
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Exercises Section */}
+              <Box>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 1.5,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      color: 'text.secondary',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Exercises
+                  </Typography>
+                  <Button
+                    startIcon={<Add />}
+                    size="small"
+                    onClick={() => setOpenExerciseDrawer(true)}
+                    sx={{
+                      fontWeight: 600,
+                      textTransform: 'none',
+                    }}
+                  >
+                    Add Exercise
+                  </Button>
+                </Box>
+
+                {exercises.length === 0 ? (
+                  <Box
+                    sx={{
+                      textAlign: 'center',
+                      py: 6,
+                      bgcolor: 'background.paper',
+                      borderRadius: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderStyle: 'dashed',
+                    }}
+                  >
+                    <FitnessCenter
+                      sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1.5, opacity: 0.5 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      No exercises added yet
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack spacing={2}>
+                    {exercises.map((exercise) => (
+                      <Card
+                        key={exercise.id}
+                        elevation={1}
+                        sx={{
+                          bgcolor: 'background.paper',
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Exercise Header */}
+                        <Box
+                          sx={{
+                            p: 2,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                              {exercise.name}
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveExercise(exercise.id)}
+                          >
+                            <DeleteOutline fontSize="small" />
+                          </IconButton>
+                        </Box>
+
+                        {/* Sets Table */}
+                        <TableContainer sx={{ bgcolor: 'transparent' }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell
+                                  align="center"
+                                  width="20%"
                                   sx={{
-                                    minWidth: 32,
-                                    height: 32,
-                                    p: 0,
-                                    borderRadius: 1,
-                                    fontWeight: 700,
-                                    fontSize: '0.875rem',
-                                    color:
-                                      set.type === 'N'
-                                        ? 'text.secondary'
-                                        : set.type === 'W'
-                                          ? 'warning.main'
-                                          : set.type === 'D'
-                                            ? 'info.main'
-                                            : 'error.main',
-                                    bgcolor: 'transparent',
-                                    '&:hover': {
-                                      bgcolor: 'action.hover',
-                                    },
+                                    borderBottomColor: 'divider',
+                                    color: 'text.secondary',
+                                    fontWeight: 600,
                                   }}
                                 >
-                                  {getSetLabel(exercise.sets, index)}
-                                </Button>
-                              </TableCell>
-                              <TableCell align="center">
-                                <TextField
-                                  variant="standard"
-                                  placeholder="-"
-                                  value={set.weight}
-                                  onChange={(e) =>
-                                    handleUpdateSet(exercise.id, set.id, 'weight', e.target.value)
-                                  }
-                                  inputProps={{
-                                    style: {
-                                      textAlign: 'center',
-                                      fontWeight: 600,
-                                      fontFamily: 'var(--font-mono)',
-                                    },
-                                    inputMode: 'decimal',
+                                  Set
+                                </TableCell>
+                                <TableCell
+                                  align="center"
+                                  width="40%"
+                                  sx={{
+                                    borderBottomColor: 'divider',
+                                    color: 'text.secondary',
+                                    fontWeight: 600,
                                   }}
-                                  InputProps={{ disableUnderline: true }}
-                                  fullWidth
-                                />
-                              </TableCell>
-                              <TableCell align="center">
-                                <TextField
-                                  variant="standard"
-                                  placeholder="-"
-                                  value={set.reps}
-                                  onChange={(e) =>
-                                    handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)
-                                  }
-                                  inputProps={{
-                                    style: {
-                                      textAlign: 'center',
-                                      fontWeight: 600,
-                                      fontFamily: 'var(--font-mono)',
-                                    },
-                                    inputMode: 'numeric',
+                                >
+                                  {preferredUnit}
+                                </TableCell>
+                                <TableCell
+                                  align="center"
+                                  width="40%"
+                                  sx={{
+                                    borderBottomColor: 'divider',
+                                    color: 'text.secondary',
+                                    fontWeight: 600,
                                   }}
-                                  InputProps={{ disableUnderline: true }}
-                                  fullWidth
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                                >
+                                  Reps
+                                </TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {exercise.sets.map((set, index) => (
+                                <TableRow
+                                  key={set.id}
+                                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                >
+                                  <TableCell align="center">
+                                    <Button
+                                      variant="text"
+                                      disableElevation
+                                      size="small"
+                                      onClick={() =>
+                                        setActiveSet({ exerciseId: exercise.id, setId: set.id })
+                                      }
+                                      sx={{
+                                        minWidth: 32,
+                                        height: 32,
+                                        p: 0,
+                                        borderRadius: 1,
+                                        fontWeight: 700,
+                                        fontSize: '0.875rem',
+                                        color:
+                                          set.type === 'N'
+                                            ? 'text.secondary'
+                                            : set.type === 'W'
+                                              ? 'warning.main'
+                                              : set.type === 'D'
+                                                ? 'info.main'
+                                                : 'error.main',
+                                        bgcolor: 'transparent',
+                                        '&:hover': {
+                                          bgcolor: 'action.hover',
+                                        },
+                                      }}
+                                    >
+                                      {getSetLabel(exercise.sets, index)}
+                                    </Button>
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <TextField
+                                      variant="standard"
+                                      placeholder="-"
+                                      value={set.weight}
+                                      onChange={(e) =>
+                                        handleUpdateSet(
+                                          exercise.id,
+                                          set.id,
+                                          'weight',
+                                          e.target.value,
+                                        )
+                                      }
+                                      inputProps={{
+                                        style: {
+                                          textAlign: 'center',
+                                          fontWeight: 600,
+                                          fontFamily: 'var(--font-mono)',
+                                        },
+                                        inputMode: 'decimal',
+                                      }}
+                                      InputProps={{ disableUnderline: true }}
+                                      fullWidth
+                                    />
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <TextField
+                                      variant="standard"
+                                      placeholder="-"
+                                      value={set.reps}
+                                      onChange={(e) =>
+                                        handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)
+                                      }
+                                      inputProps={{
+                                        style: {
+                                          textAlign: 'center',
+                                          fontWeight: 600,
+                                          fontFamily: 'var(--font-mono)',
+                                        },
+                                        inputMode: 'numeric',
+                                      }}
+                                      InputProps={{ disableUnderline: true }}
+                                      fullWidth
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
 
-                    {/* Add Set Button */}
-                    <Button
-                      fullWidth
-                      onClick={() => handleAddSet(exercise.id)}
-                      sx={{
-                        py: 1.5,
-                        borderRadius: 0,
-                        borderTop: 1,
-                        borderColor: 'divider',
-                        color: 'primary.main',
-                        fontWeight: 600,
-                        fontSize: '0.875rem',
-                        bgcolor: 'transparent',
-                        '&:hover': {
-                          bgcolor: 'action.hover',
-                        },
-                      }}
-                    >
-                      + Add Set
-                    </Button>
-                  </Card>
-                ))}
-              </Stack>
-            )}
-          </Box>
-        </Stack>
+                        {/* Add Set Button */}
+                        <Button
+                          fullWidth
+                          onClick={() => handleAddSet(exercise.id)}
+                          sx={{
+                            py: 1.5,
+                            borderRadius: 0,
+                            borderTop: 1,
+                            borderColor: 'divider',
+                            color: 'primary.main',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            bgcolor: 'transparent',
+                            '&:hover': {
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                        >
+                          + Add Set
+                        </Button>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
+            </Stack>
+          </>
+        )}
       </Container>
 
       {/* Save Button (Bottom Sticky) */}

@@ -119,23 +119,7 @@ export interface AvailableExercise {
   bodyPart: string
 }
 
-export const fetchExercises = async (): Promise<AvailableExercise[]> => {
-  try {
-    // Optimized: select only needed fields
-    const response = await apiFetch<{ docs: Exercise[] }>(
-      '/exercises?depth=1&limit=1000&sort=name&select[name]=true&select[muscleGroup]=true',
-    )
-
-    return response.docs.map((exercise) => {
-      const muscleGroup = typeof exercise.muscleGroup === 'object' ? exercise.muscleGroup : null
-      return {
-        id: String(exercise.id),
-        name: exercise.name,
-        bodyPart: muscleGroup?.name || 'Other',
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching exercises:', error)
-    throw error
-  }
+export async function fetchExercises(): Promise<AvailableExercise[]> {
+  const response = await apiFetch<{ docs: AvailableExercise[] }>('/custom/exercises')
+  return response.docs
 }

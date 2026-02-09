@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams
   const userId = searchParams.get('userId')
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
 
   if (!userId) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -19,15 +21,24 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Fetch Workout Days
+    const where: any = {
+      user: {
+        equals: numericUserId,
+      },
+    }
+
+    if (startDate && endDate) {
+      where.date = {
+        greater_than_equal: startDate,
+        less_than_equal: endDate,
+      }
+    }
+
     const workoutDaysResponse = await payload.find({
       collection: 'workout-days',
-      where: {
-        user: {
-          equals: numericUserId,
-        },
-      },
+      where,
       sort: '-date',
-      limit: 100,
+      limit: 1000, // Increased limit significantly since we have date buckets
       depth: 0,
     })
 

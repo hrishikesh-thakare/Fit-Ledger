@@ -68,19 +68,73 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // 3.5. Batch Fetch Previous Stats for ALL exercises
+    // To solve N+1, we find the latest workout set for each exercise
+    // It's tricky with Payload's query API to do "latest per group".
+    // Strategy: Fetch last 500 sets for these exercises sorted by date desc,
+    // and in-memory pick the first one for each exercise.
+    // Ideally we'd filter by user too.
+    const exerciseIds = routineExercisesResponse.docs.map((re) =>
+      typeof re.exercise === 'object' ? re.exercise.id : re.exercise,
+    )
+
+    const relevantExerciseIds = exerciseIds.filter(
+      (id) => typeof id === 'number' || typeof id === 'string',
+    )
+
+    const previousStatsMap = new Map<string, { weight: number; reps: number }>()
+
+    if (relevantExerciseIds.length > 0) {
+      // Fetch recent sets for these exercises
+      // We need to filter by user to be correct
+      const userId = typeof routine.user === 'object' ? routine.user.id : routine.user
+
+      const recentSets = await payload.find({
+        collection: 'workout-sets',
+        where: {
+          and: [
+            {
+              'workoutExercise.exercise': { in: relevantExerciseIds },
+            },
+            {
+              'workoutExercise.workoutDay.user': { equals: userId },
+            },
+            {
+              // Ensure we don't pick up future sets if date is backdated (unlikely but safe)
+              'workoutExercise.workoutDay.date': { less_than: date },
+            },
+          ],
+        },
+        sort: '-createdAt',
+        limit: 500, // Should be enough to cover recent history for all exercises
+        depth: 1, // need workoutExercise.exercise to map back
+      })
+
+      // In-memory grouping to find latest per exercise
+      for (const set of recentSets.docs) {
+        const exId =
+          typeof set.workoutExercise === 'object' &&
+          typeof set.workoutExercise.exercise === 'object'
+            ? String(set.workoutExercise.exercise.id)
+            : typeof set.workoutExercise === 'object'
+              ? String(set.workoutExercise.exercise)
+              : null
+
+        if (exId && !previousStatsMap.has(exId)) {
+          previousStatsMap.set(exId, {
+            weight: set.weight,
+            reps: set.reps,
+          })
+        }
+      }
+    }
+
     const workoutDayId = String(workoutDay.id)
 
     // 4. Create workout exercises and sets
-    // Optimization: Parallelize creation of exercises?
-    // Payload `create` is atomic per call.
-    // For absolute data integrity, sequential is safer, but parallel is faster.
-    // Given < 20 exercises, sequential is fine on server side (still ms).
-    // Let's stick to sequential for reliability of order, or use Promise.all.
-    // Order matters for `exerciseOrder`.
-
-    // We can use Promise.all for exercises if we assign order correctly.
     const exercisePromises = routineExercisesResponse.docs.map(async (re, i) => {
       const exerciseId = typeof re.exercise === 'object' ? re.exercise.id : re.exercise
+      const exerciseIdString = String(exerciseId)
 
       // Create workout exercise
       const workoutExercise = await payload.create({
@@ -101,14 +155,11 @@ export async function POST(req: NextRequest) {
         })
         .sort((a, b) => a.setOrder - b.setOrder)
 
+      // Get previous stats for this exercise
+      const prevStats = previousStatsMap.get(exerciseIdString)
+
       // Create sets for this exercise
-      // We can do this in parallel too
       const setPromises = relatedSets.map((routineSet, j) => {
-        // Note: The 'beforeChange' hook in WorkoutSets handles 'previousWeight/reps' auto-fill
-        // if we rely on it. However, hooks add overhead.
-        // If performance is critical, we might want to calculate previous here?
-        // But re-implementing hook logic is risky. Let's rely on the hook for now.
-        // It runs on server, so it's fast (no HTTP rtt).
         return payload.create({
           collection: 'workout-sets',
           data: {
@@ -118,6 +169,9 @@ export async function POST(req: NextRequest) {
             setLabel: routineSet.setLabel,
             reps: routineSet.reps,
             weight: routineSet.weight,
+            // Pass previous stats explicitly to bypass hook lookup
+            previousWeight: prevStats ? prevStats.weight : null,
+            previousReps: prevStats ? prevStats.reps : null,
           },
         })
       })

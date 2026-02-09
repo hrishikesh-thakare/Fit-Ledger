@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { toKg } from '@/lib/utils/weightConversion'
-import type { Exercise as DBExercise, MuscleGroup } from '@/payload-types'
 import {
   Box,
   Container,
@@ -15,7 +14,6 @@ import {
   IconButton,
   Button,
   Card,
-  CardContent,
   TextField,
   List,
   ListItem,
@@ -68,24 +66,7 @@ interface ExerciseOption {
   bodyPart: string
 }
 
-// Dummy Data for Selection
-const AVAILABLE_EXERCISES = [
-  { name: 'Bench Press', bodyPart: 'Chest' },
-  { name: 'Push Up', bodyPart: 'Chest' },
-  { name: 'Squat', bodyPart: 'Legs' },
-  { name: 'Leg Press', bodyPart: 'Legs' },
-  { name: 'Deadlift', bodyPart: 'Back' },
-  { name: 'Pull Up', bodyPart: 'Back' },
-  { name: 'Dumbbell Row', bodyPart: 'Back' },
-  { name: 'Overhead Press', bodyPart: 'Shoulders' },
-  { name: 'Lateral Raise', bodyPart: 'Shoulders' },
-  { name: 'Bicep Curl', bodyPart: 'Arms' },
-  { name: 'Tricep Extension', bodyPart: 'Arms' },
-  { name: 'Plank', bodyPart: 'Core' },
-  { name: 'Crunches', bodyPart: 'Core' },
-]
-
-const BODY_PARTS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
+// Derive body parts from exercises later
 
 const SET_TYPE_LABELS: { [key in SetType]: string } = {
   N: 'Normal',
@@ -115,7 +96,7 @@ export default function NewRoutinePage() {
 
   const { showSnackbar } = useSnackbar()
 
-  // Fetch exercises and muscle groups from API
+  // Fetch exercises on mount
   useEffect(() => {
     const fetchExercises = async () => {
       try {
@@ -128,22 +109,13 @@ export default function NewRoutinePage() {
           setPreferredUnit(userUnit)
         }
 
-        // Fetch muscle groups
-        const muscleGroupsRes = await apiFetch<{ docs: MuscleGroup[] }>('/muscle-groups')
-        const muscleGroupMap = new Map(muscleGroupsRes.docs.map((mg) => [mg.id, mg.name]))
-        setBodyParts(['All', ...muscleGroupsRes.docs.map((mg) => mg.name)])
+        // Fetch exercises from optimized endpoint
+        const exercisesRes = await apiFetch<{ docs: ExerciseOption[] }>('/custom/exercises')
+        setAvailableExercises(exercisesRes.docs)
 
-        // Fetch exercises
-        const exercisesRes = await apiFetch<{ docs: DBExercise[] }>('/exercises?limit=1000')
-        const formattedExercises = exercisesRes.docs.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          bodyPart:
-            typeof ex.muscleGroup === 'number'
-              ? muscleGroupMap.get(ex.muscleGroup) || 'Other'
-              : ex.muscleGroup.name,
-        }))
-        setAvailableExercises(formattedExercises)
+        // Derive body parts from exercises
+        const uniqueBodyParts = Array.from(new Set(exercisesRes.docs.map((ex) => ex.bodyPart)))
+        setBodyParts(['All', ...uniqueBodyParts.sort()])
       } catch (err) {
         console.error('Error fetching exercises:', err)
         showSnackbar({ message: 'Failed to load exercises', severity: 'error' })
@@ -153,7 +125,7 @@ export default function NewRoutinePage() {
     }
 
     fetchExercises()
-  }, [user])
+  }, [user, showSnackbar])
 
   const handleAddExercise = (exercise: ExerciseOption) => {
     const newExercise: Exercise = {
