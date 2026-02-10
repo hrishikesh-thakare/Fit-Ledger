@@ -38,10 +38,10 @@ import {
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
-import { startWorkoutFromRoutine } from '@/lib/api/workout'
+import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-import { toKg, fromKg } from '@/lib/utils/weightConversion'
+import { toKg, fromKg, type WeightUnit } from '@/lib/utils/weightConversion'
 
 // Types
 type SetType = 'N' | 'W' | 'D' | 'F'
@@ -119,11 +119,16 @@ function WorkoutLoggingContent() {
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
 
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
-  const [workoutDayId, setWorkoutDayId] = useState<string | null>(null)
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const workoutInitializedRef = useRef(false)
+  const routineIdRef = useRef<string | null>(null)
+  const workoutDateRef = useRef<string>(new Date().toISOString())
+  const preferredUnitRef = useRef<WeightUnit>('kg')
+  // Store exerciseId mapping for saving
+  const exerciseDataRef = useRef<Array<{ exerciseId: string; name: string }>>([])
 
-  // Load workout from backend
+  // Load workout from backend (READ-ONLY, no DB writes)
   useEffect(() => {
     const loadWorkout = async () => {
       const routineId = searchParams.get('routineId')
@@ -132,28 +137,33 @@ function WorkoutLoggingContent() {
         return
       }
 
-      // Prevent duplicate calls using ref (survives React Strict Mode double render)
-      if (workoutInitializedRef.current) {
-        console.log('Workout already initialized, skipping...')
-        return
-      }
+      if (workoutInitializedRef.current) return
 
       try {
         workoutInitializedRef.current = true
         setIsLoadingWorkout(true)
+        routineIdRef.current = routineId
 
-        // Fetch user's preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
+        // Fetch user profile and load workout data IN PARALLEL
+        const [userProfile, workoutData] = await Promise.all([
+          apiFetch(`/users/${user.id}`),
+          loadWorkoutFromRoutine({ routineId, userId: String(user.id) }),
+        ])
+
         const userUnit = userProfile.preferredUnit || 'kg'
+        preferredUnitRef.current = userUnit
+        workoutDateRef.current = workoutData.date
 
-        console.log('Starting workout from routine:', routineId)
-        const workoutData = await startWorkoutFromRoutine({ routineId })
+        // Store exercise IDs for saving later
+        exerciseDataRef.current = workoutData.exercises.map((ex: any) => ({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+        }))
 
         // Convert weights from kg (database) to user's preferred unit for display
         const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
           ...ex,
           sets: ex.sets.map((set: any) => {
-            // Parse previous data in format "weightxreps"
             let previousDisplay = set.previous
             if (set.previous && set.previous !== '-' && set.previous.includes('x')) {
               const [prevWeight, prevReps] = set.previous.split('x')
@@ -172,11 +182,9 @@ function WorkoutLoggingContent() {
         }))
 
         setExercises(exercisesWithConvertedWeights)
-        setWorkoutDayId(workoutData.workoutDayId)
-        console.log('Workout loaded with ID:', workoutData.workoutDayId)
       } catch (err) {
         console.error('Error loading workout:', err)
-        workoutInitializedRef.current = false // Reset on error so user can retry
+        workoutInitializedRef.current = false
       } finally {
         setIsLoadingWorkout(false)
       }
@@ -291,11 +299,49 @@ function WorkoutLoggingContent() {
   }
 
   const handleFinishWorkout = async () => {
-    if (workoutDayId) {
-      // Pass workoutDayId and duration to summary page
-      router.push(`/workout/summary?workoutDayId=${workoutDayId}&duration=${elapsedTime}`)
-    } else {
+    if (!routineIdRef.current) {
+      router.push('/routines')
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      const userUnit = preferredUnitRef.current
+
+      // Build save payload — convert weights back to kg for storage
+      const exercisesToSave = exercises.map((ex, i) => ({
+        exerciseId: exerciseDataRef.current[i]?.exerciseId || ex.id,
+        name: ex.name,
+        sets: ex.sets.map((set) => ({
+          weight: String(toKg(parseFloat(set.weight) || 0, userUnit)),
+          reps: set.reps,
+          setLabel:
+            set.type === 'W'
+              ? 'warmup'
+              : set.type === 'D'
+                ? 'drop'
+                : set.type === 'F'
+                  ? 'failure'
+                  : 'working',
+          completed: set.completed,
+        })),
+      }))
+
+      // Save all workout data to DB at once
+      const result = await saveWorkout({
+        routineId: routineIdRef.current,
+        date: workoutDateRef.current,
+        durationSeconds: elapsedTime,
+        exercises: exercisesToSave,
+      })
+
+      router.push(`/workout/summary?workoutDayId=${result.workoutDayId}&duration=${elapsedTime}`)
+    } catch (err) {
+      console.error('Error saving workout:', err)
+      // Still navigate even on error
       router.push('/workout/summary')
+    } finally {
+      setIsSaving(false)
     }
   }
 

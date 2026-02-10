@@ -41,7 +41,6 @@ interface RoutineSet {
   type: SetType
   weight: string
   reps: string
-  previous?: string
 }
 
 interface Exercise {
@@ -57,7 +56,6 @@ interface FetchedRoutineSet {
   weight: string
   reps: string
   setOrder: number
-  previous?: string
 }
 
 interface FetchedExercise {
@@ -123,25 +121,11 @@ export default function RoutineDetailPage() {
               }
             }
 
-            // Previous string is usually "weightxreps" or "-"
-            // If it's "weightxreps", the weight is likely in KG from the DB or formatted?
-            // The API returns "previous" constructed from DB values (KG).
-            // So we need to parse and convert previous string too.
-            let displayPrevious = s.previous || '-'
-            if (displayPrevious !== '-' && displayPrevious?.includes('x')) {
-              const [prevWeight, prevReps] = displayPrevious.split('x')
-              const prevWeightVal = parseFloat(prevWeight)
-              if (!isNaN(prevWeightVal)) {
-                displayPrevious = `${formatWeight(prevWeightVal, preferredUnit || 'kg')}x${prevReps}`
-              }
-            }
-
             return {
               id: s.id,
               type: s.type,
               weight: displayWeight,
               reps: s.reps,
-              previous: displayPrevious,
             }
           }),
         }))
@@ -407,7 +391,7 @@ export default function RoutineDetailPage() {
                         <TableRow>
                           <TableCell
                             align="center"
-                            width="15%"
+                            width="20%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -418,18 +402,7 @@ export default function RoutineDetailPage() {
                           </TableCell>
                           <TableCell
                             align="center"
-                            width="25%"
-                            sx={{
-                              borderBottomColor: 'divider',
-                              color: 'text.secondary',
-                              fontWeight: 600,
-                            }}
-                          >
-                            Prev
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            width="30%"
+                            width="40%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -440,7 +413,7 @@ export default function RoutineDetailPage() {
                           </TableCell>
                           <TableCell
                             align="center"
-                            width="30%"
+                            width="40%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -473,18 +446,6 @@ export default function RoutineDetailPage() {
                                 }}
                               >
                                 {getSetLabel(exercise.sets, index)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{
-                                  fontFamily: 'var(--font-mono)',
-                                  fontSize: '0.875rem',
-                                }}
-                              >
-                                {set.previous || '-'}
                               </Typography>
                             </TableCell>
                             <TableCell align="center" sx={{ fontWeight: 600 }}>

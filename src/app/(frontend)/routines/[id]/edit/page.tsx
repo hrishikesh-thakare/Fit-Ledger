@@ -313,10 +313,27 @@ export default function EditRoutinePage() {
     setExercises((prev) =>
       prev.map((ex) => {
         if (ex.id !== exerciseId) return ex
-        return {
-          ...ex,
-          sets: ex.sets.map((s) => (s.id === setId ? { ...s, [field]: value } : s)),
+
+        const newSets = ex.sets.map((s) => {
+          if (s.id === setId) {
+            return { ...s, [field]: value }
+          }
+          return s
+        })
+
+        // If we updated the first set's weight or reps, propagate to all other sets
+        const isFirstSet = newSets.length > 0 && newSets[0].id === setId
+        if (isFirstSet && (field === 'weight' || field === 'reps')) {
+          return {
+            ...ex,
+            sets: newSets.map((s, index) => {
+              if (index === 0) return s
+              return { ...s, [field]: value }
+            }),
+          }
         }
+
+        return { ...ex, sets: newSets }
       }),
     )
   }

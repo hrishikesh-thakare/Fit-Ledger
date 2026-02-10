@@ -42,18 +42,19 @@ export async function GET(req: NextRequest) {
 
     const routines = routinesResponse.docs
 
-    // 2. Efficiently get exercise counts
-    // For < 100 routines, fetching all routine-exercises where routine IN [...] is efficiently manageable.
-
+    // 2. Efficiently get exercise counts and set counts
     const routineIds = routines.map((r) => r.id)
 
-    // Map to store counts
-    const counts: Record<string, number> = {}
-    routineIds.forEach((id) => (counts[id] = 0))
+    // Maps to store counts
+    const exerciseCounts: Record<string, number> = {}
+    const setCounts: Record<string, number> = {}
+    routineIds.forEach((id) => {
+      exerciseCounts[id] = 0
+      setCounts[id] = 0
+    })
 
     if (routineIds.length > 0) {
       // Fetch all routine-exercises for these routines
-      // We only need the routine ID from them to count
       const routineExercises = await payload.find({
         collection: 'routine-exercises',
         where: {
@@ -61,29 +62,74 @@ export async function GET(req: NextRequest) {
             in: routineIds,
           },
         },
-        limit: 5000, // Large limit to catch all
+        limit: 5000,
         depth: 0,
         select: {
           routine: true,
         },
       })
 
-      // Count them up
+      // Count exercises and collect routine-exercise IDs
+      const routineExerciseIds: number[] = []
+      const reToRoutine: Record<string, string> = {} // routineExerciseId -> routineId
+
       routineExercises.docs.forEach((re) => {
         const rId = typeof re.routine === 'object' ? re.routine.id : re.routine
-        if (counts[String(rId)] !== undefined) {
-          counts[String(rId)]++
+        const rIdStr = String(rId)
+        if (exerciseCounts[rIdStr] !== undefined) {
+          exerciseCounts[rIdStr]++
         }
+        routineExerciseIds.push(re.id as number)
+        reToRoutine[String(re.id)] = rIdStr
       })
+
+      // Fetch all sets for these routine-exercises to count total sets per routine
+      if (routineExerciseIds.length > 0) {
+        const routineSets = await payload.find({
+          collection: 'routine-sets',
+          where: {
+            routineExercise: {
+              in: routineExerciseIds,
+            },
+          },
+          limit: 5000,
+          depth: 0,
+          select: {
+            routineExercise: true,
+          },
+        })
+
+        routineSets.docs.forEach((set) => {
+          const reId =
+            typeof set.routineExercise === 'object' ? set.routineExercise.id : set.routineExercise
+          const routineId = reToRoutine[String(reId)]
+          if (routineId && setCounts[routineId] !== undefined) {
+            setCounts[routineId]++
+          }
+        })
+      }
+    }
+
+    // Helper to format estimated duration (~3 min per set)
+    const formatDuration = (totalSets: number): string => {
+      if (totalSets === 0) return '~0m'
+      const minutes = Math.round(totalSets * 3)
+      if (minutes >= 60) {
+        const hrs = Math.floor(minutes / 60)
+        const mins = minutes % 60
+        return mins > 0 ? `~${hrs}h ${mins}m` : `~${hrs}h`
+      }
+      return `~${minutes}m`
     }
 
     // 3. Construct response
     const results = routines.map((routine) => ({
       id: routine.id,
       name: routine.name,
-      description: routine.notes || '-',
-      exerciseCount: counts[String(routine.id)] || 0,
-      duration: '-',
+      description: routine.notes || '',
+      notes: routine.notes || null,
+      exerciseCount: exerciseCounts[String(routine.id)] || 0,
+      duration: formatDuration(setCounts[String(routine.id)] || 0),
       lastPerformed: '-',
     }))
 
@@ -92,7 +138,7 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           // Short cache for user-specific data - 10s cache, revalidate in background
-          'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+          'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600',
         },
       },
     )

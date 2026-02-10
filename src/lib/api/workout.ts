@@ -1,12 +1,11 @@
 import apiFetch from './client'
-import type { WorkoutSet } from '@/payload-types'
 
 /**
- * Start a workout from a routine
+ * Load workout data from a routine (read-only, no DB writes)
  */
-interface StartWorkoutFromRoutineParams {
+interface LoadWorkoutParams {
   routineId: string
-  date?: string
+  userId?: string
 }
 
 export interface WorkoutSetData {
@@ -17,10 +16,11 @@ export interface WorkoutSetData {
   completed: boolean
   previous?: string
   setOrder: number
+  setLabel?: string
 }
 
 export interface WorkoutExerciseData {
-  id: string // WorkoutExercise ID
+  id: string // Temp client-side ID
   exerciseId: string // Actual Exercise ID
   name: string
   restTime: number
@@ -28,32 +28,63 @@ export interface WorkoutExerciseData {
   order: number
 }
 
-export interface ActiveWorkoutData {
-  workoutDayId: string
+export interface LoadedWorkoutData {
   title: string
   date: string
   exercises: WorkoutExerciseData[]
 }
 
-export const startWorkoutFromRoutine = async (
-  params: StartWorkoutFromRoutineParams,
-): Promise<ActiveWorkoutData> => {
+export const loadWorkoutFromRoutine = async (
+  params: LoadWorkoutParams,
+): Promise<LoadedWorkoutData> => {
   try {
-    const { routineId, date = new Date().toISOString() } = params
+    const { routineId, userId } = params
+    const queryParams = new URLSearchParams({ routineId })
+    if (userId) queryParams.set('userId', userId)
 
-    // Use the optimized server-side endpoint
-    const response = await apiFetch<ActiveWorkoutData>('/custom/workouts/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        routineId,
-        date,
-      }),
-    })
-
+    const response = await apiFetch<LoadedWorkoutData>(
+      `/custom/workouts/load?${queryParams.toString()}`,
+    )
     return response
   } catch (error) {
-    console.error('Error starting workout from routine:', error)
+    console.error('Error loading workout data:', error)
+    throw error
+  }
+}
+
+/**
+ * Save workout (called when user finishes workout)
+ * Creates all DB records: workout-day, workout-exercises, workout-sets
+ */
+interface SaveWorkoutParams {
+  routineId: string
+  date: string
+  durationSeconds: number
+  exercises: Array<{
+    exerciseId: string
+    name: string
+    sets: Array<{
+      weight: string
+      reps: string
+      setLabel: string
+      completed: boolean
+    }>
+  }>
+}
+
+export const saveWorkout = async (params: SaveWorkoutParams): Promise<{ workoutDayId: string }> => {
+  try {
+    const response = await apiFetch<{ workoutDayId: string; saved: boolean }>(
+      '/custom/workouts/start',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      },
+    )
+    return { workoutDayId: response.workoutDayId }
+  } catch (error) {
+    console.error('Error saving workout:', error)
     throw error
   }
 }
@@ -102,7 +133,7 @@ export const addWorkoutSet = async (
   templateSet?: { weight: number; reps: number; setLabel: string },
 ) => {
   try {
-    const response = await apiFetch<{ doc: WorkoutSet }>('/workout-sets', {
+    const response = await apiFetch<{ doc: any }>('/workout-sets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

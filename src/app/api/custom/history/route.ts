@@ -144,7 +144,14 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({ docs: results })
+    return NextResponse.json(
+      { docs: results },
+      {
+        headers: {
+          'Cache-Control': 'private, s-maxage=120, stale-while-revalidate=300',
+        },
+      },
+    )
   } catch (error) {
     console.error('Error fetching history:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
