@@ -27,7 +27,9 @@ import {
   DialogContentText,
   DialogActions,
   Skeleton,
+  CircularProgress,
 } from '@mui/material'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 function WorkoutSummaryContent() {
   const router = useRouter()
@@ -37,8 +39,11 @@ function WorkoutSummaryContent() {
   const [openDiscardDialog, setOpenDiscardDialog] = useState(false)
   const [workoutData, setWorkoutData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     const mainElement = document.querySelector('main')
@@ -206,12 +211,16 @@ function WorkoutSummaryContent() {
   const displayData = workoutData || workoutDataFallback
 
   const handleSave = async () => {
+    setIsSaving(true)
     const isTemp = searchParams.get('temp') === 'true'
 
     if (isTemp) {
       // TEMP MODE: Actual save logic
       const pendingDataStr = sessionStorage.getItem('pendingWorkoutSave')
-      if (!pendingDataStr) return
+      if (!pendingDataStr) {
+        setIsSaving(false)
+        return
+      }
 
       try {
         const pendingData = JSON.parse(pendingDataStr)
@@ -223,9 +232,12 @@ function WorkoutSummaryContent() {
         await saveWorkout(pendingData)
 
         sessionStorage.removeItem('pendingWorkoutSave')
+        showSnackbar({ message: 'Workout saved successfully', severity: 'success' })
         router.push('/routines')
       } catch (err) {
         console.error('Error saving deferred workout:', err)
+        showSnackbar({ message: 'Error saving workout', severity: 'error' })
+        setIsSaving(false)
       }
     } else {
       // VIEW MODE: Just explicit finish (though typically not needed if auto-saved usually, but here we just navigate)
@@ -242,25 +254,30 @@ function WorkoutSummaryContent() {
   }
 
   const handleConfirmDiscard = async () => {
+    setIsDiscarding(true)
     const workoutDayId = searchParams.get('workoutDayId')
     const isTemp = searchParams.get('temp') === 'true'
 
-    if (isTemp) {
-      sessionStorage.removeItem('pendingWorkoutSave')
-    } else if (workoutDayId) {
-      try {
+    try {
+      if (isTemp) {
+        sessionStorage.removeItem('pendingWorkoutSave')
+        showSnackbar({ message: 'Workout discarded', severity: 'info' })
+      } else if (workoutDayId) {
         // Delete the workout day (cascade delete will handle exercises/sets)
         await apiFetch(`/workout-days/${workoutDayId}`, {
           method: 'DELETE',
         })
         console.log('Workout discarded successfully')
-      } catch (err) {
-        console.error('Error discarding workout:', err)
+        showSnackbar({ message: 'Workout discarded', severity: 'info' })
       }
-    }
 
-    setOpenDiscardDialog(false)
-    router.push('/routines')
+      setOpenDiscardDialog(false)
+      router.push('/routines')
+    } catch (err) {
+      console.error('Error discarding workout:', err)
+      showSnackbar({ message: 'Error discarding workout', severity: 'error' })
+      setIsDiscarding(false) // Only reset if failed, otherwise we navigate away
+    }
   }
 
   return (
@@ -474,6 +491,7 @@ function WorkoutSummaryContent() {
                 variant="contained"
                 size="large"
                 onClick={handleSave}
+                disabled={isSaving}
                 sx={{
                   py: 1.5,
                   fontWeight: 700,
@@ -482,7 +500,7 @@ function WorkoutSummaryContent() {
                   mb: 2,
                 }}
               >
-                Save Workout
+                {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Save Workout'}
               </Button>
 
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -532,9 +550,10 @@ function WorkoutSummaryContent() {
             color="error"
             variant="contained"
             disableElevation
+            disabled={isDiscarding}
             sx={{ fontWeight: 600, borderRadius: 2 }}
           >
-            Discard
+            {isDiscarding ? <CircularProgress size={24} color="inherit" /> : 'Discard'}
           </Button>
         </DialogActions>
       </Dialog>

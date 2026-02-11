@@ -42,6 +42,7 @@ import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { toKg, fromKg, type WeightUnit } from '@/lib/utils/weightConversion'
+import { useSnackbar } from '@/hooks/useSnackbar'
 
 // Types
 type SetType = 'N' | 'W' | 'D' | 'F'
@@ -73,6 +74,7 @@ function WorkoutLoggingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
+  const { showSnackbar } = useSnackbar()
   const [elapsedTime, setElapsedTime] = useState(0)
 
   // Active Rest Timer State
@@ -184,6 +186,7 @@ function WorkoutLoggingContent() {
         setExercises(exercisesWithConvertedWeights)
       } catch (err) {
         console.error('Error loading workout:', err)
+        showSnackbar({ message: 'Failed to load workout details', severity: 'error' })
         workoutInitializedRef.current = false
       } finally {
         setIsLoadingWorkout(false)
@@ -342,6 +345,7 @@ function WorkoutLoggingContent() {
       router.push(`/workout/summary?temp=true&duration=${elapsedTime}`)
     } catch (err) {
       console.error('Error preparing workout summary:', err)
+      showSnackbar({ message: 'Failed to save workout progress', severity: 'error' })
       // Fallback
       router.push('/routines')
     } finally {
