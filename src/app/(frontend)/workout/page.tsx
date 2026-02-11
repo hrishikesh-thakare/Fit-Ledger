@@ -327,19 +327,23 @@ function WorkoutLoggingContent() {
         })),
       }))
 
-      // Save all workout data to DB at once
-      const result = await saveWorkout({
+      // Prepare workout data for session storage
+      const workoutDataToSave = {
         routineId: routineIdRef.current,
         date: workoutDateRef.current,
         durationSeconds: elapsedTime,
         exercises: exercisesToSave,
-      })
+      }
 
-      router.push(`/workout/summary?workoutDayId=${result.workoutDayId}&duration=${elapsedTime}`)
+      // Save to session storage
+      sessionStorage.setItem('pendingWorkoutSave', JSON.stringify(workoutDataToSave))
+
+      // Navigate to summary page with temp flag
+      router.push(`/workout/summary?temp=true&duration=${elapsedTime}`)
     } catch (err) {
-      console.error('Error saving workout:', err)
-      // Still navigate even on error
-      router.push('/workout/summary')
+      console.error('Error preparing workout summary:', err)
+      // Fallback
+      router.push('/routines')
     } finally {
       setIsSaving(false)
     }

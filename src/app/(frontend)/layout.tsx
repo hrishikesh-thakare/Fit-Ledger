@@ -28,7 +28,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
 
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${roboto.variable} ${robotoMono.variable}`}>
         <ThemeProvider>
           <AuthProvider>
