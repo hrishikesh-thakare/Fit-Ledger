@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 
 interface WorkoutSetData {
@@ -28,8 +27,11 @@ interface SaveWorkoutRequest {
  * Save endpoint for workouts.
  * Uses a database transaction to ensure data integrity.
  */
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function POST(req: NextRequest) {
-  const payload = await getPayload({ config })
+  const routeStart = performance.now()
+  const payload = await getPayloadClient()
 
   // Start transaction
   // transactions may return null if the database adapter doesn't support them
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
   const t = await payload.db.beginTransaction()
 
   try {
+    const payloadStart = performance.now()
     const body: SaveWorkoutRequest = await req.json()
     const { routineId, date = new Date().toISOString(), durationSeconds = 0, exercises } = body
 
@@ -121,10 +124,27 @@ export async function POST(req: NextRequest) {
     // Commit transaction
     if (t) await payload.db.commitTransaction(t)
 
-    return NextResponse.json({
-      workoutDayId: String(workoutDay.id),
-      saved: true,
-    })
+    const payloadDuration = performance.now() - payloadStart
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/workouts/start`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
+    return NextResponse.json(
+      {
+        workoutDayId: String(workoutDay.id),
+        saved: true,
+      },
+      {
+        headers: {
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
+        },
+      },
+    )
   } catch (error) {
     console.error('Error saving workout:', error)
     // Rollback transaction on error

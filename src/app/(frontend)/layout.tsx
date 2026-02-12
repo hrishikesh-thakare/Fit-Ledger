@@ -3,6 +3,7 @@ import { ThemeProvider } from '../../theme'
 import { AuthProvider } from '../../contexts/AuthContext'
 import { SnackbarProvider } from '../../contexts/SnackbarContext'
 import './styles.css'
+import { getCurrentUser } from '@/lib/getCurrentUser'
 
 export const metadata = {
   description: 'Track your fitness journey with FitLedger',
@@ -24,14 +25,15 @@ const robotoMono = Roboto_Mono({
   variable: '--font-roboto-mono',
 })
 
-export default function RootLayout(props: { children: React.ReactNode }) {
+export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
+  const user = await getCurrentUser()
 
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${roboto.variable} ${robotoMono.variable}`}>
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider initialUser={user}>
             <SnackbarProvider>
               <main>{children}</main>
             </SnackbarProvider>

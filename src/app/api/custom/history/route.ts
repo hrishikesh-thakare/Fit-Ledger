@@ -1,10 +1,12 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
+
+import { formatServerTimingHeader } from '@/lib/timing'
 
 export async function GET(req: NextRequest) {
+  const routeStart = performance.now()
   const searchParams = req.nextUrl.searchParams
   const userId = searchParams.get('userId')
   const startDate = searchParams.get('startDate')
@@ -17,9 +19,10 @@ export async function GET(req: NextRequest) {
   // Cast userId to number
   const numericUserId = Number(userId)
 
-  const payload = await getPayload({ config })
+  const payload = await getPayloadClient()
 
   try {
+    const payloadStart = performance.now()
     // 1. Fetch Workout Days
     const where: any = {
       user: {
@@ -88,6 +91,7 @@ export async function GET(req: NextRequest) {
         reps: true,
       },
     })
+    const payloadDuration = performance.now() - payloadStart
 
     // 3. Aggegrate in memory
     const counts: Record<string, number> = {}
@@ -144,11 +148,21 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/history`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
     return NextResponse.json(
       { docs: results },
       {
         headers: {
           'Cache-Control': 'private, s-maxage=120, stale-while-revalidate=300',
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
         },
       },
     )

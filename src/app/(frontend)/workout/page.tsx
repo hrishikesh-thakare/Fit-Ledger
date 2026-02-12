@@ -147,12 +147,11 @@ function WorkoutLoggingContent() {
         routineIdRef.current = routineId
 
         // Fetch user profile and load workout data IN PARALLEL
-        const [userProfile, workoutData] = await Promise.all([
-          apiFetch(`/users/${user.id}`),
+        const [workoutData] = await Promise.all([
           loadWorkoutFromRoutine({ routineId, userId: String(user.id) }),
         ])
 
-        const userUnit = userProfile.preferredUnit || 'kg'
+        const userUnit = user?.preferredUnit || 'kg'
         preferredUnitRef.current = userUnit
         workoutDateRef.current = workoutData.date
 

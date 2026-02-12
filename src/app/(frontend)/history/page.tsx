@@ -61,9 +61,8 @@ export default function HistoryPage() {
       try {
         setLoading(true)
 
-        // Fetch user profile
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        // Fetch user's preferred unit
+        const userUnit = user?.preferredUnit || 'kg'
 
         // Calculate date range based on selectedMonth
         let queryParams = `?userId=${user.id}`

@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { RoutineSet } from '@/payload-types'
 
@@ -28,14 +27,18 @@ interface FetchedRoutineDetails {
   exercises: FetchedExercise[]
 }
 
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const routeStart = performance.now()
   const { id } = await params
-  const payload = await getPayload({ config })
+  const payload = await getPayloadClient()
 
   // Cast ID to number
   const numericId = Number(id)
 
   try {
+    const payloadStart = performance.now()
     // 1. Fetch the routine
     const routine = await payload.findByID({
       collection: 'routines',
@@ -77,6 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       })
       allSets = setsResponse.docs as RoutineSet[]
     }
+    const payloadDuration = performance.now() - payloadStart
 
     // 4. In-memory aggregation
     const exercises: FetchedExercise[] = routineExercises.docs.map((re) => {
@@ -130,10 +134,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       exercises,
     }
 
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/routines/${id}`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
     return NextResponse.json(result, {
       headers: {
         // Short cache for routine details - 10s cache, revalidate in background for 1 min
         'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600',
+        'Server-Timing': formatServerTimingHeader({
+          total: totalDuration,
+          payload: payloadDuration,
+        }),
       },
     })
   } catch (error) {

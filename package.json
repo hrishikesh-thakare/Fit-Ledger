@@ -36,7 +36,6 @@
     "cross-env": "^7.0.3",
     "dayjs": "^1.11.19",
     "dotenv": "16.4.7",
-    "framer-motion": "^12.29.2",
     "graphql": "^16.8.1",
     "next": "15.4.10",
     "payload": "3.70.0",

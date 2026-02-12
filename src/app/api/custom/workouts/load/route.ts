@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { RoutineSet } from '@/payload-types'
 
@@ -9,7 +8,10 @@ import { RoutineSet } from '@/payload-types'
  * Read-only endpoint: fetches routine data + previous stats
  * for rendering the workout page. Zero database writes.
  */
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function GET(req: NextRequest) {
+  const routeStart = performance.now()
   try {
     const routineId = req.nextUrl.searchParams.get('routineId')
     const userId = req.nextUrl.searchParams.get('userId')
@@ -20,8 +22,9 @@ export async function GET(req: NextRequest) {
     }
 
     const numericRoutineId = Number(routineId)
-    const payload = await getPayload({ config })
+    const payload = await getPayloadClient()
 
+    const payloadStart = performance.now()
     // 1. Parallel fetch: routine + routine-exercises
     const [routine, routineExercisesResponse] = await Promise.all([
       payload.findByID({
@@ -104,6 +107,8 @@ export async function GET(req: NextRequest) {
         : Promise.resolve(new Map<string, { weight: number; reps: number }>()),
     ])
 
+    const payloadDuration = performance.now() - payloadStart
+
     const allRoutineSets = routineSetsResponse.docs as RoutineSet[]
 
     // 3. Build response (no DB writes, just data assembly)
@@ -151,11 +156,27 @@ export async function GET(req: NextRequest) {
 
     exercises.sort((a, b) => a.order - b.order)
 
-    return NextResponse.json({
-      title: routine.name,
-      date,
-      exercises,
-    })
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/workouts/load`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
+    return NextResponse.json(
+      {
+        title: routine.name,
+        date,
+        exercises,
+      },
+      {
+        headers: {
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
+        },
+      },
+    )
   } catch (error) {
     console.error('Error loading workout data:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

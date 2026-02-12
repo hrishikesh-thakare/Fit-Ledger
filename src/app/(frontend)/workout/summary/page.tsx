@@ -78,8 +78,7 @@ function WorkoutSummaryContent() {
 
       try {
         // Fetch user's preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        const userUnit = user.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
         if (isTemp) {

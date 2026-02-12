@@ -1,13 +1,16 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function GET(req: NextRequest) {
-  const payload = await getPayload({ config })
+  const routeStart = performance.now()
+  const payload = await getPayloadClient()
 
   try {
+    const payloadStart = performance.now()
     // Fetch exercises with minimal fields and depth 0 for performance
     const exercisesResponse = await payload.find({
       collection: 'exercises',
@@ -20,6 +23,7 @@ export async function GET(req: NextRequest) {
       },
       sort: 'name',
     })
+    const payloadDuration = performance.now() - payloadStart
 
     // Map to minimal structure
     const exercises = exercisesResponse.docs.map((ex) => ({
@@ -28,11 +32,21 @@ export async function GET(req: NextRequest) {
       bodyPart: typeof ex.muscleGroup === 'object' ? ex.muscleGroup.name : 'Other',
     }))
 
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/exercises`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
     return NextResponse.json(
       { docs: exercises },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
         },
       },
     )

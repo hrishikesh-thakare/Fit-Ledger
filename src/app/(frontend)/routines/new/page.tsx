@@ -104,8 +104,7 @@ export default function NewRoutinePage() {
 
         // Fetch user's preferred unit
         if (user) {
-          const userProfile = await apiFetch(`/users/${user.id}`)
-          const userUnit = userProfile.preferredUnit || 'kg'
+          const userUnit = user.preferredUnit || 'kg'
           setPreferredUnit(userUnit)
         }
 

@@ -44,6 +44,7 @@ export const loadWorkoutFromRoutine = async (
 
     const response = await apiFetch<LoadedWorkoutData>(
       `/custom/workouts/load?${queryParams.toString()}`,
+      { cache: 'no-store' },
     )
     return response
   } catch (error) {

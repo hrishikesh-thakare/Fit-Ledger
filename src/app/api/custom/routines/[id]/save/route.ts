@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { RoutineExercise, RoutineSet } from '@/payload-types'
 
@@ -23,13 +22,18 @@ interface SaveRoutinePayload {
   exercises: ExerciseInput[]
 }
 
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const routeStart = performance.now()
   const { id } = await params
   const routineId = Number(id) // Cast to number
-  const payload = await getPayload({ config })
+  const payload = await getPayloadClient()
   const data: SaveRoutinePayload = await req.json()
 
   try {
+    const payloadStart = performance.now()
+
     // 1. Update Routine Info
     await payload.update({
       collection: 'routines',
@@ -198,7 +202,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     }
 
-    return NextResponse.json({ success: true, id: routineId })
+    const payloadDuration = performance.now() - payloadStart
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/routines/${routineId}/save`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
+    return NextResponse.json(
+      { success: true, id: routineId },
+      {
+        headers: {
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
+        },
+      },
+    )
   } catch (error) {
     console.error('Error saving routine:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

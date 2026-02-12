@@ -45,6 +45,7 @@ export default function RoutinesPage() {
   useEffect(() => {
     const fetchRoutines = async () => {
       if (!user) return
+      console.log('[DEBUG Client] Fetching routines for user:', user, 'ID type:', typeof user.id)
 
       try {
         setLoading(true)

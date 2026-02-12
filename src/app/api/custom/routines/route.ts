@@ -1,23 +1,36 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 30
+
+import { formatServerTimingHeader } from '@/lib/timing'
 
 export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams
-  const userId = searchParams.get('userId')
-
-  if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-  }
-
-  // Cast ID to number
-  const numericUserId = Number(userId)
-
-  const payload = await getPayload({ config })
+  const routeStart = performance.now()
 
   try {
+    const searchParams = req.nextUrl.searchParams
+    const userId = searchParams.get('userId')
+    console.log(
+      '[DEBUG] GET /api/custom/routines - userId:',
+      userId,
+      'searchParams:',
+      searchParams.toString(),
+    )
+
+    if (!userId) {
+      return NextResponse.json({ errors: [{ message: 'User ID is required' }] }, { status: 400 })
+    }
+
+    // Cast ID to number
+    const numericUserId = Number(userId)
+    if (isNaN(numericUserId)) {
+      return NextResponse.json({ errors: [{ message: 'Invalid User ID' }] }, { status: 400 })
+    }
+
+    const payload = await getPayloadClient()
+
+    const payloadStart = performance.now()
     // 1. Fetch all active routines for this user
     // Optimized: Select only needed fields, depth 0
     const routinesResponse = await payload.find({
@@ -109,6 +122,7 @@ export async function GET(req: NextRequest) {
         })
       }
     }
+    const payloadDuration = performance.now() - payloadStart
 
     // Helper to format estimated duration (~3 min per set)
     const formatDuration = (totalSets: number): string => {
@@ -133,17 +147,38 @@ export async function GET(req: NextRequest) {
       lastPerformed: '-',
     }))
 
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/routines`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
     return NextResponse.json(
       { docs: results },
       {
         headers: {
           // Short cache for user-specific data - 10s cache, revalidate in background
           'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600',
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
         },
       },
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching routines:', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    // Return a JSON error response even for crashes
+    return NextResponse.json(
+      {
+        errors: [
+          {
+            message: error?.message || 'Internal Server Error',
+            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+          },
+        ],
+      },
+      { status: 500 },
+    )
   }
 }
