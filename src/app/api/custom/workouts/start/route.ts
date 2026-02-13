@@ -61,6 +61,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Routine not found' }, { status: 404 })
     }
 
+    // Calculate stats
+    let totalVolumeKg = 0
+    exercises.forEach((ex) => {
+      ;(ex.sets || []).forEach((set) => {
+        totalVolumeKg += (Number(set.weight) || 0) * (Number(set.reps) || 0)
+      })
+    })
+    const exerciseCount = exercises.length
+
     const userId = typeof routine.user === 'object' ? routine.user.id : routine.user
 
     // 1. Create workout day
@@ -71,6 +80,8 @@ export async function POST(req: NextRequest) {
         title: routine.name,
         date,
         durationSeconds,
+        volumeKg: totalVolumeKg,
+        exerciseCount,
       },
       req: t ? { transactionID: t } : undefined,
     })

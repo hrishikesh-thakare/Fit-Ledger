@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     const payloadStart = performance.now()
     // 1. Fetch all active routines for this user
-    // Optimized: Select only needed fields, depth 0
+    // Optimized: Select only needed fields, depth 0. Now using denormalized counts.
     const routinesResponse = await payload.find({
       collection: 'routines',
       where: {
@@ -50,79 +50,14 @@ export async function GET(req: NextRequest) {
         name: true,
         notes: true,
         id: true,
+        exerciseCount: true,
+        setCount: true,
       },
     })
 
-    const routines = routinesResponse.docs
-
-    // 2. Efficiently get exercise counts and set counts
-    const routineIds = routines.map((r) => r.id)
-
-    // Maps to store counts
-    const exerciseCounts: Record<string, number> = {}
-    const setCounts: Record<string, number> = {}
-    routineIds.forEach((id) => {
-      exerciseCounts[id] = 0
-      setCounts[id] = 0
-    })
-
-    if (routineIds.length > 0) {
-      // Fetch all routine-exercises for these routines
-      const routineExercises = await payload.find({
-        collection: 'routine-exercises',
-        where: {
-          routine: {
-            in: routineIds,
-          },
-        },
-        limit: 5000,
-        depth: 0,
-        select: {
-          routine: true,
-        },
-      })
-
-      // Count exercises and collect routine-exercise IDs
-      const routineExerciseIds: number[] = []
-      const reToRoutine: Record<string, string> = {} // routineExerciseId -> routineId
-
-      routineExercises.docs.forEach((re) => {
-        const rId = typeof re.routine === 'object' ? re.routine.id : re.routine
-        const rIdStr = String(rId)
-        if (exerciseCounts[rIdStr] !== undefined) {
-          exerciseCounts[rIdStr]++
-        }
-        routineExerciseIds.push(re.id as number)
-        reToRoutine[String(re.id)] = rIdStr
-      })
-
-      // Fetch all sets for these routine-exercises to count total sets per routine
-      if (routineExerciseIds.length > 0) {
-        const routineSets = await payload.find({
-          collection: 'routine-sets',
-          where: {
-            routineExercise: {
-              in: routineExerciseIds,
-            },
-          },
-          limit: 5000,
-          depth: 0,
-          select: {
-            routineExercise: true,
-          },
-        })
-
-        routineSets.docs.forEach((set) => {
-          const reId =
-            typeof set.routineExercise === 'object' ? set.routineExercise.id : set.routineExercise
-          const routineId = reToRoutine[String(reId)]
-          if (routineId && setCounts[routineId] !== undefined) {
-            setCounts[routineId]++
-          }
-        })
-      }
-    }
     const payloadDuration = performance.now() - payloadStart
+
+    const routines = routinesResponse.docs
 
     // Helper to format estimated duration (~3 min per set)
     const formatDuration = (totalSets: number): string => {
@@ -136,15 +71,15 @@ export async function GET(req: NextRequest) {
       return `~${minutes}m`
     }
 
-    // 3. Construct response
+    // 2. Construct response using stored counts
     const results = routines.map((routine) => ({
       id: routine.id,
       name: routine.name,
       description: routine.notes || '',
       notes: routine.notes || null,
-      exerciseCount: exerciseCounts[String(routine.id)] || 0,
-      duration: formatDuration(setCounts[String(routine.id)] || 0),
-      lastPerformed: '-',
+      exerciseCount: routine.exerciseCount || 0,
+      duration: formatDuration((routine.setCount || 0) as number),
+      lastPerformed: '-', // Placeholder as per logic
     }))
 
     const totalDuration = performance.now() - routeStart

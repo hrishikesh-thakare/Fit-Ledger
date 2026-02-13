@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const payloadStart = performance.now()
     // 1. Fetch Workout Days
+    // Optimized: Select denormalized fields directly. No related queries.
     const where: any = {
       user: {
         equals: numericUserId,
@@ -37,97 +38,30 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100
+    // Cap limit to prevent abuse
+    const safeLimit = Math.min(Math.max(limit, 1), 1000)
+
     const workoutDaysResponse = await payload.find({
       collection: 'workout-days',
       where,
       sort: '-date',
-      limit: 1000, // Increased limit significantly since we have date buckets
+      limit: safeLimit,
       depth: 0,
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        durationSeconds: true,
+        volumeKg: true,
+        exerciseCount: true,
+      },
     })
 
     const workoutDays = workoutDaysResponse.docs
-
-    if (workoutDays.length === 0) {
-      return NextResponse.json({ docs: [] })
-    }
-
-    const workoutDayIds = workoutDays.map((d) => d.id)
-
-    // 2. Fetch all related data
-    // We need exercise counts and volume (sum of weight * reps)
-
-    // Fetch Workout Exercises (for count)
-    const workoutExercisesResponse = await payload.find({
-      collection: 'workout-exercises',
-      where: {
-        workoutDay: {
-          in: workoutDayIds,
-        },
-      },
-      limit: 5000,
-      depth: 0,
-      select: {
-        workoutDay: true,
-      },
-    })
-
-    // Fetch Workout Sets (for volume)
-    // Note: workout-sets also link to workoutDay?
-    // Let's check schema/previous usage.
-    // In `history/page.tsx`: `/workout-sets?where[workoutDay][equals]=${workout.id}`.
-    // So yes, sets link to workoutDay directly.
-    const workoutSetsResponse = await payload.find({
-      collection: 'workout-sets',
-      where: {
-        workoutDay: {
-          in: workoutDayIds,
-        },
-      },
-      limit: 10000, // Large limit for sets
-      depth: 0,
-      select: {
-        workoutDay: true,
-        weight: true,
-        reps: true,
-      },
-    })
     const payloadDuration = performance.now() - payloadStart
 
-    // 3. Aggegrate in memory
-    const counts: Record<string, number> = {}
-    const volumes: Record<string, number> = {} // In KG
-
-    // Initialize
-    workoutDayIds.forEach((id) => {
-      counts[id] = 0
-      volumes[id] = 0
-    })
-
-    // Count exercises
-    workoutExercisesResponse.docs.forEach((we) => {
-      const wId = typeof we.workoutDay === 'object' ? we.workoutDay.id : we.workoutDay
-      if (counts[String(wId)] !== undefined) {
-        counts[String(wId)]++
-      }
-    })
-
-    // Sum volume
-    workoutSetsResponse.docs.forEach((set) => {
-      const wId = typeof set.workoutDay === 'object' ? set.workoutDay.id : set.workoutDay
-      if (volumes[String(wId)] !== undefined) {
-        const weight = set.weight || 0
-        const reps = set.reps || 0
-        volumes[String(wId)] += weight * reps
-      }
-    })
-
-    // 4. Transform to response format
-    // Frontend expects:
-    // id, name, date, time, duration, volume (string), exercises (count)
-    // I will return raw values where possible to let frontend format,
-    // BUT to minimize frontend changes I'll try to match closely,
-    // except for Volume which I'll return as raw number `volumeKg` so frontend can format it with unit.
-
+    // 2. Transform to response format
     const results = workoutDays.map((day) => {
       const durationSeconds = day.durationSeconds || 0
       const hours = Math.floor(durationSeconds / 3600)
@@ -141,10 +75,10 @@ export async function GET(req: NextRequest) {
       return {
         id: day.id,
         name: day.title || 'Workout',
-        dateRaw: day.date, // Pass raw date for formatting
+        dateRaw: day.date,
         duration: durationStr,
-        volumeKg: volumes[String(day.id)] || 0,
-        exercises: counts[String(day.id)] || 0,
+        volumeKg: day.volumeKg || 0,
+        exercises: day.exerciseCount || 0,
       }
     })
 

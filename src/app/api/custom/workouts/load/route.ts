@@ -71,40 +71,33 @@ export async function GET(req: NextRequest) {
           })
         : Promise.resolve({ docs: [] as RoutineSet[] }),
 
-      // Fetch previous stats
-      exerciseIds.length > 0
-        ? payload
-            .find({
-              collection: 'workout-sets',
-              where: {
-                and: [
-                  { 'workoutExercise.exercise': { in: exerciseIds } },
-                  { 'workoutExercise.workoutDay.user': { equals: resolvedUserId } },
-                  { 'workoutExercise.workoutDay.date': { less_than: date } },
-                ],
-              },
-              sort: '-createdAt',
-              limit: 500,
-              depth: 1,
-            })
-            .then((recentSets) => {
-              const statsMap = new Map<string, { weight: number; reps: number }>()
-              for (const set of recentSets.docs) {
-                const exId =
-                  typeof set.workoutExercise === 'object' &&
-                  typeof set.workoutExercise.exercise === 'object'
-                    ? String(set.workoutExercise.exercise.id)
-                    : typeof set.workoutExercise === 'object'
-                      ? String(set.workoutExercise.exercise)
-                      : null
-
-                if (exId && !statsMap.has(exId)) {
-                  statsMap.set(exId, { weight: set.weight, reps: set.reps })
-                }
-              }
-              return statsMap
-            })
-        : Promise.resolve(new Map<string, { weight: number; reps: number }>()),
+      // Fetch previous stats: Parallel queries for accuracy
+      Promise.all(
+        exerciseIds.map(async (exId) => {
+          const sets = await payload.find({
+            collection: 'workout-sets',
+            where: {
+              and: [
+                { 'workoutExercise.exercise': { equals: exId } },
+                { 'workoutExercise.workoutDay.user': { equals: resolvedUserId } },
+                { 'workoutExercise.workoutDay.date': { less_than: date } },
+              ],
+            },
+            sort: '-createdAt',
+            limit: 1,
+            depth: 0, // We only need weight/reps, no joins
+          })
+          return { exId: String(exId), set: sets.docs[0] }
+        }),
+      ).then((results) => {
+        const statsMap = new Map<string, { weight: number; reps: number }>()
+        results.forEach(({ exId, set }) => {
+          if (set) {
+            statsMap.set(exId, { weight: set.weight, reps: set.reps })
+          }
+        })
+        return statsMap
+      }),
     ])
 
     const payloadDuration = performance.now() - payloadStart

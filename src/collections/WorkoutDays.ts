@@ -22,6 +22,12 @@ export const WorkoutDays: CollectionConfig = {
     },
   },
 
+  indexes: [
+    {
+      fields: ['user', 'date'],
+    },
+  ],
+
   hooks: {
     beforeChange: [
       ({ data, operation, req }) => {
@@ -104,6 +110,22 @@ export const WorkoutDays: CollectionConfig = {
     {
       name: 'durationSeconds',
       type: 'number',
+    },
+    {
+      name: 'volumeKg',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      name: 'exerciseCount',
+      type: 'number',
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+      },
     },
     {
       name: 'notes',
