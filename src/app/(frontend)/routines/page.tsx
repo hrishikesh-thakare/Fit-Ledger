@@ -45,6 +45,7 @@ export default function RoutinesPage() {
   useEffect(() => {
     const fetchRoutines = async () => {
       if (!user) return
+      console.log('[DEBUG Client] Fetching routines for user:', user, 'ID type:', typeof user.id)
 
       try {
         setLoading(true)
@@ -181,10 +182,12 @@ export default function RoutinesPage() {
                     />
                   </Box>
 
-                  {/* Description */}
-                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                    {routine.description}
-                  </Typography>
+                  {/* Notes */}
+                  {routine.notes && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
+                      {routine.notes}
+                    </Typography>
+                  )}
 
                   <Divider sx={{ borderColor: 'divider', mb: 2.5, opacity: 0.5 }} />
 

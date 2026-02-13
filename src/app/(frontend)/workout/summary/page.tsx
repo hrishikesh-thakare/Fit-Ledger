@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { completeWorkout } from '@/lib/api/workout'
@@ -27,7 +27,9 @@ import {
   DialogContentText,
   DialogActions,
   Skeleton,
+  CircularProgress,
 } from '@mui/material'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 function WorkoutSummaryContent() {
   const router = useRouter()
@@ -37,12 +39,38 @@ function WorkoutSummaryContent() {
   const [openDiscardDialog, setOpenDiscardDialog] = useState(false)
   const [workoutData, setWorkoutData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
+  const cancelButtonRef = useRef<HTMLButtonElement>(null)
+  const { showSnackbar } = useSnackbar()
+
+  useEffect(() => {
+    const mainElement = document.querySelector('main')
+
+    if (openDiscardDialog) {
+      if (mainElement) {
+        mainElement.setAttribute('inert', '')
+      }
+      // Small timeout to ensure Dialog portal is mounted and ready
+      const timer = setTimeout(() => {
+        cancelButtonRef.current?.focus()
+      }, 100)
+      return () => {
+        clearTimeout(timer)
+        if (mainElement) {
+          mainElement.removeAttribute('inert')
+        }
+      }
+    }
+  }, [openDiscardDialog])
 
   useEffect(() => {
     const fetchWorkoutSummary = async () => {
       const workoutDayId = searchParams.get('workoutDayId')
-      if (!workoutDayId || !user) {
+      const isTemp = searchParams.get('temp') === 'true'
+
+      if ((!workoutDayId && !isTemp) || !user) {
         console.error('No workoutDayId or user provided')
         setLoading(false)
         return
@@ -50,64 +78,119 @@ function WorkoutSummaryContent() {
 
       try {
         // Fetch user's preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        const userUnit = user.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
-        // Fetch workout day
-        const workoutDay = await apiFetch<WorkoutDay>(`/workout-days/${workoutDayId}`)
+        if (isTemp) {
+          // TEMP MODE: Load from session storage
+          const pendingDataStr = sessionStorage.getItem('pendingWorkoutSave')
+          if (!pendingDataStr) {
+            router.push('/routines')
+            return
+          }
+          const pendingData = JSON.parse(pendingDataStr)
 
-        // Fetch workout exercises
-        const workoutExercisesRes = await apiFetch<{ docs: WorkoutExercise[] }>(
-          `/workout-exercises?where[workoutDay][equals]=${workoutDayId}&depth=1&sort=exerciseOrder`,
-        )
-
-        // Fetch sets for each exercise
-        const exercisesWithSets = await Promise.all(
-          workoutExercisesRes.docs.map(async (we) => {
-            const setsRes = await apiFetch<{ docs: WorkoutSet[] }>(
-              `/workout-sets?where[workoutExercise][equals]=${we.id}&sort=setOrder`,
+          // Transform for display
+          const exercisesWithSets = pendingData.exercises.map((ex: any) => {
+            const totalReps = ex.sets.reduce(
+              (sum: number, set: any) => sum + (parseInt(set.reps) || 0),
+              0,
             )
 
-            const exercise = typeof we.exercise === 'object' ? we.exercise : null
-            const totalReps = setsRes.docs.reduce((sum, set) => sum + (set.reps || 0), 0)
-
-            // Calculate volume in kg, then convert for display
-            const totalVolumeKg = setsRes.docs.reduce(
-              (sum, set) => sum + (set.weight || 0) * (set.reps || 0),
+            // Calculate volume (weights are stored in kg in pendingData)
+            const totalVolumeKg = ex.sets.reduce(
+              (sum: number, set: any) =>
+                sum + (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0),
               0,
             )
             const totalVolume = fromKg(totalVolumeKg, userUnit)
 
-            const maxWeightKg = Math.max(...setsRes.docs.map((set) => set.weight || 0))
+            const maxWeightKg = Math.max(...ex.sets.map((set: any) => parseFloat(set.weight) || 0))
             const maxWeight = fromKg(maxWeightKg, userUnit)
 
             return {
-              id: we.id,
-              name: exercise?.name || 'Unknown Exercise',
-              sets: setsRes.docs.length,
+              id: ex.exerciseId,
+              name: ex.name,
+              sets: ex.sets.length,
               reps: totalReps,
               weight: `${formatWeight(maxWeightKg, userUnit)}${userUnit}`,
               volume: totalVolume,
             }
-          }),
-        )
+          })
 
-        const totalVolume = exercisesWithSets.reduce((sum, ex) => sum + ex.volume, 0)
-        const durationSeconds = workoutDay.durationSeconds || 0
-        const hours = Math.floor(durationSeconds / 3600)
-        const mins = Math.floor((durationSeconds % 3600) / 60)
-        const secs = durationSeconds % 60
-        const durationStr =
-          hours > 0
-            ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-            : `${mins}:${secs.toString().padStart(2, '0')}`
+          const totalVolume = exercisesWithSets.reduce((sum: any, ex: any) => sum + ex.volume, 0)
+          const durationSeconds = pendingData.durationSeconds || 0
 
-        setWorkoutData({
-          duration: durationStr,
-          totalVolume,
-          exercises: exercisesWithSets,
-        })
+          // Format duration
+          const hours = Math.floor(durationSeconds / 3600)
+          const mins = Math.floor((durationSeconds % 3600) / 60)
+          const secs = durationSeconds % 60
+          const durationStr =
+            hours > 0
+              ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+              : `${mins}:${secs.toString().padStart(2, '0')}`
+
+          setWorkoutData({
+            duration: durationStr,
+            totalVolume,
+            exercises: exercisesWithSets,
+          })
+        } else {
+          // VIEW MODE: Fetch from API
+          const workoutDay = await apiFetch<WorkoutDay>(`/workout-days/${workoutDayId}`)
+
+          // Fetch workout exercises
+          const workoutExercisesRes = await apiFetch<{ docs: WorkoutExercise[] }>(
+            `/workout-exercises?where[workoutDay][equals]=${workoutDayId}&depth=1&sort=exerciseOrder`,
+          )
+
+          // Fetch sets for each exercise
+          const exercisesWithSets = await Promise.all(
+            workoutExercisesRes.docs.map(async (we) => {
+              const setsRes = await apiFetch<{ docs: WorkoutSet[] }>(
+                `/workout-sets?where[workoutExercise][equals]=${we.id}&sort=setOrder`,
+              )
+
+              const exercise = typeof we.exercise === 'object' ? we.exercise : null
+              const totalReps = setsRes.docs.reduce((sum, set) => sum + (set.reps || 0), 0)
+
+              // Calculate volume in kg, then convert for display
+              const totalVolumeKg = setsRes.docs.reduce(
+                (sum, set) => sum + (set.weight || 0) * (set.reps || 0),
+                0,
+              )
+              const totalVolume = fromKg(totalVolumeKg, userUnit)
+
+              const maxWeightKg = Math.max(...setsRes.docs.map((set) => set.weight || 0))
+              const maxWeight = fromKg(maxWeightKg, userUnit)
+
+              return {
+                id: we.id,
+                name: exercise?.name || 'Unknown Exercise',
+                sets: setsRes.docs.length,
+                reps: totalReps,
+                weight: `${formatWeight(maxWeightKg, userUnit)}${userUnit}`,
+                volume: totalVolume,
+              }
+            }),
+          )
+
+          const totalVolume = exercisesWithSets.reduce((sum, ex) => sum + ex.volume, 0)
+          const durationSeconds = workoutDay.durationSeconds || 0
+          const hours = Math.floor(durationSeconds / 3600)
+          const mins = Math.floor((durationSeconds % 3600) / 60)
+          const secs = durationSeconds % 60
+          const durationStr =
+            hours > 0
+              ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+              : `${mins}:${secs.toString().padStart(2, '0')}`
+
+          setWorkoutData({
+            duration: durationStr,
+            totalVolume,
+            exercises: exercisesWithSets,
+          })
+        }
       } catch (err) {
         console.error('Error fetching workout summary:', err)
       } finally {
@@ -127,48 +210,73 @@ function WorkoutSummaryContent() {
   const displayData = workoutData || workoutDataFallback
 
   const handleSave = async () => {
-    const workoutDayId = searchParams.get('workoutDayId')
-    const duration = searchParams.get('duration')
+    setIsSaving(true)
+    const isTemp = searchParams.get('temp') === 'true'
 
-    if (!workoutDayId || !duration) {
-      console.error('Missing workoutDayId or duration')
-      router.push('/routines')
-      return
-    }
+    if (isTemp) {
+      // TEMP MODE: Actual save logic
+      const pendingDataStr = sessionStorage.getItem('pendingWorkoutSave')
+      if (!pendingDataStr) {
+        setIsSaving(false)
+        return
+      }
 
-    try {
-      // Save the workout with duration
-      await completeWorkout(workoutDayId, parseInt(duration))
-      console.log('Workout saved successfully')
-      router.push('/routines')
-    } catch (err) {
-      console.error('Error saving workout:', err)
-      // Still navigate even if save fails
+      try {
+        const pendingData = JSON.parse(pendingDataStr)
+        console.log('Saving deferred workout...', pendingData)
+
+        // Import dynamically or ensure imported
+        const { saveWorkout } = await import('@/lib/api/workout')
+
+        await saveWorkout(pendingData)
+
+        sessionStorage.removeItem('pendingWorkoutSave')
+        showSnackbar({ message: 'Workout saved successfully', severity: 'success' })
+        router.push('/routines')
+      } catch (err) {
+        console.error('Error saving deferred workout:', err)
+        showSnackbar({ message: 'Error saving workout', severity: 'error' })
+        setIsSaving(false)
+      }
+    } else {
+      // VIEW MODE: Just explicit finish (though typically not needed if auto-saved usually, but here we just navigate)
       router.push('/routines')
     }
   }
 
-  const handleDiscard = () => {
+  const handleDiscard = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Manually blur or focus something outside of current container to avoid aria-hidden conflict
+    e.currentTarget.blur()
+
+    // Then open dialog
     setOpenDiscardDialog(true)
   }
 
   const handleConfirmDiscard = async () => {
+    setIsDiscarding(true)
     const workoutDayId = searchParams.get('workoutDayId')
+    const isTemp = searchParams.get('temp') === 'true'
 
-    if (workoutDayId) {
-      try {
+    try {
+      if (isTemp) {
+        sessionStorage.removeItem('pendingWorkoutSave')
+        showSnackbar({ message: 'Workout discarded', severity: 'info' })
+      } else if (workoutDayId) {
         // Delete the workout day (cascade delete will handle exercises/sets)
         await apiFetch(`/workout-days/${workoutDayId}`, {
           method: 'DELETE',
         })
         console.log('Workout discarded successfully')
-      } catch (err) {
-        console.error('Error discarding workout:', err)
+        showSnackbar({ message: 'Workout discarded', severity: 'info' })
       }
-    }
 
-    setOpenDiscardDialog(false)
-    router.push('/routines')
+      setOpenDiscardDialog(false)
+      router.push('/routines')
+    } catch (err) {
+      console.error('Error discarding workout:', err)
+      showSnackbar({ message: 'Error discarding workout', severity: 'error' })
+      setIsDiscarding(false) // Only reset if failed, otherwise we navigate away
+    }
   }
 
   return (
@@ -382,6 +490,7 @@ function WorkoutSummaryContent() {
                 variant="contained"
                 size="large"
                 onClick={handleSave}
+                disabled={isSaving}
                 sx={{
                   py: 1.5,
                   fontWeight: 700,
@@ -390,7 +499,7 @@ function WorkoutSummaryContent() {
                   mb: 2,
                 }}
               >
-                Save Workout
+                {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Save Workout'}
               </Button>
 
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -429,6 +538,7 @@ function WorkoutSummaryContent() {
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
           <Button
+            ref={cancelButtonRef}
             onClick={() => setOpenDiscardDialog(false)}
             sx={{ fontWeight: 600, color: 'text.primary' }}
           >
@@ -439,9 +549,10 @@ function WorkoutSummaryContent() {
             color="error"
             variant="contained"
             disableElevation
+            disabled={isDiscarding}
             sx={{ fontWeight: 600, borderRadius: 2 }}
           >
-            Discard
+            {isDiscarding ? <CircularProgress size={24} color="inherit" /> : 'Discard'}
           </Button>
         </DialogActions>
       </Dialog>

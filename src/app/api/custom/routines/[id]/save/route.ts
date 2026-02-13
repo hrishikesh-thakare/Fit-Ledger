@@ -1,5 +1,4 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { RoutineExercise, RoutineSet } from '@/payload-types'
 
@@ -23,13 +22,25 @@ interface SaveRoutinePayload {
   exercises: ExerciseInput[]
 }
 
+import { formatServerTimingHeader } from '@/lib/timing'
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const routeStart = performance.now()
   const { id } = await params
   const routineId = Number(id) // Cast to number
-  const payload = await getPayload({ config })
+  const payload = await getPayloadClient()
   const data: SaveRoutinePayload = await req.json()
 
+  // Start transaction
+  const t = await payload.db.beginTransaction()
+
   try {
+    const payloadStart = performance.now()
+
+    // Calculate counts
+    const exerciseCount = data.exercises.length
+    const setCount = data.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0)
+
     // 1. Update Routine Info
     await payload.update({
       collection: 'routines',
@@ -37,7 +48,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: {
         name: data.name,
         notes: data.description,
+        exerciseCount,
+        setCount,
       },
+      req: t ? { transactionID: t } : undefined,
     })
 
     // 2. Fetch Existing Routine Exercises & Sets
@@ -45,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       collection: 'routine-exercises',
       where: { routine: { equals: routineId } },
       limit: 500,
+      req: t ? { transactionID: t } : undefined,
     })
 
     const existingREIds = existingRoutineExercises.docs.map((re) => re.id)
@@ -55,6 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             collection: 'routine-sets',
             where: { routineExercise: { in: existingREIds } },
             limit: 2000,
+            req: t ? { transactionID: t } : undefined,
           })
         : { docs: [] }
 
@@ -86,6 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             exercise: numericExerciseId,
             exerciseOrder: index,
           },
+          req: t ? { transactionID: t } : undefined,
         })
         reId = String(newRE.id)
         numericReId = newRE.id
@@ -100,6 +117,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           data: {
             exerciseOrder: index,
           },
+          req: t ? { transactionID: t } : undefined,
         })
       }
 
@@ -134,6 +152,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               .create({
                 collection: 'routine-sets',
                 data: setPayload,
+                req: t ? { transactionID: t } : undefined,
               })
               .then((newSet) => keptSetIdsForThisRE.add(String(newSet.id))),
           )
@@ -145,6 +164,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               collection: 'routine-sets',
               id: Number(setId),
               data: setPayload,
+              req: t ? { transactionID: t } : undefined,
             }),
           )
         }
@@ -175,6 +195,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         where: {
           id: { in: setsToDelete },
         },
+        req: t ? { transactionID: t } : undefined,
       })
     }
 
@@ -195,11 +216,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         where: {
           id: { in: resToDelete },
         },
+        req: t ? { transactionID: t } : undefined,
       })
     }
 
-    return NextResponse.json({ success: true, id: routineId })
+    if (t) await payload.db.commitTransaction(t)
+
+    const payloadDuration = performance.now() - payloadStart
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/routines/${routineId}/save`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
+    return NextResponse.json(
+      { success: true, id: routineId },
+      {
+        headers: {
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
+        },
+      },
+    )
   } catch (error) {
+    if (t) await payload.db.rollbackTransaction(t)
     console.error('Error saving routine:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

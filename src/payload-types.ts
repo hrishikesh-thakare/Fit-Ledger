@@ -217,6 +217,8 @@ export interface Routine {
   name: string;
   notes?: string | null;
   isActive: 'active' | 'inactive';
+  exerciseCount?: number | null;
+  setCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -256,6 +258,8 @@ export interface WorkoutDay {
   title: string;
   date: string;
   durationSeconds?: number | null;
+  volumeKg?: number | null;
+  exerciseCount?: number | null;
   notes?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -486,6 +490,8 @@ export interface RoutinesSelect<T extends boolean = true> {
   name?: T;
   notes?: T;
   isActive?: T;
+  exerciseCount?: T;
+  setCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -522,6 +528,8 @@ export interface WorkoutDaysSelect<T extends boolean = true> {
   title?: T;
   date?: T;
   durationSeconds?: T;
+  volumeKg?: T;
+  exerciseCount?: T;
   notes?: T;
   updatedAt?: T;
   createdAt?: T;

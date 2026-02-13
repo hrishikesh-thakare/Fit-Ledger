@@ -75,8 +75,7 @@ export default function HistoryDetailPage() {
         setLoading(true)
 
         // Fetch user's preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        const userUnit = user?.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
         // Fetch workout day
@@ -88,34 +87,49 @@ export default function HistoryDetailPage() {
         )
 
         // For each exercise, fetch its sets
-        const exercisesWithSets = await Promise.all(
-          workoutExercisesResponse.docs.map(async (workoutExercise) => {
-            const setsResponse = await apiFetch<{ docs: WorkoutSet[] }>(
-              `/workout-sets?where[workoutExercise][equals]=${workoutExercise.id}&sort=setOrder&limit=100`,
-            )
+        // Optimizing: Extract all exercise IDs and fetch sets in one batch
+        const exerciseIds = workoutExercisesResponse.docs.map((e) => e.id)
+        const setsByExercise: Record<number, WorkoutSet[]> = {}
 
-            const setLabelMap: Record<string, SetDisplayType> = {
-              warmup: 'Warmup',
-              working: 'Working',
-              drop: 'Drop',
-              failure: 'Failure',
+        if (exerciseIds.length > 0) {
+          const setsResponse = await apiFetch<{ docs: WorkoutSet[] }>(
+            `/workout-sets?where[workoutExercise][in]=${exerciseIds.join(',')}&sort=setOrder&limit=500`,
+          )
+
+          setsResponse.docs.forEach((set) => {
+            const exerciseId =
+              typeof set.workoutExercise === 'object' ? set.workoutExercise.id : set.workoutExercise
+            const idNum = Number(exerciseId)
+            if (!setsByExercise[idNum]) {
+              setsByExercise[idNum] = []
             }
+            setsByExercise[idNum].push(set)
+          })
+        }
 
-            const exercise =
-              typeof workoutExercise.exercise === 'object' ? workoutExercise.exercise : null
+        const setLabelMap: Record<string, SetDisplayType> = {
+          warmup: 'Warmup',
+          working: 'Working',
+          drop: 'Drop',
+          failure: 'Failure',
+        }
 
-            return {
-              id: workoutExercise.id,
-              name: exercise?.name || 'Unknown Exercise',
-              sets: setsResponse.docs.map((set) => ({
-                id: set.id,
-                type: setLabelMap[set.setLabel] || 'Working',
-                weight: formatWeight(set.weight || 0, userUnit),
-                reps: set.reps || 0,
-              })),
-            }
-          }),
-        )
+        const exercisesWithSets = workoutExercisesResponse.docs.map((workoutExercise) => {
+          const sets = setsByExercise[workoutExercise.id] || []
+          const exercise =
+            typeof workoutExercise.exercise === 'object' ? workoutExercise.exercise : null
+
+          return {
+            id: workoutExercise.id,
+            name: exercise?.name || 'Unknown Exercise',
+            sets: sets.map((set) => ({
+              id: set.id,
+              type: setLabelMap[set.setLabel] || 'Working',
+              weight: formatWeight(set.weight || 0, userUnit),
+              reps: set.reps || 0,
+            })),
+          }
+        })
 
         // Calculate total volume in kg, then convert
         const totalVolumeKg = exercisesWithSets.reduce((sum, exercise) => {

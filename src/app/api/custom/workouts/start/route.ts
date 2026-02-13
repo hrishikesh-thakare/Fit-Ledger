@@ -1,225 +1,165 @@
-import { getPayload } from 'payload'
-import config from '@payload-config'
+import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
-import { RoutineSet } from '@/payload-types'
+
+interface WorkoutSetData {
+  weight: string | number
+  reps: string | number
+  setLabel?: string
+  completed?: boolean
+}
+
+interface WorkoutExerciseData {
+  exerciseId: string | number
+  name?: string
+  sets: WorkoutSetData[]
+}
+
+interface SaveWorkoutRequest {
+  routineId: string | number
+  date?: string
+  durationSeconds?: number
+  exercises: WorkoutExerciseData[]
+}
+
+/**
+ * POST /api/custom/workouts/start
+ *
+ * Save endpoint for workouts.
+ * Uses a database transaction to ensure data integrity.
+ */
+import { formatServerTimingHeader } from '@/lib/timing'
 
 export async function POST(req: NextRequest) {
-  try {
-    const { routineId, date = new Date().toISOString() } = await req.json()
+  const routeStart = performance.now()
+  const payload = await getPayloadClient()
 
-    if (!routineId) {
-      return NextResponse.json({ error: 'routineId is required' }, { status: 400 })
+  // Start transaction
+  // transactions may return null if the database adapter doesn't support them
+  // or if they are not enabled.
+  const t = await payload.db.beginTransaction()
+
+  try {
+    const payloadStart = performance.now()
+    const body: SaveWorkoutRequest = await req.json()
+    const { routineId, date = new Date().toISOString(), durationSeconds = 0, exercises } = body
+
+    if (!routineId || !exercises) {
+      if (t) await payload.db.rollbackTransaction(t)
+      return NextResponse.json({ error: 'routineId and exercises are required' }, { status: 400 })
     }
 
-    // Cast routineId to number for DB operations
-    const numericRoutineId = Number(routineId)
-
-    const payload = await getPayload({ config })
-
-    // 1. Fetch routine details
+    // Fetch routine to get user ID
     const routine = await payload.findByID({
       collection: 'routines',
-      id: numericRoutineId,
+      id: Number(routineId),
+      depth: 0,
+      req: t ? { transactionID: t } : undefined, // Pass transaction context only if it exists
     })
 
     if (!routine) {
+      if (t) await payload.db.rollbackTransaction(t)
       return NextResponse.json({ error: 'Routine not found' }, { status: 404 })
     }
 
-    // 2. Fetch routine exercises with sets (optimized: depth 1 to get exercise details)
-    const routineExercisesResponse = await payload.find({
-      collection: 'routine-exercises',
-      where: {
-        routine: {
-          equals: numericRoutineId,
-        },
-      },
-      sort: 'exerciseOrder',
-      limit: 100,
-      depth: 1,
-    })
-
-    const routineExerciseIds = routineExercisesResponse.docs.map((re) => re.id)
-
-    // Fetch all routine-sets for these exercises in one go
-    let allRoutineSets: RoutineSet[] = []
-    if (routineExerciseIds.length > 0) {
-      const routineSetsResponse = await payload.find({
-        collection: 'routine-sets',
-        where: {
-          routineExercise: {
-            in: routineExerciseIds,
-          },
-        },
-        limit: 1000,
-        sort: 'setOrder',
+    // Calculate stats
+    let totalVolumeKg = 0
+    exercises.forEach((ex) => {
+      ;(ex.sets || []).forEach((set) => {
+        totalVolumeKg += (Number(set.weight) || 0) * (Number(set.reps) || 0)
       })
-      allRoutineSets = routineSetsResponse.docs as RoutineSet[]
-    }
+    })
+    const exerciseCount = exercises.length
 
-    // 3. Create workout day
+    const userId = typeof routine.user === 'object' ? routine.user.id : routine.user
+
+    // 1. Create workout day
     const workoutDay = await payload.create({
       collection: 'workout-days',
       data: {
-        user: typeof routine.user === 'object' ? routine.user.id : routine.user,
+        user: userId,
         title: routine.name,
         date,
-        durationSeconds: 0,
+        durationSeconds,
+        volumeKg: totalVolumeKg,
+        exerciseCount,
       },
+      req: t ? { transactionID: t } : undefined,
     })
 
-    // 3.5. Batch Fetch Previous Stats for ALL exercises
-    // To solve N+1, we find the latest workout set for each exercise
-    // It's tricky with Payload's query API to do "latest per group".
-    // Strategy: Fetch last 500 sets for these exercises sorted by date desc,
-    // and in-memory pick the first one for each exercise.
-    // Ideally we'd filter by user too.
-    const exerciseIds = routineExercisesResponse.docs.map((re) =>
-      typeof re.exercise === 'object' ? re.exercise.id : re.exercise,
-    )
-
-    const relevantExerciseIds = exerciseIds.filter(
-      (id) => typeof id === 'number' || typeof id === 'string',
-    )
-
-    const previousStatsMap = new Map<string, { weight: number; reps: number }>()
-
-    if (relevantExerciseIds.length > 0) {
-      // Fetch recent sets for these exercises
-      // We need to filter by user to be correct
-      const userId = typeof routine.user === 'object' ? routine.user.id : routine.user
-
-      const recentSets = await payload.find({
-        collection: 'workout-sets',
-        where: {
-          and: [
-            {
-              'workoutExercise.exercise': { in: relevantExerciseIds },
-            },
-            {
-              'workoutExercise.workoutDay.user': { equals: userId },
-            },
-            {
-              // Ensure we don't pick up future sets if date is backdated (unlikely but safe)
-              'workoutExercise.workoutDay.date': { less_than: date },
-            },
-          ],
-        },
-        sort: '-createdAt',
-        limit: 500, // Should be enough to cover recent history for all exercises
-        depth: 1, // need workoutExercise.exercise to map back
-      })
-
-      // In-memory grouping to find latest per exercise
-      for (const set of recentSets.docs) {
-        const exId =
-          typeof set.workoutExercise === 'object' &&
-          typeof set.workoutExercise.exercise === 'object'
-            ? String(set.workoutExercise.exercise.id)
-            : typeof set.workoutExercise === 'object'
-              ? String(set.workoutExercise.exercise)
-              : null
-
-        if (exId && !previousStatsMap.has(exId)) {
-          previousStatsMap.set(exId, {
-            weight: set.weight,
-            reps: set.reps,
-          })
-        }
-      }
-    }
-
-    const workoutDayId = String(workoutDay.id)
-
-    // 4. Create workout exercises and sets
-    const exercisePromises = routineExercisesResponse.docs.map(async (re, i) => {
-      const exerciseId = typeof re.exercise === 'object' ? re.exercise.id : re.exercise
-      const exerciseIdString = String(exerciseId)
-
-      // Create workout exercise
-      const workoutExercise = await payload.create({
-        collection: 'workout-exercises',
-        data: {
-          workoutDay: workoutDay.id,
-          exercise: exerciseId,
-          exerciseOrder: i,
-        },
-      })
-
-      // Filter sets for this routine exercise
-      const relatedSets = allRoutineSets
-        .filter((set) => {
-          const setReId =
-            typeof set.routineExercise === 'object' ? set.routineExercise.id : set.routineExercise
-          return String(setReId) === String(re.id)
-        })
-        .sort((a, b) => a.setOrder - b.setOrder)
-
-      // Get previous stats for this exercise
-      const prevStats = previousStatsMap.get(exerciseIdString)
-
-      // Create sets for this exercise
-      const setPromises = relatedSets.map((routineSet, j) => {
-        return payload.create({
-          collection: 'workout-sets',
+    // 2. Create all workout exercises in parallel
+    const workoutExercises = await Promise.all(
+      exercises.map((ex, i) =>
+        payload.create({
+          collection: 'workout-exercises',
           data: {
             workoutDay: workoutDay.id,
-            workoutExercise: workoutExercise.id,
-            setOrder: j,
-            setLabel: routineSet.setLabel,
-            reps: routineSet.reps,
-            weight: routineSet.weight,
-            // Pass previous stats explicitly to bypass hook lookup
-            previousWeight: prevStats ? prevStats.weight : null,
-            previousReps: prevStats ? prevStats.reps : null,
+            exercise: Number(ex.exerciseId),
+            exerciseOrder: i,
           },
-        })
+          req: t ? { transactionID: t } : undefined,
+        }),
+      ),
+    )
+
+    // 3. Create all workout sets in one parallel batch
+    const allSetPromises: Promise<any>[] = []
+    const validSetLabels = ['warmup', 'working', 'drop', 'failure']
+
+    exercises.forEach((ex, exIndex) => {
+      const workoutExercise = workoutExercises[exIndex]
+      ;(ex.sets || []).forEach((set, setIndex) => {
+        let setLabel: 'warmup' | 'working' | 'drop' | 'failure' = 'working'
+        if (set.setLabel && validSetLabels.includes(set.setLabel)) {
+          setLabel = set.setLabel as 'warmup' | 'working' | 'drop' | 'failure'
+        }
+
+        allSetPromises.push(
+          payload.create({
+            collection: 'workout-sets',
+            data: {
+              workoutDay: workoutDay.id,
+              workoutExercise: workoutExercise.id,
+              setOrder: setIndex,
+              setLabel: setLabel,
+              reps: Number(set.reps) || 0,
+              weight: Number(set.weight) || 0,
+            },
+            req: t ? { transactionID: t } : undefined,
+          }),
+        )
       })
-
-      const createdSets = await Promise.all(setPromises)
-
-      // Map to response format expected by frontend
-      const setsData = createdSets.map((ws) => ({
-        id: String(ws.id),
-        type:
-          ws.setLabel === 'warmup'
-            ? 'W'
-            : ws.setLabel === 'drop'
-              ? 'D'
-              : ws.setLabel === 'failure'
-                ? 'F'
-                : 'N',
-        weight: String(ws.weight),
-        reps: String(ws.reps),
-        completed: false,
-        previous: ws.previousWeight ? `${ws.previousWeight}x${ws.previousReps}` : '-',
-        setOrder: ws.setOrder,
-      }))
-
-      return {
-        id: String(workoutExercise.id),
-        exerciseId: String(exerciseId),
-        name: typeof re.exercise === 'object' ? re.exercise.name : 'Unknown Exercise',
-        restTime: 60,
-        sets: setsData,
-        order: i,
-      }
     })
 
-    const exercises = await Promise.all(exercisePromises)
-    // Sort by order to ensure response is correct
-    exercises.sort((a, b) => a.order - b.order)
+    await Promise.all(allSetPromises)
 
-    const result = {
-      workoutDayId,
-      title: routine.name,
-      date,
-      exercises,
-    }
+    // Commit transaction
+    if (t) await payload.db.commitTransaction(t)
 
-    return NextResponse.json(result)
+    const payloadDuration = performance.now() - payloadStart
+    const totalDuration = performance.now() - routeStart
+
+    console.log(`[API] /api/custom/workouts/start`)
+    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
+    return NextResponse.json(
+      {
+        workoutDayId: String(workoutDay.id),
+        saved: true,
+      },
+      {
+        headers: {
+          'Server-Timing': formatServerTimingHeader({
+            total: totalDuration,
+            payload: payloadDuration,
+          }),
+        },
+      },
+    )
   } catch (error) {
-    console.error('Error starting workout:', error)
+    console.error('Error saving workout:', error)
+    // Rollback transaction on error
+    if (t) await payload.db.rollbackTransaction(t)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

@@ -61,9 +61,8 @@ export default function HistoryPage() {
       try {
         setLoading(true)
 
-        // Fetch user profile
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        // Fetch user's preferred unit
+        const userUnit = user?.preferredUnit || 'kg'
 
         // Calculate date range based on selectedMonth
         let queryParams = `?userId=${user.id}`
@@ -133,11 +132,29 @@ export default function HistoryPage() {
 
   // Filter Logic
   const filteredWorkouts = rawWorkouts.filter((workout) => {
-    if (!selectedMonth) return true
     const workoutDate = dayjs(workout.date)
-    return (
-      workoutDate.month() === selectedMonth.month() && workoutDate.year() === selectedMonth.year()
-    )
+
+    // 1. Filter by specific month picker (if selected)
+    if (selectedMonth) {
+      return (
+        workoutDate.month() === selectedMonth.month() && workoutDate.year() === selectedMonth.year()
+      )
+    }
+
+    // 2. Filter by chip period (if no specific month selected)
+    const now = dayjs()
+    switch (selectedPeriod) {
+      case 'This Week':
+        // localized week start
+        return workoutDate.isAfter(now.startOf('week').subtract(1, 'millisecond'))
+      case 'This Month':
+        return workoutDate.isSame(now, 'month')
+      case 'Last Month':
+        return workoutDate.isSame(now.subtract(1, 'month'), 'month')
+      case 'All':
+      default:
+        return true
+    }
   })
 
   // Group by Month

@@ -28,6 +28,12 @@ export const WorkoutSets: CollectionConfig = {
     },
   },
 
+  indexes: [
+    {
+      fields: ['workoutExercise', 'createdAt'],
+    },
+  ],
+
   hooks: {
     beforeChange: [
       async ({ data, operation, req }) => {
