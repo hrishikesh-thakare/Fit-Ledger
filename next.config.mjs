@@ -2,16 +2,22 @@ import { withPayload } from '@payloadcms/next/withPayload'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Your Next.js config here
-  webpack: (webpackConfig) => {
-    webpackConfig.resolve.extensionAlias = {
+  // Prevent Next.js from bundling Node-only dependencies
+  serverExternalPackages: ['sharp', 'pg', 'pino'],
+
+  webpack: (config) => {
+    // Required for Payload + TS interop
+    config.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
       '.js': ['.ts', '.tsx', '.js', '.jsx'],
       '.mjs': ['.mts', '.mjs'],
     }
 
-    return webpackConfig
+    return config
   },
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+// Important: devBundleServerPackages must be false
+export default withPayload(nextConfig, {
+  devBundleServerPackages: false,
+})
