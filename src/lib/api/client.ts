@@ -46,7 +46,11 @@ const apiFetch = async <T = any>(endpoint: string, options: FetchOptions = {}): 
   const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {
-    throw new APIError(response.status, data, data.errors?.[0]?.message || 'An error occurred')
+    throw new APIError(
+      response.status,
+      data,
+      data.errors?.[0]?.message || data.error || 'An error occurred',
+    )
   }
 
   return data

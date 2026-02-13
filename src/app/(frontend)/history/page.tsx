@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
 import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
@@ -22,21 +21,14 @@ import {
   AccessTime,
   FitnessCenter,
   CalendarMonth,
-  Add,
-  Edit,
-  ContentCopy,
-  Share,
-  Delete,
 } from '@mui/icons-material'
 import dayjs, { Dayjs } from 'dayjs'
 import BottomNav from '@/components/BottomNav'
 import HistoryDatePicker from '@/components/HistoryDatePicker'
-import ExtendedFab from '@/components/fabs/ExtendedFab'
 import ChipFilter from '@/components/ChipFilter'
 
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
-import EmptyState from '@/components/EmptyState'
 
 interface WorkoutHistoryItem {
   id: number
@@ -55,10 +47,8 @@ export default function HistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState<Dayjs | null>(null)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('All')
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [rawWorkouts, setRawWorkouts] = useState<WorkoutHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   useEffect(() => {
     const fetchWorkoutHistory = async () => {
@@ -72,9 +62,16 @@ export default function HistoryPage() {
         setLoading(true)
 
         // Fetch user's preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
-        setPreferredUnit(userUnit)
+        const userUnit = user?.preferredUnit || 'kg'
+
+        // Calculate date range based on selectedMonth
+        let queryParams = `?userId=${user.id}`
+
+        if (selectedMonth) {
+          const startDate = selectedMonth.startOf('month').toISOString()
+          const endDate = selectedMonth.endOf('month').toISOString()
+          queryParams += `&startDate=${startDate}&endDate=${endDate}`
+        }
 
         // Fetch optimized history from custom endpoint
         const response = await apiFetch<{
@@ -86,7 +83,7 @@ export default function HistoryPage() {
             volumeKg: number
             exercises: number
           }[]
-        }>(`/custom/history?userId=${user.id}`)
+        }>(`/custom/history${queryParams}`)
 
         // Map response to component state format
         const workoutsWithDetails = response.docs.map((item) => {
@@ -121,7 +118,7 @@ export default function HistoryPage() {
     }
 
     fetchWorkoutHistory()
-  }, [user])
+  }, [user, selectedMonth, showSnackbar])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -135,11 +132,29 @@ export default function HistoryPage() {
 
   // Filter Logic
   const filteredWorkouts = rawWorkouts.filter((workout) => {
-    if (!selectedMonth) return true
     const workoutDate = dayjs(workout.date)
-    return (
-      workoutDate.month() === selectedMonth.month() && workoutDate.year() === selectedMonth.year()
-    )
+
+    // 1. Filter by specific month picker (if selected)
+    if (selectedMonth) {
+      return (
+        workoutDate.month() === selectedMonth.month() && workoutDate.year() === selectedMonth.year()
+      )
+    }
+
+    // 2. Filter by chip period (if no specific month selected)
+    const now = dayjs()
+    switch (selectedPeriod) {
+      case 'This Week':
+        // localized week start
+        return workoutDate.isAfter(now.startOf('week').subtract(1, 'millisecond'))
+      case 'This Month':
+        return workoutDate.isSame(now, 'month')
+      case 'Last Month':
+        return workoutDate.isSame(now.subtract(1, 'month'), 'month')
+      case 'All':
+      default:
+        return true
+    }
   })
 
   // Group by Month

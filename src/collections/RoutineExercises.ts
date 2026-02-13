@@ -57,6 +57,7 @@ export const RoutineExercises: CollectionConfig = {
       type: 'relationship',
       relationTo: 'routines',
       required: true,
+      index: true,
     },
     {
       name: 'exercise',

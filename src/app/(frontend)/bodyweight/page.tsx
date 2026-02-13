@@ -53,13 +53,20 @@ export default function BodyweightLogPage() {
       try {
         setLoading(true)
 
-        // Fetch user profile to get target weight and preferred unit
-        const userProfile = await apiFetch(`/users/${user.id}`)
-        const userUnit = userProfile.preferredUnit || 'kg'
+        // Use user profile from context
+        const userUnit = user.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
-        if (userProfile.targetWeight) {
-          setTargetWeight(userProfile.targetWeight) // Already in kg
+        // if (user.targetWeight) { // Check if targetWeight is available in restricted user type
+        //   setTargetWeight(user.targetWeight)
+        // }
+        // For now, let's see if we can get away with just preferredUnit or if we really need targetWeight.
+        // The previous code fetched it. Let's assume we might lack targetWeight in the default user context if it's not in the depth 0 user.
+        // Actually, let's keep it simple: If we need targetWeight, we might still need to fetch if it's not in context.
+        // But let's check payload-types first.
+
+        if (user.targetWeight) {
+          setTargetWeight(user.targetWeight) // Already in kg
         }
 
         // Optimized fetch: depth=0 to avoid joining user object
@@ -77,7 +84,7 @@ export default function BodyweightLogPage() {
     }
 
     fetchWeightLogs()
-  }, [user])
+  }, [user, showSnackbar])
 
   const processAndSetLogs = (docs: BodyWeightLog[], unit: 'kg' | 'lb') => {
     const logsWithChanges = docs.map((log, index) => {

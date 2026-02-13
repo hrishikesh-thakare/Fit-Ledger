@@ -78,12 +78,14 @@ export const WorkoutExercises: CollectionConfig = {
       type: 'relationship',
       relationTo: 'workout-days',
       required: true,
+      index: true,
     },
     {
       name: 'exercise',
       type: 'relationship',
       relationTo: 'exercises',
       required: true,
+      index: true,
     },
     {
       name: 'exerciseOrder',

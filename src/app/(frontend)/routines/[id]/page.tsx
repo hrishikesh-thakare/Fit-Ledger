@@ -22,8 +22,8 @@ import {
   TableRow,
   Divider,
   Stack,
-  CircularProgress,
   Alert,
+  Skeleton,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -41,7 +41,6 @@ interface RoutineSet {
   type: SetType
   weight: string
   reps: string
-  previous?: string
 }
 
 interface Exercise {
@@ -57,7 +56,6 @@ interface FetchedRoutineSet {
   weight: string
   reps: string
   setOrder: number
-  previous?: string
 }
 
 interface FetchedExercise {
@@ -96,8 +94,7 @@ export default function RoutineDetailPage() {
 
         // Fetch user's preferred unit
         if (user) {
-          const userProfile = await apiFetch(`/users/${user.id}`)
-          const userUnit = userProfile.preferredUnit || 'kg'
+          const userUnit = user.preferredUnit || 'kg'
           setPreferredUnit(userUnit)
         }
 
@@ -123,25 +120,11 @@ export default function RoutineDetailPage() {
               }
             }
 
-            // Previous string is usually "weightxreps" or "-"
-            // If it's "weightxreps", the weight is likely in KG from the DB or formatted?
-            // The API returns "previous" constructed from DB values (KG).
-            // So we need to parse and convert previous string too.
-            let displayPrevious = s.previous || '-'
-            if (displayPrevious !== '-' && displayPrevious?.includes('x')) {
-              const [prevWeight, prevReps] = displayPrevious.split('x')
-              const prevWeightVal = parseFloat(prevWeight)
-              if (!isNaN(prevWeightVal)) {
-                displayPrevious = `${formatWeight(prevWeightVal, preferredUnit || 'kg')}x${prevReps}`
-              }
-            }
-
             return {
               id: s.id,
               type: s.type,
               weight: displayWeight,
               reps: s.reps,
-              previous: displayPrevious,
             }
           }),
         }))
@@ -224,8 +207,66 @@ export default function RoutineDetailPage() {
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
+          <Box>
+            {/* Header Skeleton */}
+            <Box sx={{ mb: 4 }}>
+              <Skeleton variant="text" width="70%" height={48} sx={{ mb: 1 }} />
+              <Skeleton variant="text" width="90%" height={24} sx={{ mb: 3 }} />
+
+              {/* Metrics Row Skeleton */}
+              <Box sx={{ display: 'flex', gap: 4 }}>
+                <Box>
+                  <Skeleton variant="text" width={100} height={20} sx={{ mb: 0.5 }} />
+                  <Skeleton variant="text" width={40} height={32} />
+                </Box>
+                <Box>
+                  <Skeleton variant="text" width={100} height={20} sx={{ mb: 0.5 }} />
+                  <Skeleton variant="text" width={40} height={32} />
+                </Box>
+                <Box>
+                  <Skeleton variant="text" width={100} height={20} sx={{ mb: 0.5 }} />
+                  <Skeleton variant="text" width={60} height={32} />
+                </Box>
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 4 }} />
+
+            {/* Exercise List Header */}
+            <Skeleton variant="text" width={150} height={32} sx={{ mb: 2 }} />
+
+            {/* Exercise Card Skeletons */}
+            <Stack spacing={2}>
+              {[1, 2, 3].map((i) => (
+                <Card
+                  key={i}
+                  elevation={1}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                  }}
+                >
+                  {/* Exercise Header */}
+                  <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                    <Skeleton variant="text" width="60%" height={28} />
+                  </Box>
+
+                  {/* Sets Table Skeleton */}
+                  <Box sx={{ p: 2 }}>
+                    {[1, 2, 3, 4].map((j) => (
+                      <Box key={j} sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                        <Skeleton variant="text" width={40} />
+                        <Skeleton variant="text" width={60} />
+                        <Skeleton variant="text" width={80} />
+                        <Skeleton variant="text" width={60} />
+                      </Box>
+                    ))}
+                  </Box>
+                </Card>
+              ))}
+            </Stack>
           </Box>
         ) : error ? (
           <Alert severity="error">{error}</Alert>
@@ -349,7 +390,7 @@ export default function RoutineDetailPage() {
                         <TableRow>
                           <TableCell
                             align="center"
-                            width="15%"
+                            width="20%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -360,18 +401,7 @@ export default function RoutineDetailPage() {
                           </TableCell>
                           <TableCell
                             align="center"
-                            width="25%"
-                            sx={{
-                              borderBottomColor: 'divider',
-                              color: 'text.secondary',
-                              fontWeight: 600,
-                            }}
-                          >
-                            Prev
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            width="30%"
+                            width="40%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -382,7 +412,7 @@ export default function RoutineDetailPage() {
                           </TableCell>
                           <TableCell
                             align="center"
-                            width="30%"
+                            width="40%"
                             sx={{
                               borderBottomColor: 'divider',
                               color: 'text.secondary',
@@ -415,18 +445,6 @@ export default function RoutineDetailPage() {
                                 }}
                               >
                                 {getSetLabel(exercise.sets, index)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{
-                                  fontFamily: 'var(--font-mono)',
-                                  fontSize: '0.875rem',
-                                }}
-                              >
-                                {set.previous || '-'}
                               </Typography>
                             </TableCell>
                             <TableCell align="center" sx={{ fontWeight: 600 }}>

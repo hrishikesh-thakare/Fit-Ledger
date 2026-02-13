@@ -4,12 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import apiFetch from '@/lib/api/client'
 import { useRouter } from 'next/navigation'
 
-interface User {
-  id: string
-  email: string
-  name?: string
-  role?: string
-}
+import type { User } from '@/payload-types'
 
 interface AuthContextType {
   user: User | null
@@ -21,9 +16,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+export function AuthProvider({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode
+  initialUser?: User | null
+}) {
+  const [user, setUser] = useState<User | null>(initialUser ?? null)
+  const [loading, setLoading] = useState(initialUser === undefined)
   const router = useRouter()
 
   const refreshUser = useCallback(async () => {
@@ -43,8 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    refreshUser()
-  }, [refreshUser])
+    // Only fetch if initialUser wasn't provided (undefined)
+    // If it was provided (null or User object), we trust the server
+    if (initialUser === undefined) {
+      refreshUser()
+    }
+  }, [refreshUser, initialUser])
 
   const login = async (credentials: any) => {
     await apiFetch('/users/login', {
@@ -52,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(credentials),
     })
     await refreshUser()
-    router.push('/dashboard')
+    router.push('/routines')
   }
 
   const logout = async () => {

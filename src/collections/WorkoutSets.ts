@@ -28,6 +28,12 @@ export const WorkoutSets: CollectionConfig = {
     },
   },
 
+  indexes: [
+    {
+      fields: ['workoutExercise', 'createdAt'],
+    },
+  ],
+
   hooks: {
     beforeChange: [
       async ({ data, operation, req }) => {
@@ -37,6 +43,14 @@ export const WorkoutSets: CollectionConfig = {
         // Safety checks
         if (!req.user) return data
         if (!data.workoutExercise) return data
+
+        if (
+          (data.previousWeight !== undefined && data.previousWeight !== null) ||
+          (data.previousReps !== undefined && data.previousReps !== null)
+        ) {
+          // If provided, trust it and skip lookup
+          return data
+        }
 
         // Step 1: Get the workoutExercise with relations
         const workoutExercise = await req.payload.findByID({
@@ -103,12 +117,14 @@ export const WorkoutSets: CollectionConfig = {
       type: 'relationship',
       relationTo: 'workout-days',
       required: true,
+      index: true,
     },
     {
       name: 'workoutExercise',
       type: 'relationship',
       relationTo: 'workout-exercises',
       required: true,
+      index: true,
     },
     {
       name: 'setOrder',

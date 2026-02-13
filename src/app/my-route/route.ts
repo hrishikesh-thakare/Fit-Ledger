@@ -1,10 +1,7 @@
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
+import { getPayloadClient } from '@/lib/payload'
 
 export const GET = async (_request: Request) => {
-  const _payload = await getPayload({
-    config: configPromise,
-  })
+  const _payload = await getPayloadClient()
 
   return Response.json({
     message: 'This is an example of a custom route.',
