@@ -3,7 +3,7 @@ import { withPayload } from '@payloadcms/next/withPayload'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Prevent Next.js from bundling Node-only dependencies
-  serverExternalPackages: ['sharp', 'pg', 'pino'],
+  serverExternalPackages: ['sharp', 'pg', 'pino', 'ws'],
 
   webpack: (config) => {
     // Required for Payload + TS interop

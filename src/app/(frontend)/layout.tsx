@@ -5,6 +5,8 @@ import { SnackbarProvider } from '../../contexts/SnackbarContext'
 import './styles.css'
 import { getCurrentUser } from '@/lib/getCurrentUser'
 
+export const runtime = 'nodejs'
+
 export const metadata = {
   description: 'Track your fitness journey with FitLedger',
   title: 'FitLedger - Workout Tracker',
