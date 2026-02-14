@@ -43,6 +43,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { toKg, fromKg, type WeightUnit } from '@/lib/utils/weightConversion'
 import { useSnackbar } from '@/hooks/useSnackbar'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 // Types
 type SetType = 'N' | 'W' | 'D' | 'F'
@@ -65,6 +66,7 @@ interface WorkoutSet {
 
 interface WorkoutExercise {
   id: string
+  exerciseId?: string // Actual DB exercise ID (for saving)
   name: string
   restTime: number // seconds
   sets: WorkoutSet[]
@@ -75,6 +77,7 @@ function WorkoutLoggingContent() {
   const searchParams = useSearchParams()
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
+  const session = useWorkoutSession()
   const [elapsedTime, setElapsedTime] = useState(0)
 
   // Active Rest Timer State
@@ -100,14 +103,6 @@ function WorkoutLoggingContent() {
     return () => clearInterval(interval)
   }, [activeRestTimer])
 
-  // Timer Effect (Workout Duration)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedTime((prev) => prev + 1)
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -130,7 +125,31 @@ function WorkoutLoggingContent() {
   // Store exerciseId mapping for saving
   const exerciseDataRef = useRef<Array<{ exerciseId: string; name: string }>>([])
 
-  // Load workout from backend (READ-ONLY, no DB writes)
+  // Timer Effect — derives elapsed from session context startedAt
+  useEffect(() => {
+    if (!session.isActive || exercises.length === 0) return
+    // Update immediately
+    setElapsedTime(session.getElapsedSeconds())
+    const timer = setInterval(() => {
+      setElapsedTime(session.getElapsedSeconds())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [session.isActive, exercises.length, session.getElapsedSeconds])
+
+  // Sync exercises to context via useEffect (avoids setState-during-render)
+  const exercisesSyncedRef = useRef(false)
+  useEffect(() => {
+    // Skip the initial render and the first set from loadWorkout (already in context)
+    if (!exercisesSyncedRef.current) {
+      if (exercises.length > 0) exercisesSyncedRef.current = true
+      return
+    }
+    if (session.isActive && exercises.length > 0) {
+      session.updateSession(exercises)
+    }
+  }, [exercises]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load workout — either resume from context or fetch from API
   useEffect(() => {
     const loadWorkout = async () => {
       const routineId = searchParams.get('routineId')
@@ -141,12 +160,25 @@ function WorkoutLoggingContent() {
 
       if (workoutInitializedRef.current) return
 
+      // Refinement #1: Resume from context if session matches (no API call)
+      if (session.isActive && session.routineId === routineId) {
+        workoutInitializedRef.current = true
+        routineIdRef.current = routineId
+        preferredUnitRef.current = user?.preferredUnit || 'kg'
+        // Restore exerciseDataRef from context exercises (exerciseId = real DB ID)
+        exerciseDataRef.current = session.exercises.map((ex: any) => ({
+          exerciseId: ex.exerciseId || ex.id,
+          name: ex.name,
+        }))
+        setExercises(session.exercises as WorkoutExercise[])
+        return
+      }
+
       try {
         workoutInitializedRef.current = true
         setIsLoadingWorkout(true)
         routineIdRef.current = routineId
 
-        // Fetch user profile and load workout data IN PARALLEL
         const [workoutData] = await Promise.all([
           loadWorkoutFromRoutine({ routineId, userId: String(user.id) }),
         ])
@@ -155,13 +187,11 @@ function WorkoutLoggingContent() {
         preferredUnitRef.current = userUnit
         workoutDateRef.current = workoutData.date
 
-        // Store exercise IDs for saving later
         exerciseDataRef.current = workoutData.exercises.map((ex: any) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
         }))
 
-        // Convert weights from kg (database) to user's preferred unit for display
         const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
           ...ex,
           sets: ex.sets.map((set: any) => {
@@ -183,6 +213,10 @@ function WorkoutLoggingContent() {
         }))
 
         setExercises(exercisesWithConvertedWeights)
+
+        // Start a new session in context
+        const routineName = workoutData.exercises[0]?.name ?? 'Workout'
+        session.startSession(routineId, routineName, exercisesWithConvertedWeights)
       } catch (err) {
         console.error('Error loading workout:', err)
         showSnackbar({ message: 'Failed to load workout details', severity: 'error' })
@@ -201,23 +235,24 @@ function WorkoutLoggingContent() {
     field: 'weight' | 'reps',
     value: string,
   ) => {
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
         if (ex.id !== exerciseId) return ex
         return {
           ...ex,
           sets: ex.sets.map((set) => (set.id === setId ? { ...set, [field]: value } : set)),
         }
-      }),
-    )
+      })
+      return updated
+    })
   }
 
   const handleToggleComplete = (exerciseId: string, setId: string) => {
     // Determine if we are completing a set (checking it)
     let isCompleting = false
 
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
         if (ex.id !== exerciseId) return ex
         return {
           ...ex,
@@ -229,8 +264,9 @@ function WorkoutLoggingContent() {
             return set
           }),
         }
-      }),
-    )
+      })
+      return updated
+    })
 
     // Trigger Rest Timer if completing
     if (isCompleting) {
@@ -247,8 +283,8 @@ function WorkoutLoggingContent() {
   }
 
   const handleAddSet = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
         if (ex.id !== exerciseId) return ex
         const lastSet = ex.sets[ex.sets.length - 1]
         const newSet: WorkoutSet = {
@@ -260,14 +296,15 @@ function WorkoutLoggingContent() {
           previous: '-',
         }
         return { ...ex, sets: [...ex.sets, newSet] }
-      }),
-    )
+      })
+      return updated
+    })
   }
 
   const handleChangeSetType = (type: SetType) => {
     if (!activeSet) return
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
         if (ex.id !== activeSet.exerciseId) return ex
         return {
           ...ex,
@@ -276,28 +313,47 @@ function WorkoutLoggingContent() {
             return { ...s, type }
           }),
         }
-      }),
-    )
+      })
+      return updated
+    })
     setActiveSet(null)
   }
 
   const handleUpdateRestTime = (seconds: number) => {
     if (!activeRestTimeExerciseId) return
-    setExercises((prev) =>
-      prev.map((ex) => (ex.id === activeRestTimeExerciseId ? { ...ex, restTime: seconds } : ex)),
-    )
+    setExercises((prev) => {
+      const updated = prev.map((ex) =>
+        ex.id === activeRestTimeExerciseId ? { ...ex, restTime: seconds } : ex,
+      )
+      return updated
+    })
     setActiveRestTimeExerciseId(null)
   }
 
   const handleRemoveSet = () => {
     if (!activeSet) return
-    setExercises((prev) =>
-      prev.map((ex) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
         if (ex.id !== activeSet.exerciseId) return ex
         return { ...ex, sets: ex.sets.filter((s) => s.id !== activeSet.setId) }
-      }),
-    )
+      })
+      return updated
+    })
     setActiveSet(null)
+  }
+
+  const handleToggleAllSets = (exerciseId: string) => {
+    setExercises((prev) => {
+      const updated = prev.map((ex) => {
+        if (ex.id !== exerciseId) return ex
+        const allCompleted = ex.sets.every((s) => s.completed)
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => ({ ...s, completed: !allCompleted })),
+        }
+      })
+      return updated
+    })
   }
 
   const handleFinishWorkout = async () => {
@@ -310,24 +366,38 @@ function WorkoutLoggingContent() {
       setIsSaving(true)
       const userUnit = preferredUnitRef.current
 
-      // Build save payload — convert weights back to kg for storage
-      const exercisesToSave = exercises.map((ex, i) => ({
-        exerciseId: exerciseDataRef.current[i]?.exerciseId || ex.id,
-        name: ex.name,
-        sets: ex.sets.map((set) => ({
-          weight: String(toKg(parseFloat(set.weight) || 0, userUnit)),
-          reps: set.reps,
-          setLabel:
-            set.type === 'W'
-              ? 'warmup'
-              : set.type === 'D'
-                ? 'drop'
-                : set.type === 'F'
-                  ? 'failure'
-                  : 'working',
-          completed: set.completed,
-        })),
-      }))
+      // Build save payload — only include completed (ticked) sets, skip exercises with none
+      const exercisesToSave = exercises
+        .map((ex, i) => ({
+          exerciseId: exerciseDataRef.current[i]?.exerciseId || ex.exerciseId || ex.id,
+          name: ex.name,
+          sets: ex.sets
+            .filter((set) => set.completed)
+            .map((set) => ({
+              weight: String(toKg(parseFloat(set.weight) || 0, userUnit)),
+              reps: set.reps,
+              setLabel:
+                set.type === 'W'
+                  ? 'warmup'
+                  : set.type === 'D'
+                    ? 'drop'
+                    : set.type === 'F'
+                      ? 'failure'
+                      : 'working',
+              completed: set.completed,
+            })),
+        }))
+        .filter((ex) => ex.sets.length > 0)
+
+      // Guard: prevent saving an empty workout
+      if (exercisesToSave.length === 0) {
+        showSnackbar({
+          message: 'No sets completed — tick at least one set to save',
+          severity: 'warning',
+        })
+        setIsSaving(false)
+        return
+      }
 
       // Prepare workout data for session storage
       const workoutDataToSave = {
@@ -712,11 +782,22 @@ function WorkoutLoggingContent() {
                             p: 0,
                           }}
                         >
-                          <Box
-                            sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                          <IconButton
+                            size="small"
+                            onClick={() => handleToggleAllSets(exercise.id)}
+                            sx={{
+                              color: exercise.sets.every((s) => s.completed)
+                                ? 'primary.main'
+                                : 'text.secondary',
+                              p: 0.5,
+                            }}
                           >
-                            <Check fontSize="small" />
-                          </Box>
+                            {exercise.sets.every((s) => s.completed) ? (
+                              <CheckCircle fontSize="small" />
+                            ) : (
+                              <Check fontSize="small" />
+                            )}
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     </TableHead>

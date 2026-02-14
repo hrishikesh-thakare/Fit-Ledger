@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useSnackbar } from '@/hooks/useSnackbar'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 type SetType = 'N' | 'W' | 'D' | 'F'
 
@@ -95,6 +96,7 @@ export default function NewRoutinePage() {
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
   const { showSnackbar } = useSnackbar()
+  const { isActive: isWorkoutActive } = useWorkoutSession()
 
   // Fetch exercises on mount
   useEffect(() => {

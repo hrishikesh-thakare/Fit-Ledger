@@ -10,7 +10,7 @@ interface GlobalSnackbarProps {
     message: string
     severity?: 'success' | 'error' | 'warning' | 'info'
     action?: React.ReactNode
-    duration?: number
+    duration?: number | null
     key: number
   }
   onClose: () => void

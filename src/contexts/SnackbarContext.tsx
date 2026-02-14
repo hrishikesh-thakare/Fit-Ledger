@@ -1,23 +1,24 @@
-'use client';
+'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 export interface SnackbarMessage {
-  message: string;
-  severity?: 'success' | 'error' | 'warning' | 'info';
-  action?: ReactNode;
-  duration?: number;
+  message: string
+  severity?: 'success' | 'error' | 'warning' | 'info'
+  action?: ReactNode
+  duration?: number | null
 }
 
 interface SnackbarContextType {
-  showSnackbar: (params: SnackbarMessage) => void;
+  showSnackbar: (params: SnackbarMessage) => void
 }
 
-const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
+const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined)
 
 interface SnackbarState extends SnackbarMessage {
-  open: boolean;
-  key: number;
+  open: boolean
+  key: number
+  duration?: number | null
 }
 
 export function SnackbarProvider({ children }: { children: ReactNode }) {
@@ -26,9 +27,15 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
     message: '',
     severity: 'info',
     key: 0,
-  });
+  })
 
-  const showSnackbar = ({ message, severity = 'info', action, duration = 4000 }: SnackbarMessage) => {
+  const showSnackbar = ({
+    message,
+    severity = 'info',
+    action,
+    duration = 4000,
+  }: SnackbarMessage) => {
+    // duration = null means persistent (no auto-hide), undefined defaults to 4000
     setSnackbar({
       open: true,
       message,
@@ -36,28 +43,28 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
       action,
       duration,
       key: Date.now(),
-    });
-  };
+    })
+  }
 
   const handleClose = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
+    setSnackbar((prev) => ({ ...prev, open: false }))
+  }
 
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>
       {children}
       <GlobalSnackbar snackbar={snackbar} onClose={handleClose} />
     </SnackbarContext.Provider>
-  );
+  )
 }
 
 export function useSnackbar() {
-  const context = useContext(SnackbarContext);
+  const context = useContext(SnackbarContext)
   if (!context) {
-    throw new Error('useSnackbar must be used within SnackbarProvider');
+    throw new Error('useSnackbar must be used within SnackbarProvider')
   }
-  return context;
+  return context
 }
 
 // Import GlobalSnackbar component
-import GlobalSnackbar from '@/components/GlobalSnackbar';
+import GlobalSnackbar from '@/components/GlobalSnackbar'

@@ -2,6 +2,9 @@ import React from 'react'
 import { ThemeProvider } from '../../theme'
 import { AuthProvider } from '../../contexts/AuthContext'
 import { SnackbarProvider } from '../../contexts/SnackbarContext'
+import { BackgroundSyncProvider } from '../../contexts/BackgroundSyncContext'
+import { WorkoutSessionProvider } from '../../contexts/WorkoutSessionContext'
+import FloatingWorkoutBar from '../../components/FloatingWorkoutBar'
 import './styles.css'
 import { getCurrentUser } from '@/lib/getCurrentUser'
 
@@ -35,7 +38,12 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <ThemeProvider>
           <AuthProvider initialUser={user}>
             <SnackbarProvider>
-              <main>{children}</main>
+              <BackgroundSyncProvider>
+                <WorkoutSessionProvider>
+                  <main>{children}</main>
+                  <FloatingWorkoutBar />
+                </WorkoutSessionProvider>
+              </BackgroundSyncProvider>
             </SnackbarProvider>
           </AuthProvider>
         </ThemeProvider>
