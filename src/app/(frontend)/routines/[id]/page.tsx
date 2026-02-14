@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import { formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
@@ -24,6 +25,11 @@ import {
   Stack,
   Alert,
   Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -78,6 +84,7 @@ export default function RoutineDetailPage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
+  const { isActive, routineId: activeRoutineId, endSession } = useWorkoutSession()
   const routineId = params.id as string
 
   const [routineName, setRoutineName] = useState<string>('')
@@ -86,6 +93,7 @@ export default function RoutineDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
+  const [showActiveWorkoutDialog, setShowActiveWorkoutDialog] = useState(false)
 
   useEffect(() => {
     const fetchRoutineDetails = async () => {
@@ -154,6 +162,23 @@ export default function RoutineDetailPage() {
       if (sets[i].type === 'N') normalCount++
     }
     return normalCount
+  }
+
+  // Guard: handle "Start Workout" tap
+  const handleStartWorkout = () => {
+    if (isActive && activeRoutineId !== routineId) {
+      // Another workout is active — show confirmation dialog (refinement #6)
+      setShowActiveWorkoutDialog(true)
+    } else {
+      // No active workout, or same routine — navigate directly
+      router.push(`/workout?routineId=${routineId}`)
+    }
+  }
+
+  const handleDiscardAndStart = () => {
+    endSession()
+    setShowActiveWorkoutDialog(false)
+    router.push(`/workout?routineId=${routineId}`)
   }
 
   return (
@@ -485,7 +510,7 @@ export default function RoutineDetailPage() {
             variant="contained"
             size="large"
             startIcon={<PlayArrow />}
-            onClick={() => router.push(`/workout?routineId=${routineId}`)}
+            onClick={handleStartWorkout}
             sx={{
               py: 1.5,
               fontWeight: 700,
@@ -497,10 +522,27 @@ export default function RoutineDetailPage() {
               },
             }}
           >
-            Start Workout
+            {isActive && activeRoutineId === routineId ? 'Resume Workout' : 'Start Workout'}
           </Button>
         </Container>
       </Box>
+
+      {/* Active Workout Confirmation Dialog */}
+      <Dialog open={showActiveWorkoutDialog} onClose={() => setShowActiveWorkoutDialog(false)}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Workout in Progress</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have an active workout in progress. Starting a new workout will discard your current
+            one. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowActiveWorkoutDialog(false)}>Cancel</Button>
+          <Button onClick={handleDiscardAndStart} color="error" variant="contained">
+            Discard &amp; Start New
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

@@ -23,6 +23,7 @@ import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
 import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 interface RoutineWithExerciseCount {
   id: number
@@ -38,6 +39,7 @@ export default function RoutinesPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
+  const { isActive: isWorkoutActive } = useWorkoutSession()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [routines, setRoutines] = useState<RoutineWithExerciseCount[]>([])
@@ -257,7 +259,9 @@ export default function RoutinesPage() {
         sx={{
           position: 'fixed',
           right: 16,
-          bottom: 'calc(72px + 16px + env(safe-area-inset-bottom))',
+          bottom: isWorkoutActive
+            ? 'calc(72px + 16px + 80px + env(safe-area-inset-bottom))'
+            : 'calc(72px + 16px + env(safe-area-inset-bottom))',
           zIndex: 1050,
         }}
       >

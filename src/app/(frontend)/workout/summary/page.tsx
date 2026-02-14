@@ -30,6 +30,8 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { useSnackbar } from '@/contexts/SnackbarContext'
+import { useBackgroundSync } from '@/contexts/BackgroundSyncContext'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 function WorkoutSummaryContent() {
   const router = useRouter()
@@ -39,11 +41,12 @@ function WorkoutSummaryContent() {
   const [openDiscardDialog, setOpenDiscardDialog] = useState(false)
   const [workoutData, setWorkoutData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
   const [isDiscarding, setIsDiscarding] = useState(false)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const { showSnackbar } = useSnackbar()
+  const { isSaving, startBackgroundSave } = useBackgroundSync()
+  const { endSession } = useWorkoutSession()
 
   useEffect(() => {
     const mainElement = document.querySelector('main')
@@ -209,37 +212,30 @@ function WorkoutSummaryContent() {
 
   const displayData = workoutData || workoutDataFallback
 
-  const handleSave = async () => {
-    setIsSaving(true)
+  const handleSave = () => {
     const isTemp = searchParams.get('temp') === 'true'
 
     if (isTemp) {
-      // TEMP MODE: Actual save logic
+      // TEMP MODE: Fire-and-forget background save
       const pendingDataStr = sessionStorage.getItem('pendingWorkoutSave')
       if (!pendingDataStr) {
-        setIsSaving(false)
         return
       }
 
-      try {
-        const pendingData = JSON.parse(pendingDataStr)
-        console.log('Saving deferred workout...', pendingData)
+      // Take snapshot, then clear sessionStorage (draft lives in BackgroundSyncContext now)
+      const snapshot = JSON.parse(pendingDataStr)
+      sessionStorage.removeItem('pendingWorkoutSave')
 
-        // Import dynamically or ensure imported
-        const { saveWorkout } = await import('@/lib/api/workout')
+      // Fire background save — does NOT await, returns immediately
+      startBackgroundSave(snapshot)
 
-        await saveWorkout(pendingData)
+      // End the workout session (background save is queued)
+      endSession()
 
-        sessionStorage.removeItem('pendingWorkoutSave')
-        showSnackbar({ message: 'Workout saved successfully', severity: 'success' })
-        router.push('/routines')
-      } catch (err) {
-        console.error('Error saving deferred workout:', err)
-        showSnackbar({ message: 'Error saving workout', severity: 'error' })
-        setIsSaving(false)
-      }
+      // Immediate redirect — app stays fully usable
+      router.push('/routines')
     } else {
-      // VIEW MODE: Just explicit finish (though typically not needed if auto-saved usually, but here we just navigate)
+      // VIEW MODE: Just navigate back
       router.push('/routines')
     }
   }
@@ -271,6 +267,7 @@ function WorkoutSummaryContent() {
       }
 
       setOpenDiscardDialog(false)
+      endSession()
       router.push('/routines')
     } catch (err) {
       console.error('Error discarding workout:', err)

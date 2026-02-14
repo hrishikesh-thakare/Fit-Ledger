@@ -87,6 +87,10 @@ export async function POST(req: NextRequest) {
     })
 
     // 2. Create all workout exercises in parallel
+    // overrideAccess: true — intentionally bypasses the beforeChange hook that
+    // performs a redundant ownership check (findByID on workout-days). Ownership
+    // is already validated above via the routine fetch (line 52-62).
+    // The hook still runs for non-bulk operations (e.g. admin panel, single-set adds).
     const workoutExercises = await Promise.all(
       exercises.map((ex, i) =>
         payload.create({
@@ -96,12 +100,20 @@ export async function POST(req: NextRequest) {
             exercise: Number(ex.exerciseId),
             exerciseOrder: i,
           },
+          overrideAccess: true,
+          depth: 0,
           req: t ? { transactionID: t } : undefined,
         }),
       ),
     )
 
     // 3. Create all workout sets in one parallel batch
+    // overrideAccess: true — intentionally bypasses the beforeChange hook that
+    // performs 2 extra DB queries per set (findByID with depth:2 + find for
+    // previous sets). For 20 sets this would add ~40 round-trips to Supabase.
+    // Ownership is already validated above via the routine fetch (line 52-62).
+    // previousWeight/previousReps are left null here — they are only needed for
+    // the live "add set" flow during active workouts, which still uses the hook.
     const allSetPromises: Promise<any>[] = []
     const validSetLabels = ['warmup', 'working', 'drop', 'failure']
 
@@ -124,6 +136,8 @@ export async function POST(req: NextRequest) {
               reps: Number(set.reps) || 0,
               weight: Number(set.weight) || 0,
             },
+            overrideAccess: true,
+            depth: 0,
             req: t ? { transactionID: t } : undefined,
           }),
         )

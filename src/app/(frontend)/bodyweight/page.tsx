@@ -24,6 +24,7 @@ import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import WeightPicker from '@/components/WeightPicker'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 interface ProcessedLog {
   id: number
@@ -37,6 +38,7 @@ interface ProcessedLog {
 export default function BodyweightLogPage() {
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
+  const { isActive: isWorkoutActive } = useWorkoutSession()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [weightLogs, setWeightLogs] = useState<ProcessedLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -382,7 +384,7 @@ export default function BodyweightLogPage() {
         onClick={() => setIsPickerOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: 80,
+          bottom: isWorkoutActive ? 160 : 80,
           right: 16,
           zIndex: 1200,
         }}

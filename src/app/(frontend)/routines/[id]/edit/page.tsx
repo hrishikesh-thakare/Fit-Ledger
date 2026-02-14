@@ -52,6 +52,7 @@ import {
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useSnackbar } from '@/hooks/useSnackbar'
+import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import {
   fetchRoutineDetails,
   fetchExercises,
@@ -156,6 +157,7 @@ export default function EditRoutinePage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
+  const { isActive: isWorkoutActive } = useWorkoutSession()
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
