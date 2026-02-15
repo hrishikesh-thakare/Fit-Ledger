@@ -188,20 +188,17 @@ export default function EditRoutinePage() {
         setError(null)
 
         const routineId = params.id as string
+        const userId = user?.id
 
-        // Fetch user's preferred unit
-        let userUnit: 'kg' | 'lb' = 'kg'
-        if (user) {
-          const userProfile = await apiFetch(`/users/${user.id}`)
-          userUnit = userProfile.preferredUnit || 'kg'
-          setPreferredUnit(userUnit)
-        }
-
-        // Fetch routine details and available exercises in parallel
-        const [routineData, exercisesData] = await Promise.all([
+        // Fetch routine details, available exercises, and user profile in parallel
+        const [routineData, exercisesData, userProfile] = await Promise.all([
           fetchRoutineDetails(routineId),
           fetchExercises(),
+          userId ? apiFetch(`/users/${userId}`) : null,
         ])
+
+        const userUnit: 'kg' | 'lb' = userProfile?.preferredUnit || 'kg'
+        setPreferredUnit(userUnit)
 
         // Set routine data
         setRoutineName(routineData.name)
@@ -231,7 +228,7 @@ export default function EditRoutinePage() {
     }
 
     loadData()
-  }, [params.id, user])
+  }, [params.id, user?.id])
 
   // dnd-kit sensors
   const sensors = useSensors(
@@ -257,13 +254,13 @@ export default function EditRoutinePage() {
 
   const handleAddExercise = (exercise: AvailableExercise) => {
     const newExercise: Exercise = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       exerciseId: exercise.id,
       name: exercise.name,
       bodyPart: exercise.bodyPart,
-      sets: [{ id: Math.random().toString(36).substr(2, 9), type: 'N', weight: '', reps: '' }],
+      sets: [{ id: crypto.randomUUID(), type: 'N', weight: '', reps: '' }],
     }
-    setExercises([...exercises, newExercise])
+    setExercises((prev) => [...prev, newExercise])
     setOpenExerciseDrawer(false)
   }
 
@@ -275,7 +272,7 @@ export default function EditRoutinePage() {
   }
 
   const handleRemoveExercise = (id: string) => {
-    setExercises(exercises.filter((ex) => ex.id !== id))
+    setExercises((prev) => prev.filter((ex) => ex.id !== id))
   }
 
   const handleAddSet = (exerciseId: string) => {
@@ -285,7 +282,7 @@ export default function EditRoutinePage() {
         // Auto-fill from previous set if exists
         const lastSet = ex.sets[ex.sets.length - 1]
         const newSet: RoutineSet = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           type: 'N',
           weight: lastSet ? lastSet.weight : '',
           reps: lastSet ? lastSet.reps : '',

@@ -86,7 +86,7 @@ export default function BodyweightLogPage() {
     }
 
     fetchWeightLogs()
-  }, [user, showSnackbar])
+  }, [user?.id, showSnackbar])
 
   const processAndSetLogs = (docs: BodyWeightLog[], unit: 'kg' | 'lb') => {
     const logsWithChanges = docs.map((log, index) => {

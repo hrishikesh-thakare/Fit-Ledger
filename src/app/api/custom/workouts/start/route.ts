@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       collection: 'workout-days',
       data: {
         user: userId,
+        routine: Number(routineId),
         title: routine.name,
         date,
         durationSeconds,

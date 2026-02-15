@@ -202,7 +202,7 @@ function WorkoutSummaryContent() {
     }
 
     fetchWorkoutSummary()
-  }, [searchParams, user])
+  }, [searchParams, user?.id])
 
   const workoutDataFallback = {
     duration: '0:00',
@@ -262,7 +262,7 @@ function WorkoutSummaryContent() {
         await apiFetch(`/workout-days/${workoutDayId}`, {
           method: 'DELETE',
         })
-        console.log('Workout discarded successfully')
+
         showSnackbar({ message: 'Workout discarded', severity: 'info' })
       }
 

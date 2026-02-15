@@ -47,7 +47,6 @@ export default function RoutinesPage() {
   useEffect(() => {
     const fetchRoutines = async () => {
       if (!user) return
-      console.log('[DEBUG Client] Fetching routines for user:', user, 'ID type:', typeof user.id)
 
       try {
         setLoading(true)
@@ -67,7 +66,7 @@ export default function RoutinesPage() {
     }
 
     fetchRoutines()
-  }, [user])
+  }, [user?.id])
 
   const handleEdit = (routineId: number, routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
@@ -75,11 +74,9 @@ export default function RoutinesPage() {
 
   const handleDelete = async (routineId: number, routineName: string) => {
     try {
-      console.log('Deleting routine:', routineId)
       const response = await apiFetch(`/routines/${routineId}`, {
         method: 'DELETE',
       })
-      console.log('Delete response:', response)
 
       // Remove from local state
       setRoutines((prev) => prev.filter((r) => r.id !== routineId))

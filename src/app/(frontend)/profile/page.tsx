@@ -77,7 +77,7 @@ export default function ProfilePage() {
       try {
         setLoading(true)
         const response = await apiFetch(`/users/${authUser.id}`)
-        console.log('User data:', response)
+
         setUserData(response)
         setUnits(response.preferredUnit || 'kg')
         setDisplayName(response.displayName || '')
@@ -95,13 +95,13 @@ export default function ProfilePage() {
     }
 
     fetchUserData()
-  }, [authUser])
+  }, [authUser?.id])
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 0)
     }
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 

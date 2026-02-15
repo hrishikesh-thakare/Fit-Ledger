@@ -26,6 +26,9 @@ export const WorkoutDays: CollectionConfig = {
     {
       fields: ['user', 'date'],
     },
+    {
+      fields: ['routine', 'date'],
+    },
   ],
 
   hooks: {
@@ -89,6 +92,14 @@ export const WorkoutDays: CollectionConfig = {
     defaultColumns: ['title', 'user', 'date', 'createdAt'],
   },
   fields: [
+    {
+      name: 'routine',
+      type: 'relationship',
+      relationTo: 'routines',
+      index: true,
+      // Optional for now — existing records don't have it.
+      // Switch to required: true after backfill migration.
+    },
     {
       name: 'user',
       type: 'relationship',

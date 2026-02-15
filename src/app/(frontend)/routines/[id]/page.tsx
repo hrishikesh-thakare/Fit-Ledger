@@ -147,7 +147,7 @@ export default function RoutineDetailPage() {
     }
 
     fetchRoutineDetails()
-  }, [routineId, user, preferredUnit])
+  }, [routineId, user?.id])
 
   const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
 

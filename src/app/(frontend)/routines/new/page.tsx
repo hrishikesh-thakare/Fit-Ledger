@@ -126,17 +126,17 @@ export default function NewRoutinePage() {
     }
 
     fetchExercises()
-  }, [user, showSnackbar])
+  }, [user?.id, showSnackbar])
 
   const handleAddExercise = (exercise: ExerciseOption) => {
     const newExercise: Exercise = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       name: exercise.name,
       bodyPart: exercise.bodyPart,
       dbId: exercise.id,
-      sets: [{ id: Math.random().toString(36).substr(2, 9), type: 'N', weight: '', reps: '' }],
+      sets: [{ id: crypto.randomUUID(), type: 'N', weight: '', reps: '' }],
     }
-    setExercises([...exercises, newExercise])
+    setExercises((prev) => [...prev, newExercise])
     setOpenExerciseDrawer(false)
   }
 
@@ -148,7 +148,7 @@ export default function NewRoutinePage() {
   }
 
   const handleRemoveExercise = (id: string) => {
-    setExercises(exercises.filter((ex) => ex.id !== id))
+    setExercises((prev) => prev.filter((ex) => ex.id !== id))
   }
 
   const handleAddSet = (exerciseId: string) => {
@@ -158,7 +158,7 @@ export default function NewRoutinePage() {
         // Auto-fill from previous set if exists
         const lastSet = ex.sets[ex.sets.length - 1]
         const newSet: RoutineSet = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           type: 'N',
           weight: lastSet ? lastSet.weight : '',
           reps: lastSet ? lastSet.reps : '',

@@ -78,13 +78,13 @@ export default function HistoryDetailPage() {
         const userUnit = user?.preferredUnit || 'kg'
         setPreferredUnit(userUnit)
 
-        // Fetch workout day
-        const workoutDay = await apiFetch<WorkoutDay>(`/workout-days/${workoutId}`)
-
-        // Fetch workout exercises with exercise details
-        const workoutExercisesResponse = await apiFetch<{ docs: WorkoutExercise[] }>(
-          `/workout-exercises?where[workoutDay][equals]=${workoutId}&depth=1&sort=exerciseOrder&limit=100`,
-        )
+        // Fetch workout day and exercises in parallel (independent requests)
+        const [workoutDay, workoutExercisesResponse] = await Promise.all([
+          apiFetch<WorkoutDay>(`/workout-days/${workoutId}`),
+          apiFetch<{ docs: WorkoutExercise[] }>(
+            `/workout-exercises?where[workoutDay][equals]=${workoutId}&depth=1&sort=exerciseOrder&limit=100`,
+          ),
+        ])
 
         // For each exercise, fetch its sets
         // Optimizing: Extract all exercise IDs and fetch sets in one batch
@@ -196,7 +196,7 @@ export default function HistoryDetailPage() {
     }
 
     fetchWorkoutDetails()
-  }, [workoutId, user])
+  }, [workoutId, user?.id])
 
   return (
     <Box

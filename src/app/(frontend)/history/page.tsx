@@ -53,7 +53,6 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchWorkoutHistory = async () => {
       if (!user) {
-        console.log('No user found, skipping fetch')
         setLoading(false)
         return
       }
@@ -118,7 +117,7 @@ export default function HistoryPage() {
     }
 
     fetchWorkoutHistory()
-  }, [user, selectedMonth, showSnackbar])
+  }, [user?.id, selectedMonth, showSnackbar])
 
   const getFormattedDate = (dateStr: string) => {
     const date = new Date(dateStr)

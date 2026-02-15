@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
 
 export interface SnackbarMessage {
   message: string
@@ -29,22 +29,19 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
     key: 0,
   })
 
-  const showSnackbar = ({
-    message,
-    severity = 'info',
-    action,
-    duration = 4000,
-  }: SnackbarMessage) => {
-    // duration = null means persistent (no auto-hide), undefined defaults to 4000
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-      action,
-      duration,
-      key: Date.now(),
-    })
-  }
+  const showSnackbar = useCallback(
+    ({ message, severity = 'info', action, duration = 4000 }: SnackbarMessage) => {
+      setSnackbar({
+        open: true,
+        message,
+        severity,
+        action,
+        duration,
+        key: Date.now(),
+      })
+    },
+    [],
+  )
 
   const handleClose = () => {
     setSnackbar((prev) => ({ ...prev, open: false }))
