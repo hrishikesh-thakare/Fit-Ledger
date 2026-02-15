@@ -149,6 +149,19 @@ function WorkoutLoggingContent() {
     }
   }, [exercises]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Prevent accidental navigation during active workout
+  useEffect(() => {
+    if (!session.isActive) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [session.isActive])
+
   // Load workout — either resume from context or fetch from API
   useEffect(() => {
     const loadWorkout = async () => {

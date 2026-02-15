@@ -40,37 +40,47 @@ export const Routines: CollectionConfig = {
     ],
     beforeDelete: [
       async ({ req, id }) => {
-        // Delete related routine-exercises and their sets before deleting the routine
-        const routineExercises = await req.payload.find({
-          collection: 'routine-exercises',
-          where: {
-            routine: {
-              equals: id,
-            },
-          },
-        })
-
-        // For each routine-exercise, delete its sets
-        for (const routineExercise of routineExercises.docs) {
-          await req.payload.delete({
-            collection: 'routine-sets',
+        // Delete related routine-exercises and their sets in bulk (3 DB calls instead of N+1)
+        try {
+          // 1. Find all routine exercises
+          const routineExercises = await req.payload.find({
+            collection: 'routine-exercises',
             where: {
-              routineExercise: {
-                equals: routineExercise.id,
+              routine: {
+                equals: id,
               },
             },
+            limit: 1000,
+            depth: 0,
           })
-        }
 
-        // Delete all routine-exercises for this routine
-        await req.payload.delete({
-          collection: 'routine-exercises',
-          where: {
-            routine: {
-              equals: id,
-            },
-          },
-        })
+          const exerciseIds = routineExercises.docs.map((ex) => ex.id)
+
+          if (exerciseIds.length > 0) {
+            // 2. Bulk delete sets
+            await req.payload.delete({
+              collection: 'routine-sets',
+              where: {
+                routineExercise: {
+                  in: exerciseIds,
+                },
+              },
+            })
+
+            // 3. Bulk delete exercises
+            await req.payload.delete({
+              collection: 'routine-exercises',
+              where: {
+                id: {
+                  in: exerciseIds,
+                },
+              },
+            })
+          }
+        } catch (error) {
+          console.error('Error in beforeDelete hook for routines:', error)
+          throw error
+        }
       },
     ],
   },
