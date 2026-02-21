@@ -23,6 +23,7 @@ import {
   Divider,
   Paper,
   Skeleton,
+  Stack,
 } from '@mui/material'
 import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
 
@@ -243,12 +244,26 @@ export default function HistoryDetailPage() {
             </Box>
             <Divider sx={{ mb: 4 }} />
             {[1, 2, 3].map((i) => (
-              <Skeleton
+              <Card
                 key={i}
-                variant="rectangular"
-                height={200}
-                sx={{ mb: 3, borderRadius: 2 }}
-              />
+                elevation={1}
+                sx={{
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  mb: 2,
+                }}
+              >
+                <Box sx={{ p: 2 }}>
+                  <Skeleton variant="text" width="60%" height={28} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="40%" height={20} />
+                </Box>
+                <Divider />
+                <Box sx={{ p: 2 }}>
+                  <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 1 }} />
+                </Box>
+              </Card>
             ))}
           </Box>
         ) : error || !workoutDetails ? (

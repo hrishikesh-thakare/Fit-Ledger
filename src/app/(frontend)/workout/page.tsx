@@ -447,7 +447,7 @@ function WorkoutLoggingContent() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 4, // Standard padding
+        pb: activeRestTimer && remainingRest > 0 ? 10 : 1, // Extra padding when rest timer is visible
       }}
     >
       {/* Top AppBar */}
@@ -508,13 +508,12 @@ function WorkoutLoggingContent() {
           <Box
             sx={{
               position: 'fixed',
-              bottom: 0,
+              bottom: 72, // Sit above the Finish Workout button
               left: 0,
               right: 0,
               bgcolor: '#1e1e1e', // Dark background matching the image
               color: 'white',
               zIndex: 1200,
-              pb: 'safe-area-inset-bottom', // Handle safe area
             }}
           >
             {/* Progress Bar Line */}

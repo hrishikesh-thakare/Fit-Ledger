@@ -4,15 +4,15 @@
  */
 
 const shape = {
-  borderRadius: 12, // Default border radius (Medium)
-  
-  // MD3 shape tokens
-  borderRadiusExtraSmall: 8,
-  borderRadiusSmall: 12,
-  borderRadiusMedium: 16,
-  borderRadiusLarge: 24,
-  borderRadiusExtraLarge: 28,
-  borderRadiusFull: 9999,
-};
+  borderRadius: 4, // Default border radius - less rounded, more rectangular
 
-export default shape;
+  // MD3 shape tokens (scaled down for less bubbly look)
+  borderRadiusExtraSmall: 4,
+  borderRadiusSmall: 6,
+  borderRadiusMedium: 8,
+  borderRadiusLarge: 12,
+  borderRadiusExtraLarge: 16,
+  borderRadiusFull: 9999,
+}
+
+export default shape

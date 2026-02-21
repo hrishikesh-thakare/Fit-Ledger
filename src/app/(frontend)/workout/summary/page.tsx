@@ -262,7 +262,7 @@ function WorkoutSummaryContent() {
         await apiFetch(`/workout-days/${workoutDayId}`, {
           method: 'DELETE',
         })
-        console.log('Workout discarded successfully')
+        // Workout discarded successfully
         showSnackbar({ message: 'Workout discarded', severity: 'info' })
       }
 
@@ -316,32 +316,35 @@ function WorkoutSummaryContent() {
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {loading ? (
           <Box>
-            <Skeleton variant="text" width="60%" height={48} sx={{ mx: 'auto', mb: 1 }} />
-            <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto', mb: 3 }} />
+            {/* "Well Done!!" heading */}
+            <Skeleton variant="text" width="50%" height={48} sx={{ mx: 'auto', mb: 3 }} />
+            {/* Stats cards row (Duration + Volume) */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Skeleton variant="rectangular" width="50%" height={100} sx={{ borderRadius: 2 }} />
-              <Skeleton variant="rectangular" width="50%" height={100} sx={{ borderRadius: 2 }} />
+              <Skeleton variant="rectangular" width="50%" height={80} sx={{ borderRadius: 2 }} />
+              <Skeleton variant="rectangular" width="50%" height={80} sx={{ borderRadius: 2 }} />
             </Box>
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} variant="rectangular" height={80} sx={{ mb: 2, borderRadius: 2 }} />
+            {/* Exercise summary cards */}
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={64} sx={{ mb: 2, borderRadius: 2 }} />
             ))}
+            {/* Settings toggle card */}
+            <Skeleton variant="rectangular" height={56} sx={{ mb: 2, borderRadius: 2 }} />
+            {/* Save button */}
+            <Skeleton variant="rectangular" height={48} sx={{ mb: 2, borderRadius: 2 }} />
           </Box>
         ) : (
           <>
             {/* Header */}
             <Box sx={{ mb: 3, textAlign: 'center' }}>
               <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-                Good Job! 🎉
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                You crushed your chest day session.
+                Well Done!!
               </Typography>
             </Box>
 
             {/* Stats Cards */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
               <Card
-                elevation={0}
+                elevation={1}
                 sx={{
                   flex: 1,
                   bgcolor: 'background.paper',
@@ -364,7 +367,7 @@ function WorkoutSummaryContent() {
               </Card>
 
               <Card
-                elevation={0}
+                elevation={1}
                 sx={{
                   flex: 1,
                   bgcolor: 'background.paper',
@@ -437,7 +440,7 @@ function WorkoutSummaryContent() {
             {/* Settings & Actions */}
             <Box sx={{ mb: 3 }}>
               <Card
-                elevation={0}
+                elevation={1}
                 sx={{
                   bgcolor: 'background.paper',
                   border: 1,
@@ -559,7 +562,21 @@ function WorkoutSummaryContent() {
 
 export default function WorkoutSummaryPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.default',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
       <WorkoutSummaryContent />
     </Suspense>
   )

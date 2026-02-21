@@ -172,7 +172,6 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
             display: 'flex',
             position: 'relative',
             overflow: 'hidden',
-            // bgcolor: 'surfaceContainer', // Removed as per request
             borderRadius: 2,
           }}
         >

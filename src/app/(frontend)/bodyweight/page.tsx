@@ -15,15 +15,34 @@ import {
   Toolbar,
   List,
   ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
   Divider,
   Chip,
   Fab,
   Skeleton,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  SwipeableDrawer,
 } from '@mui/material'
-import { CalendarToday, MonitorWeight, Add } from '@mui/icons-material'
+import {
+  CalendarToday,
+  MonitorWeight,
+  Add,
+  MoreVert,
+  Edit,
+  DeleteOutline,
+} from '@mui/icons-material'
 import BottomNav from '@/components/BottomNav'
 import WeightPicker from '@/components/WeightPicker'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 interface ProcessedLog {
@@ -44,6 +63,11 @@ export default function BodyweightLogPage() {
   const [loading, setLoading] = useState(true)
   const [targetWeight, setTargetWeight] = useState<number | null>(null)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedLog, setSelectedLog] = useState<ProcessedLog | null>(null)
+  const [editPickerOpen, setEditPickerOpen] = useState(false)
 
   useEffect(() => {
     const fetchWeightLogs = async () => {
@@ -165,6 +189,76 @@ export default function BodyweightLogPage() {
     } catch (error) {
       console.error('Error saving weight:', error)
       showSnackbar({ message: 'Failed to save weight', severity: 'error' })
+    }
+  }
+
+  const handleDeleteLog = async () => {
+    if (!selectedLog || !user) return
+
+    try {
+      setIsDeleting(true)
+      await apiFetch(`/body-weight-logs/${selectedLog.id}`, { method: 'DELETE' })
+
+      // Remove the deleted log and recalculate changes
+      const remainingDocs: BodyWeightLog[] = weightLogs
+        .filter((l) => l.id !== selectedLog.id)
+        .map((l) => ({
+          id: l.id,
+          weight: l.rawWeight,
+          loggedAt: l.rawDate,
+          user: Number(user.id),
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        }))
+
+      processAndSetLogs(remainingDocs, preferredUnit)
+      showSnackbar({ message: 'Entry deleted', severity: 'success' })
+      setEditPickerOpen(false)
+      setSelectedLog(null)
+    } catch (error) {
+      console.error('Error deleting weight log:', error)
+      showSnackbar({ message: 'Failed to delete entry', severity: 'error' })
+    } finally {
+      setIsDeleting(false)
+      setDeleteConfirmOpen(false)
+    }
+  }
+
+  const handleEditLog = async (newWeight: number, newDate: Date) => {
+    if (!selectedLog || !user) return
+
+    try {
+      const weightInKg = toKg(newWeight, preferredUnit)
+
+      await apiFetch(`/body-weight-logs/${selectedLog.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: weightInKg,
+          loggedAt: newDate.toISOString(),
+        }),
+      })
+
+      // Update the log in state and recalculate
+      const updatedDocs: BodyWeightLog[] = weightLogs.map((l) => ({
+        id: l.id,
+        weight: l.id === selectedLog.id ? weightInKg : l.rawWeight,
+        loggedAt: l.id === selectedLog.id ? newDate.toISOString() : l.rawDate,
+        user: Number(user.id),
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      }))
+
+      // Re-sort since date might have changed
+      updatedDocs.sort((a, b) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
+
+      processAndSetLogs(updatedDocs, preferredUnit)
+      showSnackbar({ message: 'Entry updated', severity: 'success' })
+      setEditPickerOpen(false)
+      setSelectedLog(null)
+    } catch (error) {
+      console.error('Error updating weight log:', error)
+      showSnackbar({ message: 'Failed to update entry', severity: 'error' })
     }
   }
 
@@ -336,7 +430,9 @@ export default function BodyweightLogPage() {
                         </Typography>
                       </Box>
 
-                      <Box sx={{ textAlign: 'right' }}>
+                      <Box
+                        sx={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         {log.change !== 0 && (
                           <Chip
                             label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}${preferredUnit}`}
@@ -359,12 +455,22 @@ export default function BodyweightLogPage() {
                             sx={{
                               bgcolor: 'action.hover',
                               color: 'text.secondary',
-                              fontWeight: 'bold', // Added for consistency
+                              fontWeight: 'bold',
                               fontSize: '0.8rem',
                               border: 'none',
                             }}
                           />
                         )}
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedLog(log)
+                            setDrawerOpen(true)
+                          }}
+                          sx={{ color: 'text.disabled' }}
+                        >
+                          <MoreVert fontSize="small" />
+                        </IconButton>
                       </Box>
                     </ListItem>
                     {index < weightLogs.length - 1 && (
@@ -393,6 +499,136 @@ export default function BodyweightLogPage() {
       </Fab>
 
       <BottomNav />
+
+      {/* Options Bottom Drawer */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onOpen={() => {}}
+        disableSwipeToOpen
+        PaperProps={{
+          sx: {
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            bgcolor: 'surfaceContainer',
+            pb: 'env(safe-area-inset-bottom)',
+          },
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            color: 'text.primary',
+            pb: 4,
+          }}
+          role="presentation"
+        >
+          <DrawerHandle />
+
+          {selectedLog && (
+            <Box sx={{ px: 2, pt: 1, pb: 2, textAlign: 'center' }}>
+              <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                {selectedLog.date}
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                {selectedLog.weight.toFixed(1)} {preferredUnit}
+              </Typography>
+            </Box>
+          )}
+
+          <Box sx={{ px: 2 }}>
+            <List
+              disablePadding
+              sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 4,
+                overflow: 'hidden',
+              }}
+            >
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    setDrawerOpen(false)
+                    setEditPickerOpen(true)
+                  }}
+                  sx={{ py: 2, px: 3 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>
+                    <Edit sx={{ color: 'text.secondary' }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Edit" primaryTypographyProps={{ fontWeight: 600 }} />
+                </ListItemButton>
+              </ListItem>
+
+              <Divider sx={{ mx: 2, opacity: 0.5 }} />
+
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    setDrawerOpen(false)
+                    setDeleteConfirmOpen(true)
+                  }}
+                  sx={{ py: 2, px: 3 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>
+                    <DeleteOutline sx={{ color: 'error.main' }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Delete"
+                    primaryTypographyProps={{ fontWeight: 600, color: 'error.main' }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          </Box>
+        </Box>
+      </SwipeableDrawer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => !isDeleting && setDeleteConfirmOpen(false)}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Entry?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this weight log? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteConfirmOpen(false)}
+            disabled={isDeleting}
+            sx={{ fontWeight: 600 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteLog}
+            color="error"
+            disabled={isDeleting}
+            autoFocus
+            sx={{ fontWeight: 600 }}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Weight Picker */}
+      {selectedLog && (
+        <WeightPicker
+          open={editPickerOpen}
+          onClose={() => {
+            setEditPickerOpen(false)
+            setSelectedLog(null)
+          }}
+          onSave={handleEditLog}
+          initialWeight={selectedLog.weight}
+        />
+      )}
     </Box>
   )
 }

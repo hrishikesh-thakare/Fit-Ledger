@@ -8,7 +8,6 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
   Avatar,
   List,
@@ -18,8 +17,6 @@ import {
   Divider,
   Select,
   MenuItem,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -42,6 +39,8 @@ import apiFetch from '@/lib/api/client'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import BottomNav from '@/components/BottomNav'
+import AppBarWithScroll from '@/components/AppBarWithScroll'
+import type { User } from '@/payload-types'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -49,13 +48,11 @@ export default function ProfilePage() {
   const { showSnackbar } = useSnackbar()
 
   // User data State
-  const [userData, setUserData] = useState<any>(null)
+  const [userData, setUserData] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Settings State
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
-  const [snackbarOpen, setSnackbarOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
 
   // Target Weight Dialog State
   const [targetWeightDialogOpen, setTargetWeightDialogOpen] = useState(false)
@@ -77,7 +74,7 @@ export default function ProfilePage() {
       try {
         setLoading(true)
         const response = await apiFetch(`/users/${authUser.id}`)
-        console.log('User data:', response)
+
         setUserData(response)
         setUnits(response.preferredUnit || 'kg')
         setDisplayName(response.displayName || '')
@@ -96,14 +93,6 @@ export default function ProfilePage() {
 
     fetchUserData()
   }, [authUser])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const handleUnitsChange = async (newUnits: 'kg' | 'lb') => {
     if (!authUser) return
@@ -140,7 +129,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify({ targetWeight: weightInKg }),
       })
-      setUserData({ ...userData, targetWeight: weightInKg })
+      if (userData) setUserData({ ...userData, targetWeight: weightInKg })
       showSnackbar({ message: 'Target weight updated successfully', severity: 'success' })
       setTargetWeightDialogOpen(false)
     } catch (error) {
@@ -181,7 +170,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify({ displayName: displayName.trim() }),
       })
-      setUserData({ ...userData, displayName: displayName.trim() })
+      if (userData) setUserData({ ...userData, displayName: displayName.trim() })
       showSnackbar({ message: 'Profile updated successfully', severity: 'success' })
       setEditProfileDialogOpen(false)
     } catch (error) {
@@ -201,29 +190,27 @@ export default function ProfilePage() {
       }}
     >
       {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={scrolled ? 2 : 0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-          transition: 'box-shadow 0.3s ease',
-        }}
-      >
+      <AppBarWithScroll position="sticky" elevationTrigger={10}>
         <Toolbar>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flex: 1 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'text.primary',
+              fontWeight: 900,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              flexGrow: 1,
+            }}
+          >
             Profile
           </Typography>
         </Toolbar>
-      </AppBar>
+      </AppBarWithScroll>
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {/* User Info Card */}
         <Card
-          elevation={0}
+          elevation={1}
           sx={{
             bgcolor: 'background.paper',
             border: 1,
@@ -336,7 +323,7 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
@@ -435,7 +422,7 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
@@ -487,7 +474,7 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
@@ -641,32 +628,6 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Coming Soon Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ bottom: 80 }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="info"
-          variant="filled"
-          sx={{
-            width: '100%',
-            alignItems: 'center',
-            '& .MuiAlert-action': {
-              paddingTop: 0,
-              paddingBottom: 0,
-              alignItems: 'center',
-            },
-          }}
-        >
-          Coming soon
-        </Alert>
-      </Snackbar>
     </Box>
   )
 }

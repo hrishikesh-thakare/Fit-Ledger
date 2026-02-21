@@ -53,7 +53,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchWorkoutHistory = async () => {
       if (!user) {
-        console.log('No user found, skipping fetch')
+        // No user found, skipping fetch
         setLoading(false)
         return
       }
@@ -120,9 +120,22 @@ export default function HistoryPage() {
     fetchWorkoutHistory()
   }, [user, selectedMonth, showSnackbar])
 
-  const getFormattedDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+  const formatDurationString = (dur: string) => {
+    if (!dur) return '0m'
+    // Expected formats: "HH:MM:SS" or "MM:SS"
+    const parts = dur.split(':').map(Number)
+    if (parts.length === 3) {
+      const [h, m, s] = parts
+      if (h > 0) return `${h}h ${m}m`
+      if (m > 0) return `${m}m`
+      return `${s}s`
+    }
+    if (parts.length === 2) {
+      const [m, s] = parts
+      if (m > 0) return `${m}m`
+      return `${s}s`
+    }
+    return dur
   }
 
   const getMonthHeader = (dateStr: string) => {
@@ -225,6 +238,8 @@ export default function HistoryPage() {
 
         {loading ? (
           <Box>
+            {/* Month header skeleton */}
+            <Skeleton variant="text" width={140} height={16} sx={{ mb: 1.5, ml: 0.5 }} />
             {[1, 2, 3, 4].map((i) => (
               <Card
                 key={i}
@@ -237,19 +252,24 @@ export default function HistoryPage() {
                   mb: 1.5,
                 }}
               >
-                <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-                  <Skeleton variant="text" width="60%" height={28} sx={{ mb: 0.5 }} />
-                  <Skeleton variant="text" width="40%" height={20} sx={{ mb: 2.5 }} />
-                  <Divider sx={{ mb: 2.5 }} />
-                  <Box sx={{ display: 'flex', gap: 4 }}>
-                    <Box>
-                      <Skeleton variant="text" width={80} height={20} sx={{ mb: 0.5 }} />
-                      <Skeleton variant="text" width={60} height={28} />
-                    </Box>
-                    <Box>
-                      <Skeleton variant="text" width={80} height={20} sx={{ mb: 0.5 }} />
-                      <Skeleton variant="text" width={80} height={28} />
-                    </Box>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  {/* Name + Date row */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      mb: 0.5,
+                    }}
+                  >
+                    <Skeleton variant="text" width="55%" height={28} />
+                    <Skeleton variant="text" width={50} height={20} />
+                  </Box>
+                  {/* Stats row: duration · volume */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Skeleton variant="text" width={50} height={20} />
+                    <Skeleton variant="circular" width={4} height={4} />
+                    <Skeleton variant="text" width={70} height={20} />
                   </Box>
                 </CardContent>
               </Card>
@@ -309,13 +329,13 @@ export default function HistoryPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-                    {/* Top Row: Name + Overflow Menu */}
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    {/* Header Row: Name + Date */}
                     <Box
                       sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
+                        alignItems: 'baseline',
                         mb: 0.5,
                       }}
                     >
@@ -323,61 +343,52 @@ export default function HistoryPage() {
                         variant="h6"
                         sx={{
                           color: 'text.primary',
-                          fontWeight: 800,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em',
+                          fontWeight: 700,
+                          textTransform: 'capitalize',
+                          letterSpacing: 0,
                           flex: 1,
+                          mr: 2,
                         }}
                       >
-                        {workout.name}
+                        {workout.name.toLowerCase()}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'text.disabled',
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {new Date(workout.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </Typography>
                     </Box>
 
-                    {/* Date Subtitle */}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
-                      {getFormattedDate(workout.date)}
-                    </Typography>
-
-                    <Divider sx={{ borderColor: 'divider', mb: 2.5, opacity: 0.5 }} />
-
-                    {/* Metrics Row */}
-                    <Box sx={{ display: 'flex', gap: 4 }}>
-                      {/* Duration */}
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <AccessTime sx={{ fontSize: '1rem', color: 'primary.main' }} />
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 600,
-                              letterSpacing: '0.05em',
-                            }}
-                          >
-                            DURATION
-                          </Typography>
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                          {workout.duration}
+                    {/* Stats Row: Duration · Volume */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <AccessTime sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.secondary', fontWeight: 500 }}
+                        >
+                          {formatDurationString(workout.duration)}
                         </Typography>
                       </Box>
 
-                      {/* Volume */}
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <FitnessCenter sx={{ fontSize: '1rem', color: 'primary.main' }} />
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 600,
-                              letterSpacing: '0.05em',
-                            }}
-                          >
-                            VOLUME
-                          </Typography>
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                      <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                        ·
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <FitnessCenter sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.secondary', fontWeight: 500 }}
+                        >
                           {workout.volume}
                         </Typography>
                       </Box>

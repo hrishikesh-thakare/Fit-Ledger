@@ -7,7 +7,7 @@ const MuiCard: Components<Theme>['MuiCard'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       backgroundColor: theme.palette.surfaceContainer || theme.palette.background.paper,
-      borderRadius: '12px',
+      borderRadius: '4px',
       border: `1px solid ${theme.palette.divider}`,
       transition: theme.transitions.create(['box-shadow', 'transform', 'background-color'], {
         duration: 300,

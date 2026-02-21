@@ -442,6 +442,31 @@ export default function EditRoutinePage() {
     return normalCount
   }
 
+  const handleDeleteRoutine = async () => {
+    if (!window.confirm('Are you sure you want to delete this routine?')) return
+
+    try {
+      const routineId = params.id as string
+      // Assuming apiFetch handles the base URL
+      await apiFetch(`/routines/${routineId}`, {
+        method: 'DELETE',
+      })
+
+      showSnackbar({
+        message: 'Routine deleted successfully',
+        severity: 'success',
+      })
+
+      router.push('/routines')
+    } catch (err: any) {
+      console.error('Error deleting routine:', err)
+      showSnackbar({
+        message: 'Failed to delete routine',
+        severity: 'error',
+      })
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -488,6 +513,10 @@ export default function EditRoutinePage() {
           >
             Edit Routine
           </Typography>
+
+          <IconButton onClick={handleDeleteRoutine} sx={{ mr: 1, color: 'error.main' }}>
+            <DeleteOutline />
+          </IconButton>
 
           <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
             <MoreVert />
