@@ -155,6 +155,19 @@ function WorkoutLoggingContent() {
     }
   }, [exercises]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Prevent accidental navigation during active workout
+  useEffect(() => {
+    if (!session.isActive) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [session.isActive])
+
   // Load workout — either resume from context or fetch from API
   useEffect(() => {
     const loadWorkout = async () => {
@@ -185,9 +198,7 @@ function WorkoutLoggingContent() {
         setIsLoadingWorkout(true)
         routineIdRef.current = routineId
 
-        const [workoutData] = await Promise.all([
-          loadWorkoutFromRoutine({ routineId, userId: String(user.id) }),
-        ])
+        const workoutData = await loadWorkoutFromRoutine({ routineId, userId: String(user.id) })
 
         const userUnit = user?.preferredUnit || 'kg'
         preferredUnitRef.current = userUnit
@@ -233,7 +244,7 @@ function WorkoutLoggingContent() {
     }
 
     loadWorkout()
-  }, [user])
+  }, [user?.id])
 
   const handleSetChange = (
     exerciseId: string,
@@ -299,7 +310,7 @@ function WorkoutLoggingContent() {
         if (ex.id !== exerciseId) return ex
         const lastSet = ex.sets[ex.sets.length - 1]
         const newSet: WorkoutSet = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           type: 'N',
           weight: lastSet ? lastSet.weight : '',
           reps: lastSet ? lastSet.reps : '',

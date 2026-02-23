@@ -35,7 +35,6 @@ import PageContainer from '@/components/layout/PageContainer'
 import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
 import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
 import { useSnackbar } from '@/hooks/useSnackbar'
-import AppBarWithScroll from '@/components/AppBarWithScroll'
 import PageAppBar from '@/components/PageAppBar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import { useExtendedFab } from '@/hooks/useExtendedFab'
@@ -85,7 +84,7 @@ export default function RoutinesPage() {
     }
 
     fetchRoutines()
-  }, [user])
+  }, [user?.id])
 
   const handleEdit = (routineId: number, routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
@@ -137,161 +136,161 @@ export default function RoutinesPage() {
         ) : (
           <Fade in timeout={400}>
             <Box>
-            {/* Routines List */}
-            {routines.map((routine) => (
-              <Card
-                key={routine.id}
-                elevation={1}
-                sx={{
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  mb: 2,
-                  display: 'flex',
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-              >
-                <CardContent sx={{ p: 2, flex: 1, '&:last-child': { pb: 2 } }}>
-                  {/* Header: Name + Actions */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 1,
-                    }}
-                  >
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 700,
-                          color: 'text.primary',
-                          lineHeight: 1.2,
-                          mb: 1.5,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {routine.name}
-                      </Typography>
-                      {/* Chips Only */}
+              {/* Routines List */}
+              {routines.map((routine) => (
+                <Card
+                  key={routine.id}
+                  elevation={1}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    mb: 2,
+                    display: 'flex',
+                    overflow: 'hidden',
+                    position: 'relative',
+                  }}
+                >
+                  <CardContent sx={{ p: 2, flex: 1, '&:last-child': { pb: 2 } }}>
+                    {/* Header: Name + Actions */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        mb: 1,
+                      }}
+                    >
                       <Box>
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          alignItems="center"
-                          flexWrap="wrap"
-                          gap={0.5}
-                          sx={{ mb: 0.5 }}
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            color: 'text.primary',
+                            lineHeight: 1.2,
+                            mb: 1.5,
+                            textTransform: 'capitalize',
+                          }}
                         >
-                          {(routine.muscleGroups || []).map((mg) => (
-                            <Chip
-                              key={mg}
-                              label={mg}
-                              size="small"
-                              sx={{
-                                height: 24,
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                bgcolor: 'action.hover',
-                                color: 'text.secondary',
-                              }}
-                            />
-                          ))}
-                        </Stack>
+                          {routine.name}
+                        </Typography>
+                        {/* Chips Only */}
+                        <Box>
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            alignItems="center"
+                            flexWrap="wrap"
+                            gap={0.5}
+                            sx={{ mb: 0.5 }}
+                          >
+                            {(routine.muscleGroups || []).map((mg) => (
+                              <Chip
+                                key={mg}
+                                label={mg}
+                                size="small"
+                                sx={{
+                                  height: 24,
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  bgcolor: 'action.hover',
+                                  color: 'text.secondary',
+                                }}
+                              />
+                            ))}
+                          </Stack>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <CardOverflowMenu
+                          title={routine.name}
+                          actions={[
+                            commonActions.edit(() => handleEdit(routine.id, routine.name)),
+                            commonActions.delete(() => handleDelete(routine.id, routine.name)),
+                          ]}
+                        />
                       </Box>
                     </Box>
 
-                    <Box>
-                      <CardOverflowMenu
-                        title={routine.name}
-                        actions={[
-                          commonActions.edit(() => handleEdit(routine.id, routine.name)),
-                          commonActions.delete(() => handleDelete(routine.id, routine.name)),
-                        ]}
-                      />
+                    <Divider sx={{ my: 1.5, opacity: 0.5 }} />
+
+                    {/* Preview Exercises */}
+                    {routine.previewExercises && routine.previewExercises.length > 0 && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {routine.previewExercises.join(' · ')}
+                        {routine.exerciseCount > routine.previewExercises.length && ' · ...'}
+                      </Typography>
+                    )}
+
+                    {/* Footer: History & Start Button */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mt: 'auto',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: 'text.secondary',
+                        }}
+                      >
+                        {routine.exerciseCount} Exercises • {routine.duration}
+                      </Typography>
+
+                      <Button
+                        variant="contained"
+                        size="medium"
+                        endIcon={<ArrowForward />}
+                        onClick={() => router.push(`/routines/${routine.id}`)}
+                        sx={{
+                          fontWeight: 700,
+                          borderRadius: 1.5,
+                          textTransform: 'none',
+                          px: 3,
+                          boxShadow: 2,
+                        }}
+                      >
+                        Start
+                      </Button>
                     </Box>
-                  </Box>
+                  </CardContent>
+                </Card>
+              ))}
 
-                  <Divider sx={{ my: 1.5, opacity: 0.5 }} />
-
-                  {/* Preview Exercises */}
-                  {routine.previewExercises && routine.previewExercises.length > 0 && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        mb: 2,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {routine.previewExercises.join(' · ')}
-                      {routine.exerciseCount > routine.previewExercises.length && ' · ...'}
-                    </Typography>
-                  )}
-
-                  {/* Footer: History & Start Button */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      mt: 'auto',
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: 'text.secondary',
-                      }}
-                    >
-                      {routine.exerciseCount} Exercises • {routine.duration}
-                    </Typography>
-
-                    <Button
-                      variant="contained"
-                      size="medium"
-                      endIcon={<ArrowForward />}
-                      onClick={() => router.push(`/routines/${routine.id}`)}
-                      sx={{
-                        fontWeight: 700,
-                        borderRadius: 1.5,
-                        textTransform: 'none',
-                        px: 3,
-                        boxShadow: 2,
-                      }}
-                    >
-                      Start
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Empty state */}
-            {routines.length === 0 && (
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  py: 8,
-                }}
-              >
-                <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                  No routines yet
-                </Typography>
-                <Typography variant="body2" color="text.disabled">
-                  Create your first workout routine to get started
-                </Typography>
-              </Box>
-            )}
+              {/* Empty state */}
+              {routines.length === 0 && (
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    py: 8,
+                  }}
+                >
+                  <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                    No routines yet
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled">
+                    Create your first workout routine to get started
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Fade>
         )}

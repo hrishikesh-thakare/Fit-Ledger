@@ -33,7 +33,6 @@ import ChipFilter from '@/components/ChipFilter'
 
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
-import AppBarWithScroll from '@/components/AppBarWithScroll'
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator'
 
 interface WorkoutHistoryItem {
@@ -73,7 +72,7 @@ export default function HistoryPage() {
     }
 
     fetchWorkoutHistory()
-  }, [user, selectedMonth, showSnackbar])
+  }, [user?.id, selectedMonth, showSnackbar])
 
   const fetchData = useCallback(async () => {
     if (!user) return

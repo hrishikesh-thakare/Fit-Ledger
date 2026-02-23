@@ -43,7 +43,6 @@ import {
 import AppScaffold from '@/components/layout/AppScaffold'
 import PageContainer from '@/components/layout/PageContainer'
 import WeightPicker from '@/components/WeightPicker'
-import AppBarWithScroll from '@/components/AppBarWithScroll'
 import PageAppBar from '@/components/PageAppBar'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
@@ -92,7 +91,7 @@ export default function BodyweightLogPage() {
     }
 
     fetchWeightLogs()
-  }, [user, showSnackbar])
+  }, [user?.id, showSnackbar])
 
   const fetchData = useCallback(async () => {
     if (!user) return

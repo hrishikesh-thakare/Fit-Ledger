@@ -30,7 +30,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material'
-import { useSnackbar } from '@/contexts/SnackbarContext'
+import { useSnackbar } from '@/hooks/useSnackbar'
 import PageAppBar from '@/components/PageAppBar'
 import { useBackgroundSync } from '@/contexts/BackgroundSyncContext'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
@@ -204,7 +204,7 @@ function WorkoutSummaryContent() {
     }
 
     fetchWorkoutSummary()
-  }, [searchParams, user])
+  }, [searchParams, user?.id])
 
   const workoutDataFallback = {
     duration: '0:00',

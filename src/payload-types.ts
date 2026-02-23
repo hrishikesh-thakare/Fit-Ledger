@@ -254,6 +254,7 @@ export interface RoutineSet {
  */
 export interface WorkoutDay {
   id: number;
+  routine?: (number | null) | Routine;
   user: number | User;
   routine?: (number | null) | Routine;
   title: string;
@@ -525,6 +526,7 @@ export interface RoutineSetsSelect<T extends boolean = true> {
  * via the `definition` "workout-days_select".
  */
 export interface WorkoutDaysSelect<T extends boolean = true> {
+  routine?: T;
   user?: T;
   routine?: T;
   title?: T;

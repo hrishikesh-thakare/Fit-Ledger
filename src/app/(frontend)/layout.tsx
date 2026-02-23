@@ -5,8 +5,11 @@ import { SnackbarProvider } from '../../contexts/SnackbarContext'
 import { BackgroundSyncProvider } from '../../contexts/BackgroundSyncContext'
 import { WorkoutSessionProvider } from '../../contexts/WorkoutSessionContext'
 import FloatingWorkoutBar from '../../components/FloatingWorkoutBar'
+import ErrorBoundary from '../../components/ErrorBoundary'
 import './styles.css'
 import { getCurrentUser } from '@/lib/getCurrentUser'
+
+export const runtime = 'nodejs'
 
 export const metadata = {
   description: 'Track your fitness journey with FitLedger',
@@ -57,8 +60,10 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             <SnackbarProvider>
               <BackgroundSyncProvider>
                 <WorkoutSessionProvider>
-                  <main>{children}</main>
-                  <FloatingWorkoutBar />
+                  <ErrorBoundary>
+                    <main>{children}</main>
+                    <FloatingWorkoutBar />
+                  </ErrorBoundary>
                 </WorkoutSessionProvider>
               </BackgroundSyncProvider>
             </SnackbarProvider>

@@ -41,7 +41,6 @@ import { useSnackbar } from '@/hooks/useSnackbar'
 import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import AppScaffold from '@/components/layout/AppScaffold'
 import PageContainer from '@/components/layout/PageContainer'
-import AppBarWithScroll from '@/components/AppBarWithScroll'
 import PageAppBar from '@/components/PageAppBar'
 import type { User } from '@/payload-types'
 
@@ -95,7 +94,7 @@ export default function ProfilePage() {
     }
 
     fetchUserData()
-  }, [authUser])
+  }, [authUser?.id])
 
   const handleUnitsChange = async (newUnits: 'kg' | 'lb') => {
     if (!authUser) return
