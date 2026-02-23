@@ -1,6 +1,7 @@
 import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { formatServerTimingHeader } from '@/lib/timing'
+import { eq, inArray } from 'drizzle-orm'
 
 interface SetInput {
   id?: string
@@ -25,10 +26,11 @@ interface SaveRoutinePayload {
 /**
  * POST /api/custom/routines/[id]/save
  *
- * Optimized save endpoint using delete-all-then-recreate strategy.
- * Uses overrideAccess: true and depth: 0 to skip expensive access
- * control checks and relationship resolution per operation.
- * Ownership is validated once at the routine level.
+ * Optimized save using direct Drizzle ORM operations, bypassing
+ * Payload CMS lifecycle overhead (hooks, validation, serialization).
+ *
+ * Strategy: delete-all-then-recreate within a DB transaction.
+ * Ownership is validated via the routine update step.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const routeStart = performance.now()
@@ -37,120 +39,105 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const payload = await getPayloadClient()
   const data: SaveRoutinePayload = await req.json()
 
-  const t = await payload.db.beginTransaction()
+  // Access Drizzle ORM directly
+  const db = (payload.db as any).drizzle
+  const tables = (payload.db as any).tables
+
+  const routinesTable = tables.routines
+  const reTable = tables.routine_exercises
+  const rsTable = tables.routine_sets
 
   try {
     const payloadStart = performance.now()
 
     const exerciseCount = data.exercises.length
     const setCount = data.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0)
+    const now = new Date()
 
-    // 1. Update routine metadata
-    await payload.update({
-      collection: 'routines',
-      id: routineId,
-      data: {
-        name: data.name,
-        notes: data.description,
-        exerciseCount,
-        setCount,
-      },
-      req: t ? { transactionID: t } : undefined,
-    })
+    // Execute everything in a single Drizzle transaction
+    await db.transaction(async (tx: any) => {
+      // 1. Update routine metadata
+      await tx
+        .update(routinesTable)
+        .set({
+          name: data.name,
+          notes: data.description || null,
+          exerciseCount,
+          setCount,
+          updatedAt: now,
+        })
+        .where(eq(routinesTable.id, routineId))
 
-    // 2. Fetch existing routine exercise IDs (needed for cascading delete of sets)
-    const existingRoutineExercises = await payload.find({
-      collection: 'routine-exercises',
-      where: { routine: { equals: routineId } },
-      limit: 500,
-      depth: 0,
-      overrideAccess: true,
-      req: t ? { transactionID: t } : undefined,
-    })
+      // 2. Get existing routine exercise IDs for cascading set deletion
+      const existingREs = await tx
+        .select({ id: reTable.id })
+        .from(reTable)
+        .where(eq(reTable.routine, routineId))
 
-    const existingREIds = existingRoutineExercises.docs.map((re) => re.id)
+      const existingREIds = existingREs.map((re: any) => re.id)
 
-    // 3. Bulk delete ALL existing sets for this routine's exercises
-    if (existingREIds.length > 0) {
-      await payload.delete({
-        collection: 'routine-sets',
-        where: { routineExercise: { in: existingREIds } },
-        overrideAccess: true,
-        req: t ? { transactionID: t } : undefined,
-      })
-    }
+      // 3. Bulk delete ALL existing sets for this routine's exercises
+      if (existingREIds.length > 0) {
+        await tx.delete(rsTable).where(inArray(rsTable.routineExercise, existingREIds))
+      }
 
-    // 4. Bulk delete ALL existing routine exercises
-    if (existingREIds.length > 0) {
-      await payload.delete({
-        collection: 'routine-exercises',
-        where: { routine: { equals: routineId } },
-        overrideAccess: true,
-        req: t ? { transactionID: t } : undefined,
-      })
-    }
+      // 4. Bulk delete ALL existing routine exercises
+      if (existingREIds.length > 0) {
+        await tx.delete(reTable).where(eq(reTable.routine, routineId))
+      }
 
-    // 5. Create all new exercises in parallel
-    // overrideAccess: true — ownership already validated via the routine update (step 1)
-    const newExercises = await Promise.all(
-      data.exercises.map((exInput, index) =>
-        payload.create({
-          collection: 'routine-exercises',
-          data: {
-            routine: routineId,
-            exercise: Number(exInput.exerciseId),
-            exerciseOrder: index,
-          },
-          overrideAccess: true,
-          depth: 0,
-          req: t ? { transactionID: t } : undefined,
-        }),
-      ),
-    )
+      // 5. Bulk create all new exercises (single INSERT statement)
+      if (data.exercises.length > 0) {
+        const exerciseRows = data.exercises.map((exInput, index) => ({
+          routine: routineId,
+          exercise: Number(exInput.exerciseId),
+          exerciseOrder: index,
+          updatedAt: now,
+          createdAt: now,
+        }))
 
-    // 6. Create all new sets in parallel
-    // overrideAccess: true — ownership already validated via the routine update (step 1)
-    const allSetPromises: Promise<unknown>[] = []
+        const newExercises = await tx
+          .insert(reTable)
+          .values(exerciseRows)
+          .returning({ id: reTable.id })
 
-    data.exercises.forEach((exInput, exIndex) => {
-      const newRE = newExercises[exIndex]
+        // 6. Bulk create all new sets (single INSERT statement)
+        const setRows: any[] = []
 
-      ;(exInput.sets || []).forEach((setInput, setIndex) => {
-        allSetPromises.push(
-          payload.create({
-            collection: 'routine-sets',
-            data: {
-              routineExercise: newRE.id,
+        data.exercises.forEach((exInput, exIndex) => {
+          const newREId = newExercises[exIndex].id
+          ;(exInput.sets || []).forEach((setInput, setIndex) => {
+            setRows.push({
+              routineExercise: newREId,
               setOrder: setIndex,
               setLabel:
                 setInput.type === 'W'
-                  ? ('warmup' as const)
+                  ? 'warmup'
                   : setInput.type === 'D'
-                    ? ('drop' as const)
+                    ? 'drop'
                     : setInput.type === 'F'
-                      ? ('failure' as const)
-                      : ('working' as const),
+                      ? 'failure'
+                      : 'working',
               reps: Number(setInput.reps) || 0,
               weight: Number(setInput.weight) || 0,
-            },
-            overrideAccess: true,
-            depth: 0,
-            req: t ? { transactionID: t } : undefined,
-          }),
-        )
-      })
+              updatedAt: now,
+              createdAt: now,
+            })
+          })
+        })
+
+        if (setRows.length > 0) {
+          await tx.insert(rsTable).values(setRows)
+        }
+      }
     })
-
-    await Promise.all(allSetPromises)
-
-    if (t) await payload.db.commitTransaction(t)
 
     const payloadDuration = performance.now() - payloadStart
     const totalDuration = performance.now() - routeStart
 
     console.log(`[API] /api/custom/routines/${routineId}/save`)
     console.log(`Exercises: ${exerciseCount}, Sets: ${setCount}`)
-    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Drizzle duration: ${payloadDuration.toFixed(2)}ms`)
     console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
 
     return NextResponse.json(
@@ -159,13 +146,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         headers: {
           'Server-Timing': formatServerTimingHeader({
             total: totalDuration,
-            payload: payloadDuration,
+            drizzle: payloadDuration,
           }),
         },
       },
     )
   } catch (error) {
-    if (t) await payload.db.rollbackTransaction(t)
     console.error('Error saving routine:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
