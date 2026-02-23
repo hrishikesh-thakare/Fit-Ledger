@@ -4,11 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
-  Container,
   Typography,
   Card,
   CardContent,
-  Toolbar,
   Avatar,
   List,
   ListItem,
@@ -26,15 +24,7 @@ import {
   Skeleton,
   Fade,
 } from '@mui/material'
-import {
-  FitnessCenter,
-  CloudDownload,
-  Edit,
-  ChevronRight,
-  Info,
-  Flag,
-  Logout,
-} from '@mui/icons-material'
+import { FitnessCenter, CloudDownload, Edit, ChevronRight, Info, Flag } from '@mui/icons-material'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { useSnackbar } from '@/hooks/useSnackbar'
@@ -45,7 +35,6 @@ import PageAppBar from '@/components/PageAppBar'
 import type { User } from '@/payload-types'
 
 export default function ProfilePage() {
-  const router = useRouter()
   const { user: authUser, logout } = useAuth()
   const { showSnackbar } = useSnackbar()
 
@@ -94,7 +83,7 @@ export default function ProfilePage() {
     }
 
     fetchUserData()
-  }, [authUser?.id])
+  }, [authUser, showSnackbar])
 
   const handleUnitsChange = async (newUnits: 'kg' | 'lb') => {
     if (!authUser) return

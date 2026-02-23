@@ -9,8 +9,6 @@ import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
   IconButton,
   Button,
   Card,
@@ -31,15 +29,7 @@ import {
   TableRow,
   CircularProgress,
 } from '@mui/material'
-import {
-  ArrowBack,
-  Add,
-  Close,
-  ChevronRight,
-  DeleteOutline,
-  FitnessCenter,
-  Check,
-} from '@mui/icons-material'
+import { Add, Close, ChevronRight, DeleteOutline, FitnessCenter, Check } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
@@ -97,7 +87,6 @@ export default function NewRoutinePage() {
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
   const { showSnackbar } = useSnackbar()
-  const { isActive: isWorkoutActive } = useWorkoutSession()
 
   // Fetch exercises on mount
   useEffect(() => {
@@ -127,7 +116,7 @@ export default function NewRoutinePage() {
     }
 
     fetchExercises()
-  }, [user?.id, showSnackbar])
+  }, [user, showSnackbar])
 
   const handleAddExercise = (exercise: ExerciseOption) => {
     const newExercise: Exercise = {
@@ -235,8 +224,6 @@ export default function NewRoutinePage() {
     if (selectedBodyPart === 'All') return availableExercises
     return availableExercises.filter((ex) => ex.bodyPart === selectedBodyPart)
   }, [selectedBodyPart, availableExercises])
-
-  const appBarHeight = 64
 
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {

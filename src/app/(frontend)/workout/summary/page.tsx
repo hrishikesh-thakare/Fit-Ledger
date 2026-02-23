@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
-import { completeWorkout } from '@/lib/api/workout'
 import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
 import { useAuth } from '@/contexts/AuthContext'
 import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
@@ -12,11 +11,7 @@ import {
   Container,
   Typography,
   Card,
-  CardContent,
   Button,
-  List,
-  ListItem,
-  Divider,
   Stack,
   Switch,
   FormControlLabel,
@@ -28,7 +23,6 @@ import {
   Skeleton,
   Fade,
   CircularProgress,
-  Alert,
 } from '@mui/material'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import PageAppBar from '@/components/PageAppBar'
@@ -111,7 +105,6 @@ function WorkoutSummaryContent() {
             const totalVolume = fromKg(totalVolumeKg, userUnit)
 
             const maxWeightKg = Math.max(...ex.sets.map((set: any) => parseFloat(set.weight) || 0))
-            const maxWeight = fromKg(maxWeightKg, userUnit)
 
             return {
               id: ex.exerciseId,
@@ -167,7 +160,6 @@ function WorkoutSummaryContent() {
               const totalVolume = fromKg(totalVolumeKg, userUnit)
 
               const maxWeightKg = Math.max(...setsRes.docs.map((set) => set.weight || 0))
-              const maxWeight = fromKg(maxWeightKg, userUnit)
 
               return {
                 id: we.id,
@@ -204,7 +196,7 @@ function WorkoutSummaryContent() {
     }
 
     fetchWorkoutSummary()
-  }, [searchParams, user?.id])
+  }, [searchParams, user, router])
 
   const workoutDataFallback = {
     duration: '0:00',
