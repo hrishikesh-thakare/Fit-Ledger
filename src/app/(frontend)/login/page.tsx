@@ -13,8 +13,9 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Fade,
 } from '@mui/material'
-import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material'
+import { Visibility, VisibilityOff, Email, Lock, FitnessCenter } from '@mui/icons-material'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -47,13 +48,31 @@ export default function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
+        background: (theme) =>
+          `radial-gradient(ellipse at 50% 0%, ${theme.palette.primary.dark}14 0%, transparent 60%), ${theme.palette.background.default}`,
         px: 2,
         py: 2,
       }}
     >
       <Container maxWidth="xs" disableGutters sx={{ width: '100%', maxWidth: '400px' }}>
+        <Fade in timeout={600}>
         <Box sx={{ p: 3, width: '100%' }}>
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Box sx={{ mb: 4, textAlign: 'center' }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 64,
+                height: 64,
+                borderRadius: '16px',
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                mb: 2,
+              }}
+            >
+              <FitnessCenter sx={{ fontSize: 32 }} />
+            </Box>
             <Typography variant="headlineMedium" component="h1" fontWeight="bold" gutterBottom>
               FitLedger
             </Typography>
@@ -77,12 +96,14 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
               required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Email color="primary" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email color="primary" />
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
 
@@ -94,19 +115,21 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock color="primary" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="primary" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
 
@@ -116,7 +139,7 @@ export default function LoginPage() {
               size="large"
               type="submit"
               disabled={loading}
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ mt: 3, mb: 2, py: 1.5 }}
             >
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
@@ -128,8 +151,9 @@ export default function LoginPage() {
                   href="/signup"
                   sx={{
                     cursor: 'pointer',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     textDecoration: 'none',
+                    color: 'primary.main',
                     '&:hover': {
                       textDecoration: 'underline',
                     },
@@ -141,6 +165,7 @@ export default function LoginPage() {
             </Box>
           </form>
         </Box>
+        </Fade>
       </Container>
     </Box>
   )

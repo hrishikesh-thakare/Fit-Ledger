@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import type { BodyWeightLog } from '@/payload-types'
@@ -30,6 +30,7 @@ import {
   DialogActions,
   Button,
   SwipeableDrawer,
+  Fade,
 } from '@mui/material'
 import {
   CalendarToday,
@@ -39,11 +40,16 @@ import {
   Edit,
   DeleteOutline,
 } from '@mui/icons-material'
-import BottomNav from '@/components/BottomNav'
+import AppScaffold from '@/components/layout/AppScaffold'
+import PageContainer from '@/components/layout/PageContainer'
 import WeightPicker from '@/components/WeightPicker'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import PageAppBar from '@/components/PageAppBar'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+import { useExtendedFab } from '@/hooks/useExtendedFab'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator'
 
 interface ProcessedLog {
   id: number
@@ -58,6 +64,7 @@ export default function BodyweightLogPage() {
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
+  const { visible: fabVisible } = useExtendedFab(50)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [weightLogs, setWeightLogs] = useState<ProcessedLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,32 +85,7 @@ export default function BodyweightLogPage() {
 
       try {
         setLoading(true)
-
-        // Use user profile from context
-        const userUnit = user.preferredUnit || 'kg'
-        setPreferredUnit(userUnit)
-
-        // if (user.targetWeight) { // Check if targetWeight is available in restricted user type
-        //   setTargetWeight(user.targetWeight)
-        // }
-        // For now, let's see if we can get away with just preferredUnit or if we really need targetWeight.
-        // The previous code fetched it. Let's assume we might lack targetWeight in the default user context if it's not in the depth 0 user.
-        // Actually, let's keep it simple: If we need targetWeight, we might still need to fetch if it's not in context.
-        // But let's check payload-types first.
-
-        if (user.targetWeight) {
-          setTargetWeight(user.targetWeight) // Already in kg
-        }
-
-        // Optimized fetch: depth=0 to avoid joining user object
-        const response = await apiFetch<{ docs: BodyWeightLog[] }>(
-          `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50&depth=0`,
-        )
-
-        processAndSetLogs(response.docs, userUnit)
-      } catch (error) {
-        console.error('Error fetching weight logs:', error)
-        showSnackbar({ message: 'Failed to load weight logs', severity: 'error' })
+        await fetchData()
       } finally {
         setLoading(false)
       }
@@ -111,6 +93,32 @@ export default function BodyweightLogPage() {
 
     fetchWeightLogs()
   }, [user, showSnackbar])
+
+  const fetchData = useCallback(async () => {
+    if (!user) return
+
+    try {
+      // Use user profile from context
+      const userUnit = user.preferredUnit || 'kg'
+      setPreferredUnit(userUnit)
+
+      if (user.targetWeight) {
+        setTargetWeight(user.targetWeight) // Already in kg
+      }
+
+      // Optimized fetch: depth=0 to avoid joining user object
+      const response = await apiFetch<{ docs: BodyWeightLog[] }>(
+        `/body-weight-logs?where[user][equals]=${user.id}&sort=-loggedAt&limit=50&depth=0`,
+      )
+
+      processAndSetLogs(response.docs, userUnit)
+    } catch (error) {
+      console.error('Error fetching weight logs:', error)
+      showSnackbar({ message: 'Failed to load weight logs', severity: 'error' })
+    }
+  }, [user, showSnackbar])
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({ onRefresh: fetchData })
 
   const processAndSetLogs = (docs: BodyWeightLog[], unit: 'kg' | 'lb') => {
     const logsWithChanges = docs.map((log, index) => {
@@ -263,31 +271,11 @@ export default function BodyweightLogPage() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        pb: 12, // Increased from 4 to 12 to clear the fixed BottomNav
-      }}
-    >
+    <AppScaffold showBottomNav>
       {/* Top AppBar with scroll elevation */}
-      <AppBarWithScroll position="sticky" elevationTrigger={10}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 900,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Bodyweight Log
-          </Typography>
-        </Toolbar>
-      </AppBarWithScroll>
+      <PageAppBar title="Body Weight" />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
+      <PageContainer>
         {/* Current Weight Card */}
         <Card
           elevation={1}
@@ -307,7 +295,7 @@ export default function BodyweightLogPage() {
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 1.5 }}>
-              <Typography variant="h2" sx={{ color: 'text.primary', fontWeight: 800, mr: 0.5 }}>
+              <Typography variant="h2" sx={{ color: 'text.primary', fontWeight: 700, mr: 0.5 }}>
                 {currentWeight.toFixed(1)}
               </Typography>
               <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 500 }}>
@@ -346,16 +334,14 @@ export default function BodyweightLogPage() {
         />
 
         {/* Weight History */}
+        <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
         <Box sx={{ mb: 3 }}>
           <Typography
             variant="h6"
             sx={{
               color: 'text.primary',
-              fontWeight: 800,
+              fontWeight: 700,
               mb: 2,
-              textTransform: 'uppercase',
-              fontSize: '1rem',
-              letterSpacing: '0.02em',
             }}
           >
             History
@@ -391,98 +377,106 @@ export default function BodyweightLogPage() {
                 ))}
               </List>
             ) : weightLogs.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  No weight logs yet. Tap the + button to add your first entry!
-                </Typography>
-              </Box>
+              <Fade in timeout={400}>
+                <Box sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No weight logs yet. Tap the + button to add your first entry!
+                  </Typography>
+                </Box>
+              </Fade>
             ) : (
-              <List sx={{ p: 0 }}>
-                {weightLogs.map((log, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem
-                      sx={{
-                        px: 2.5,
-                        py: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Box sx={{ flex: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                          <CalendarToday
-                            sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }}
-                          />
-                          <Typography
-                            variant="body2"
-                            sx={{ color: 'text.secondary', fontWeight: 500 }}
-                          >
-                            {log.date}
+              <Fade in timeout={400}>
+                <List sx={{ p: 0 }}>
+                  {weightLogs.map((log, index) => (
+                    <React.Fragment key={index}>
+                      <ListItem
+                        sx={{
+                          px: 2.5,
+                          py: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                            <CalendarToday
+                              sx={{ fontSize: '0.875rem', color: 'text.secondary', mr: 1 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{ color: 'text.secondary', fontWeight: 500 }}
+                            >
+                              {log.date}
+                            </Typography>
+                          </Box>
+                          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 700 }}>
+                            {log.weight.toFixed(1)}{' '}
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontSize: '0.875rem',
+                                color: 'text.secondary',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {preferredUnit}
+                            </Typography>
                           </Typography>
                         </Box>
-                        <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 800 }}>
-                          {log.weight.toFixed(1)}{' '}
-                          <span
-                            style={{ fontSize: '0.9rem', color: 'text.secondary', fontWeight: 500 }}
-                          >
-                            {preferredUnit}
-                          </span>
-                        </Typography>
-                      </Box>
 
-                      <Box
-                        sx={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        {log.change !== 0 && (
-                          <Chip
-                            label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}${preferredUnit}`}
-                            size="small"
-                            variant="filled"
-                            sx={{
-                              bgcolor: 'action.hover',
-                              color: log.change < 0 ? 'error.main' : 'success.main',
-                              fontWeight: 'bold',
-                              fontSize: '0.8rem',
-                              border: 'none',
-                            }}
-                          />
-                        )}
-                        {log.change === 0 && (
-                          <Chip
-                            label="No change"
-                            size="small"
-                            variant="filled"
-                            sx={{
-                              bgcolor: 'action.hover',
-                              color: 'text.secondary',
-                              fontWeight: 'bold',
-                              fontSize: '0.8rem',
-                              border: 'none',
-                            }}
-                          />
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setSelectedLog(log)
-                            setDrawerOpen(true)
-                          }}
-                          sx={{ color: 'text.disabled' }}
+                        <Box
+                          sx={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 1 }}
                         >
-                          <MoreVert fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </ListItem>
-                    {index < weightLogs.length - 1 && (
-                      <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </List>
+                          {log.change !== 0 && (
+                            <Chip
+                              label={`${log.change > 0 ? '+' : ''}${log.change.toFixed(1)}${preferredUnit}`}
+                              size="small"
+                              variant="filled"
+                              sx={{
+                                bgcolor: 'action.hover',
+                                color: log.change < 0 ? 'error.main' : 'success.main',
+                                fontWeight: 'bold',
+                                fontSize: '0.875rem',
+                                border: 'none',
+                              }}
+                            />
+                          )}
+                          {log.change === 0 && (
+                            <Chip
+                              label="No change"
+                              size="small"
+                              variant="filled"
+                              sx={{
+                                bgcolor: 'action.hover',
+                                color: 'text.secondary',
+                                fontWeight: 'bold',
+                                fontSize: '0.875rem',
+                                border: 'none',
+                              }}
+                            />
+                          )}
+                          <IconButton
+                            onClick={() => {
+                              setSelectedLog(log)
+                              setDrawerOpen(true)
+                            }}
+                            sx={{ color: 'text.disabled', minWidth: 44, minHeight: 44 }}
+                          >
+                            <MoreVert />
+                          </IconButton>
+                        </Box>
+                      </ListItem>
+                      {index < weightLogs.length - 1 && (
+                        <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Fade>
             )}
           </Card>
         </Box>
-      </Container>
+      </PageContainer>
 
       <Fab
         color="primary"
@@ -490,15 +484,19 @@ export default function BodyweightLogPage() {
         onClick={() => setIsPickerOpen(true)}
         sx={{
           position: 'fixed',
-          bottom: isWorkoutActive ? 160 : 80,
+          bottom: isWorkoutActive
+            ? 'calc(72px + 16px + 80px + env(safe-area-inset-bottom))'
+            : 'calc(72px + 16px + env(safe-area-inset-bottom))',
           right: 16,
-          zIndex: 1200,
+          zIndex: 1050,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: fabVisible ? 1 : 0,
+          transform: fabVisible ? 'scale(1)' : 'scale(0.8)',
+          pointerEvents: fabVisible ? 'auto' : 'none',
         }}
       >
         <Add />
       </Fab>
-
-      <BottomNav />
 
       {/* Options Bottom Drawer */}
       <SwipeableDrawer
@@ -531,7 +529,7 @@ export default function BodyweightLogPage() {
               <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                 {selectedLog.date}
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {selectedLog.weight.toFixed(1)} {preferredUnit}
               </Typography>
             </Box>
@@ -629,6 +627,6 @@ export default function BodyweightLogPage() {
           initialWeight={selectedLog.weight}
         />
       )}
-    </Box>
+    </AppScaffold>
   )
 }

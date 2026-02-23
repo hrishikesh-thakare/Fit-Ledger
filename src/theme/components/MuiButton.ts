@@ -1,4 +1,4 @@
-import { Components, Theme } from '@mui/material/styles';
+import { alpha, Components, Theme } from '@mui/material/styles';
 
 const MuiButton: Components<Theme>['MuiButton'] = {
   defaultProps: {
@@ -6,7 +6,7 @@ const MuiButton: Components<Theme>['MuiButton'] = {
   },
   styleOverrides: {
     root: ({ theme }) => ({
-      borderRadius: '20px', // Full rounded for MD3
+      borderRadius: `${theme.shape.borderRadiusSmall}px`, // Full rounded for MD3
       textTransform: 'none',
       fontWeight: 500,
       letterSpacing: '0.1px',
@@ -53,14 +53,14 @@ const MuiButton: Components<Theme>['MuiButton'] = {
       borderColor: theme.palette.outline,
       '&:hover': {
         borderWidth: '1px',
-        backgroundColor: 'rgba(208, 188, 255, 0.08)',
+        backgroundColor: alpha(theme.palette.primary.main, 0.08),
       },
     }),
-    text: {
+    text: ({ theme }) => ({
       '&:hover': {
-        backgroundColor: 'rgba(230, 225, 229, 0.08)',
+        backgroundColor: alpha(theme.palette.text.primary, 0.08),
       },
-    },
+    }),
   },
 };
 

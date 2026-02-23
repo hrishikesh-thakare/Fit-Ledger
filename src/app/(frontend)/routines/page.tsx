@@ -19,6 +19,7 @@ import {
   Chip,
   Stack,
   IconButton,
+  Fade,
 } from '@mui/material'
 import {
   FitnessCenter,
@@ -29,12 +30,15 @@ import {
   Edit,
   ArrowForward,
 } from '@mui/icons-material'
-import BottomNav from '@/components/BottomNav'
+import AppScaffold from '@/components/layout/AppScaffold'
+import PageContainer from '@/components/layout/PageContainer'
 import RoutineCardSkeleton from '@/components/skeletons/RoutineCardSkeleton'
 import CardOverflowMenu, { commonActions } from '@/components/CardOverflowMenu'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import PageAppBar from '@/components/PageAppBar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+import { useExtendedFab } from '@/hooks/useExtendedFab'
 
 interface RoutineWithExerciseCount {
   id: number
@@ -53,6 +57,7 @@ export default function RoutinesPage() {
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
+  const { visible: fabVisible } = useExtendedFab(50)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [routines, setRoutines] = useState<RoutineWithExerciseCount[]>([])
@@ -113,30 +118,10 @@ export default function RoutinesPage() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        pb: 16, // Increased space for FAB (approx 128px)
-      }}
-    >
-      <AppBarWithScroll position="sticky" elevationTrigger={10}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 900,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}
-          >
-            ROUTINES
-          </Typography>
-        </Toolbar>
-      </AppBarWithScroll>
+    <AppScaffold showBottomNav>
+      <PageAppBar title="Routines" />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
+      <PageContainer>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -150,7 +135,8 @@ export default function RoutinesPage() {
             <RoutineCardSkeleton />
           </>
         ) : (
-          <>
+          <Fade in timeout={400}>
+            <Box>
             {/* Routines List */}
             {routines.map((routine) => (
               <Card
@@ -181,7 +167,7 @@ export default function RoutinesPage() {
                       <Typography
                         variant="h6"
                         sx={{
-                          fontWeight: 800,
+                          fontWeight: 700,
                           color: 'text.primary',
                           lineHeight: 1.2,
                           mb: 1.5,
@@ -206,8 +192,8 @@ export default function RoutinesPage() {
                               label={mg}
                               size="small"
                               sx={{
-                                height: 20,
-                                fontSize: '0.7rem',
+                                height: 24,
+                                fontSize: '0.75rem',
                                 fontWeight: 600,
                                 bgcolor: 'action.hover',
                                 color: 'text.secondary',
@@ -276,7 +262,7 @@ export default function RoutinesPage() {
                       onClick={() => router.push(`/routines/${routine.id}`)}
                       sx={{
                         fontWeight: 700,
-                        borderRadius: 4,
+                        borderRadius: 1.5,
                         textTransform: 'none',
                         px: 3,
                         boxShadow: 2,
@@ -306,9 +292,10 @@ export default function RoutinesPage() {
                 </Typography>
               </Box>
             )}
-          </>
+            </Box>
+          </Fade>
         )}
-      </Container>
+      </PageContainer>
 
       <Fab
         color="primary"
@@ -320,13 +307,14 @@ export default function RoutinesPage() {
             ? 'calc(72px + 16px + 80px + env(safe-area-inset-bottom))'
             : 'calc(72px + 16px + env(safe-area-inset-bottom))',
           zIndex: 1050,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: fabVisible ? 1 : 0,
+          transform: fabVisible ? 'scale(1)' : 'scale(0.8)',
+          pointerEvents: fabVisible ? 'auto' : 'none',
         }}
       >
         <Add />
       </Fab>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
-    </Box>
+    </AppScaffold>
   )
 }

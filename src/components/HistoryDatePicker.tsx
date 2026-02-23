@@ -259,9 +259,8 @@ const HistoryDatePicker: React.FC<HistoryDatePickerProps> = ({
           onClick={handleSave}
           sx={{
             py: 1.5,
-            fontSize: '1rem',
             fontWeight: 700,
-            borderRadius: 3,
+            borderRadius: 1.5,
           }}
         >
           Apply Filter

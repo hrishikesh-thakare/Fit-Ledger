@@ -10,9 +10,9 @@ const MuiPaper: Components<Theme>['MuiPaper'] = {
       transition: 'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }),
     
-    rounded: {
-      borderRadius: '12px',
-    },
+    rounded: ({ theme }) => ({
+      borderRadius: `${theme.shape.borderRadiusSmall}px`,
+    }),
     
     elevation0: ({ theme }) => ({
       backgroundColor: theme.palette.background.paper,

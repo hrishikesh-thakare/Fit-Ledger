@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
@@ -15,6 +15,8 @@ import {
   IconButton,
   Divider,
   Skeleton,
+  Fade,
+  CardActionArea,
 } from '@mui/material'
 import {
   History as HistoryIcon,
@@ -23,12 +25,16 @@ import {
   CalendarMonth,
 } from '@mui/icons-material'
 import dayjs, { Dayjs } from 'dayjs'
-import BottomNav from '@/components/BottomNav'
+import AppScaffold from '@/components/layout/AppScaffold'
+import PageContainer from '@/components/layout/PageContainer'
 import HistoryDatePicker from '@/components/HistoryDatePicker'
+import PageAppBar from '@/components/PageAppBar'
 import ChipFilter from '@/components/ChipFilter'
 
 import { useSnackbar } from '@/hooks/useSnackbar'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import PullToRefreshIndicator from '@/components/PullToRefreshIndicator'
 
 interface WorkoutHistoryItem {
   id: number
@@ -60,58 +66,7 @@ export default function HistoryPage() {
 
       try {
         setLoading(true)
-
-        // Fetch user's preferred unit
-        const userUnit = user?.preferredUnit || 'kg'
-
-        // Calculate date range based on selectedMonth
-        let queryParams = `?userId=${user.id}`
-
-        if (selectedMonth) {
-          const startDate = selectedMonth.startOf('month').toISOString()
-          const endDate = selectedMonth.endOf('month').toISOString()
-          queryParams += `&startDate=${startDate}&endDate=${endDate}`
-        }
-
-        // Fetch optimized history from custom endpoint
-        const response = await apiFetch<{
-          docs: {
-            id: number
-            name: string
-            dateRaw: string
-            duration: string
-            volumeKg: number
-            exercises: number
-          }[]
-        }>(`/custom/history${queryParams}`)
-
-        // Map response to component state format
-        const workoutsWithDetails = response.docs.map((item) => {
-          const workoutDate = new Date(item.dateRaw)
-          const dateStr = workoutDate.toISOString().split('T')[0]
-          const timeStr = workoutDate.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          })
-
-          const volumeVal = fromKg(item.volumeKg, userUnit)
-
-          return {
-            id: item.id,
-            name: item.name,
-            date: dateStr,
-            time: timeStr,
-            duration: item.duration,
-            volume: `${volumeVal.toLocaleString()} ${userUnit}`,
-            exercises: item.exercises,
-          }
-        })
-
-        setRawWorkouts(workoutsWithDetails)
-      } catch (error) {
-        console.error('Error fetching workout history:', error)
-        showSnackbar({ message: 'Failed to load workout history', severity: 'error' })
+        await fetchData()
       } finally {
         setLoading(false)
       }
@@ -119,6 +74,66 @@ export default function HistoryPage() {
 
     fetchWorkoutHistory()
   }, [user, selectedMonth, showSnackbar])
+
+  const fetchData = useCallback(async () => {
+    if (!user) return
+
+    try {
+      // Fetch user's preferred unit
+      const userUnit = user?.preferredUnit || 'kg'
+
+      // Calculate date range based on selectedMonth
+      let queryParams = `?userId=${user.id}`
+
+      if (selectedMonth) {
+        const startDate = selectedMonth.startOf('month').toISOString()
+        const endDate = selectedMonth.endOf('month').toISOString()
+        queryParams += `&startDate=${startDate}&endDate=${endDate}`
+      }
+
+      // Fetch optimized history from custom endpoint
+      const response = await apiFetch<{
+        docs: {
+          id: number
+          name: string
+          dateRaw: string
+          duration: string
+          volumeKg: number
+          exercises: number
+        }[]
+      }>(`/custom/history${queryParams}`)
+
+      // Map response to component state format
+      const workoutsWithDetails = response.docs.map((item) => {
+        const workoutDate = new Date(item.dateRaw)
+        const dateStr = workoutDate.toISOString().split('T')[0]
+        const timeStr = workoutDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+
+        const volumeVal = fromKg(item.volumeKg, userUnit)
+
+        return {
+          id: item.id,
+          name: item.name,
+          date: dateStr,
+          time: timeStr,
+          duration: item.duration,
+          volume: `${volumeVal.toLocaleString()} ${userUnit}`,
+          exercises: item.exercises,
+        }
+      })
+
+      setRawWorkouts(workoutsWithDetails)
+    } catch (error) {
+      console.error('Error fetching workout history:', error)
+      showSnackbar({ message: 'Failed to load workout history', severity: 'error' })
+    }
+  }, [user, selectedMonth, showSnackbar])
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({ onRefresh: fetchData })
 
   const formatDurationString = (dur: string) => {
     if (!dur) return '0m'
@@ -182,37 +197,19 @@ export default function HistoryPage() {
   )
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        pb: 10,
-      }}
-    >
+    <AppScaffold showBottomNav>
       {/* Top AppBar with scroll elevation */}
-      <AppBarWithScroll position="sticky" elevationTrigger={10}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 900,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              flexGrow: 1,
-            }}
-          >
-            History
-          </Typography>
-
+      <PageAppBar
+        title="History"
+        actions={
           <IconButton
             onClick={() => setIsPickerOpen(true)}
             color={selectedMonth ? 'primary' : 'default'}
           >
             <CalendarMonth />
           </IconButton>
-        </Toolbar>
-      </AppBarWithScroll>
+        }
+      />
 
       <HistoryDatePicker
         open={isPickerOpen}
@@ -224,7 +221,8 @@ export default function HistoryPage() {
         initialDate={selectedMonth?.toDate() || new Date()}
       />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 2 }}>
+      <PageContainer pt={2}>
+        <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
         {/* Chip Filters */}
         <Box sx={{ mb: 3 }}>
           <ChipFilter
@@ -276,156 +274,170 @@ export default function HistoryPage() {
             ))}
           </Box>
         ) : Object.keys(groupedWorkouts).length > 0 ? (
-          Object.keys(groupedWorkouts).map((header) => (
-            <Box key={header} sx={{ mb: 4 }}>
-              {/* Section Header */}
-              <Box
-                sx={{
-                  mb: 1.5,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  ml: 0.5,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: 'text.secondary',
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  {header}
-                </Typography>
-
-                {selectedMonth && (
-                  <Typography
-                    variant="caption"
+          <Fade in timeout={400}>
+            <Box>
+              {Object.keys(groupedWorkouts).map((header) => (
+                <Box key={header} sx={{ mb: 4 }}>
+                  {/* Section Header */}
+                  <Box
                     sx={{
-                      color: 'primary.main',
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      letterSpacing: '0.05em',
+                      mb: 1.5,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      ml: 0.5,
                     }}
-                    onClick={() => setSelectedMonth(null)}
                   >
-                    CLEAR FILTER
-                  </Typography>
-                )}
-              </Box>
-
-              {groupedWorkouts[header].map((workout) => (
-                <Card
-                  key={workout.id}
-                  elevation={1}
-                  onClick={() => router.push(`/history/${workout.id}`)}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    mb: 1.5,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    {/* Header Row: Name + Date */}
-                    <Box
+                    <Typography
+                      variant="caption"
                       sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'baseline',
-                        mb: 0.5,
+                        color: 'text.secondary',
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
                       }}
                     >
+                      {header}
+                    </Typography>
+
+                    {selectedMonth && (
                       <Typography
-                        variant="h6"
+                        variant="caption"
                         sx={{
-                          color: 'text.primary',
-                          fontWeight: 700,
-                          textTransform: 'capitalize',
-                          letterSpacing: 0,
-                          flex: 1,
-                          mr: 2,
+                          color: 'primary.main',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          letterSpacing: '0.05em',
+                        }}
+                        onClick={() => setSelectedMonth(null)}
+                      >
+                        CLEAR FILTER
+                      </Typography>
+                    )}
+                  </Box>
+
+                  {groupedWorkouts[header].map((workout) => (
+                    <Card
+                      key={workout.id}
+                      elevation={1}
+                      sx={{
+                        bgcolor: 'background.paper',
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        mb: 1.5,
+                      }}
+                    >
+                      <CardActionArea
+                        onClick={() => router.push(`/history/${workout.id}`)}
+                        sx={{
+                          '& .MuiCardActionArea-focusHighlight': {
+                            bgcolor: 'transparent',
+                          },
                         }}
                       >
-                        {workout.name.toLowerCase()}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'text.disabled',
-                          fontWeight: 500,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {new Date(workout.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </Typography>
-                    </Box>
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          {/* Header Row: Name + Date */}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'baseline',
+                              mb: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                color: 'text.primary',
+                                fontWeight: 700,
+                                textTransform: 'capitalize',
+                                letterSpacing: 0,
+                                flex: 1,
+                                mr: 2,
+                              }}
+                            >
+                              {workout.name.toLowerCase()}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: 'text.disabled',
+                                fontWeight: 500,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {new Date(workout.date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </Typography>
+                          </Box>
 
-                    {/* Stats Row: Duration · Volume */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <AccessTime sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 500 }}
-                        >
-                          {formatDurationString(workout.duration)}
-                        </Typography>
-                      </Box>
+                          {/* Stats Row: Duration · Volume */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <AccessTime sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
+                              <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', fontWeight: 500 }}
+                              >
+                                {formatDurationString(workout.duration)}
+                              </Typography>
+                            </Box>
 
-                      <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                        ·
-                      </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                              ·
+                            </Typography>
 
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <FitnessCenter sx={{ fontSize: '0.875rem', color: 'text.secondary' }} />
-                        <Typography
-                          variant="body2"
-                          sx={{ color: 'text.secondary', fontWeight: 500 }}
-                        >
-                          {workout.volume}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <FitnessCenter
+                                sx={{ fontSize: '0.875rem', color: 'text.secondary' }}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary', fontWeight: 500 }}
+                              >
+                                {workout.volume}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  ))}
+                </Box>
               ))}
             </Box>
-          ))
+          </Fade>
         ) : (
           // Empty state for filtered view
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 8,
-            }}
-          >
-            <HistoryIcon sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-              No workouts found
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-              Try selecting a different month
-            </Typography>
-            {selectedMonth && (
-              <Typography
-                variant="button"
-                sx={{ color: 'primary.main', cursor: 'pointer', fontWeight: 'bold' }}
-                onClick={() => setSelectedMonth(null)}
-              >
-                CLEAR FILTER
+          <Fade in timeout={400}>
+            <Box
+              sx={{
+                textAlign: 'center',
+                py: 8,
+              }}
+            >
+              <HistoryIcon sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+                No workouts found
               </Typography>
-            )}
-          </Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                Try selecting a different month
+              </Typography>
+              {selectedMonth && (
+                <Typography
+                  variant="button"
+                  sx={{ color: 'primary.main', cursor: 'pointer', fontWeight: 'bold' }}
+                  onClick={() => setSelectedMonth(null)}
+                >
+                  CLEAR FILTER
+                </Typography>
+              )}
+            </Box>
+          </Fade>
         )}
-      </Container>
-      <BottomNav />
-    </Box>
+      </PageContainer>
+    </AppScaffold>
   )
 }

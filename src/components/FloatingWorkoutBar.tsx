@@ -17,6 +17,7 @@ import { KeyboardArrowUp, DeleteOutline } from '@mui/icons-material'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useAuth } from '@/contexts/AuthContext'
+import { BOTTOM_NAV_HEIGHT } from '@/components/layout/constants'
 
 export default function FloatingWorkoutBar() {
   const router = useRouter()
@@ -73,7 +74,7 @@ export default function FloatingWorkoutBar() {
       <Box
         sx={{
           position: 'fixed',
-          bottom: 90,
+          bottom: BOTTOM_NAV_HEIGHT + 18,
           left: 0,
           right: 0,
           zIndex: 1200,
@@ -90,7 +91,7 @@ export default function FloatingWorkoutBar() {
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            boxShadow: 3,
           }}
         >
           {/* Up arrow — navigate to workout */}
@@ -99,7 +100,7 @@ export default function FloatingWorkoutBar() {
             onClick={() => router.push(`/workout?routineId=${routineId}`)}
             sx={{
               color: 'primary.contrastText',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' },
+              '&:hover': { bgcolor: 'action.hover' },
             }}
           >
             <KeyboardArrowUp sx={{ fontSize: '2rem' }} />
@@ -123,8 +124,6 @@ export default function FloatingWorkoutBar() {
                 sx={{
                   color: 'primary.contrastText',
                   fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
                   lineHeight: 1.2,
                   display: 'block',
                   whiteSpace: 'nowrap',
@@ -141,10 +140,8 @@ export default function FloatingWorkoutBar() {
               variant="body1"
               sx={{
                 color: 'primary.contrastText',
-                fontWeight: 800,
+                fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
-                fontSize: '1rem',
-                letterSpacing: '0.02em',
                 flexShrink: 0,
               }}
             >
@@ -160,10 +157,10 @@ export default function FloatingWorkoutBar() {
               setDiscardDialogOpen(true)
             }}
             sx={{
-              color: '#ff6b6b',
+              color: 'error.main',
               '&:hover': {
-                color: '#ff4444',
-                bgcolor: 'rgba(255,107,107,0.15)',
+                color: 'error.light',
+                bgcolor: 'action.hover',
               },
             }}
           >

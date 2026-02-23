@@ -15,6 +15,7 @@ import {
 } from '@mui/material'
 import { Dashboard, FitnessCenter, History, Person, MonitorWeight } from '@mui/icons-material'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+import { BOTTOM_NAV_HEIGHT } from '@/components/layout/constants'
 
 const routes = ['/dashboard', '/routines', '/history', '/bodyweight', '/profile']
 
@@ -87,7 +88,7 @@ export default function BottomNav() {
           onChange={handleNavChange}
           showLabels
           sx={{
-            height: 72,
+            height: BOTTOM_NAV_HEIGHT,
             bgcolor: 'transparent',
             '& .MuiBottomNavigationAction-root': {
               color: 'text.secondary',

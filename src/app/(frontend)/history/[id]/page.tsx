@@ -23,6 +23,7 @@ import {
   Divider,
   Paper,
   Skeleton,
+  Fade,
   Stack,
 } from '@mui/material'
 import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
@@ -273,174 +274,185 @@ export default function HistoryDetailPage() {
             </Typography>
           </Box>
         ) : (
-          <>
-            {/* Header Summary Card */}
-            <Box sx={{ mb: 4 }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: '900',
-                  color: 'text.primary',
-                  mb: 0.5,
-                  letterSpacing: '-0.02em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {workoutDetails.name}
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{ color: 'text.secondary', mb: 3, display: 'flex', alignItems: 'center' }}
-              >
-                <CalendarToday sx={{ fontSize: '1rem', mr: 0.8, mb: 0.2 }} />
-                {workoutDetails.date} • {workoutDetails.startTime}
-              </Typography>
+          <Fade in timeout={400}>
+            <Box>
+              {/* Header Summary Card */}
+              <Box sx={{ mb: 4 }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.primary',
+                    mb: 0.5,
+                    letterSpacing: '-0.02em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {workoutDetails.name}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ color: 'text.secondary', mb: 3, display: 'flex', alignItems: 'center' }}
+                >
+                  <CalendarToday sx={{ fontSize: '1rem', mr: 0.8, mb: 0.2 }} />
+                  {workoutDetails.date} • {workoutDetails.startTime}
+                </Typography>
 
-              <Box sx={{ display: 'flex', gap: 4 }}>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
-                  >
-                    DURATION
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <AccessTime sx={{ color: 'primary.main', mr: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                      {workoutDetails.duration}
+                <Box sx={{ display: 'flex', gap: 4 }}>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
+                    >
+                      DURATION
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      <AccessTime sx={{ color: 'primary.main', mr: 1 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        {workoutDetails.duration}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
-                  >
-                    VOLUME
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <FitnessCenter sx={{ color: 'primary.main', mr: 1 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                      {workoutDetails.volume}
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: 'text.secondary', fontWeight: 'bold', letterSpacing: '0.05em' }}
+                    >
+                      VOLUME
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      <FitnessCenter sx={{ color: 'primary.main', mr: 1 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        {workoutDetails.volume}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
               </Box>
-            </Box>
 
-            <Divider sx={{ mb: 4 }} />
+              <Divider sx={{ mb: 4 }} />
 
-            {/* Exercises List */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {workoutDetails.exercises.map((exercise) => (
-                <Card
-                  key={exercise.id}
-                  elevation={1}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                      {exercise.name}
-                    </Typography>
-                  </Box>
-
-                  {/* Set Table */}
-                  <TableContainer
-                    component={Paper}
-                    elevation={0}
-                    sx={{ bgcolor: 'background.paper' }}
+              {/* Exercises List */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {workoutDetails.exercises.map((exercise) => (
+                  <Card
+                    key={exercise.id}
+                    elevation={1}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                    }}
                   >
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell
-                            align="center"
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 'bold',
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              width: '20%',
-                            }}
-                          >
-                            SET
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 'bold',
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              width: '40%',
-                            }}
-                          >
-                            WEIGHT &nbsp;
-                            <Typography variant="caption" component="span" color="text.disabled">
-                              ({preferredUnit})
-                            </Typography>
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            sx={{
-                              color: 'text.secondary',
-                              fontWeight: 'bold',
-                              borderBottom: '1px solid',
-                              borderColor: 'divider',
-                              width: '40%',
-                            }}
-                          >
-                            REPS
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {exercise.sets.map((set, index) => (
-                          <TableRow
-                            key={set.id}
-                            sx={{
-                              '&:last-child td, &:last-child th': { border: 0 },
-                              bgcolor: 'transparent',
-                            }}
-                          >
+                    <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 700, color: 'text.primary' }}
+                      >
+                        {exercise.name}
+                      </Typography>
+                    </Box>
+
+                    {/* Set Table */}
+                    <TableContainer
+                      component={Paper}
+                      elevation={0}
+                      sx={{ bgcolor: 'background.paper' }}
+                    >
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
                             <TableCell
                               align="center"
-                              scope="row"
                               sx={{
-                                color: set.type === 'Warmup' ? 'warning.main' : 'text.secondary',
-                                fontSize: '0.9rem',
-                                fontWeight: set.type === 'Warmup' ? 700 : 400,
+                                color: 'text.secondary',
+                                fontWeight: 'bold',
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                width: '20%',
                               }}
                             >
-                              {set.type === 'Warmup' ? 'W' : index + 1}
+                              SET
                             </TableCell>
-                            <TableCell align="center" sx={{ fontWeight: '600', fontSize: '1rem' }}>
-                              {set.weight}
+                            <TableCell
+                              align="center"
+                              sx={{
+                                color: 'text.secondary',
+                                fontWeight: 'bold',
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                width: '40%',
+                              }}
+                            >
+                              WEIGHT &nbsp;
+                              <Typography variant="caption" component="span" color="text.disabled">
+                                ({preferredUnit})
+                              </Typography>
                             </TableCell>
-                            <TableCell align="center" sx={{ fontWeight: '600', fontSize: '1rem' }}>
-                              {set.reps}
+                            <TableCell
+                              align="center"
+                              sx={{
+                                color: 'text.secondary',
+                                fontWeight: 'bold',
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                width: '40%',
+                              }}
+                            >
+                              REPS
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Card>
-              ))}
-            </Box>
+                        </TableHead>
+                        <TableBody>
+                          {exercise.sets.map((set, index) => (
+                            <TableRow
+                              key={set.id}
+                              sx={{
+                                '&:last-child td, &:last-child th': { border: 0 },
+                                bgcolor: 'transparent',
+                              }}
+                            >
+                              <TableCell
+                                align="center"
+                                scope="row"
+                                sx={{
+                                  color: set.type === 'Warmup' ? 'warning.main' : 'text.secondary',
+                                  fontSize: '0.875rem',
+                                  fontWeight: set.type === 'Warmup' ? 700 : 400,
+                                }}
+                              >
+                                {set.type === 'Warmup' ? 'W' : index + 1}
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{ fontWeight: '600', fontSize: '1rem' }}
+                              >
+                                {set.weight}
+                              </TableCell>
+                              <TableCell
+                                align="center"
+                                sx={{ fontWeight: '600', fontSize: '1rem' }}
+                              >
+                                {set.reps}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Card>
+                ))}
+              </Box>
 
-            <Box sx={{ mt: 6, textAlign: 'center' }}>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Workout Completed
-              </Typography>
+              <Box sx={{ mt: 6, textAlign: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                  Workout Completed
+                </Typography>
+              </Box>
             </Box>
-          </>
+          </Fade>
         )}
       </Container>
     </Box>

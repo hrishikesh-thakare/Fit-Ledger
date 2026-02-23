@@ -4,7 +4,7 @@ const MuiOutlinedInput: Components<Theme>['MuiOutlinedInput'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       backgroundColor: theme.palette.surfaceContainerHighest || theme.palette.background.paper,
-      borderRadius: '12px',
+      borderRadius: `${theme.shape.borderRadiusSmall}px`,
       minHeight: '56px',
       color: theme.palette.text.primary,
       '& .MuiOutlinedInput-notchedOutline': {

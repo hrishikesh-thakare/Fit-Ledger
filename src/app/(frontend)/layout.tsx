@@ -13,6 +13,10 @@ export const metadata = {
   title: 'FitLedger - Workout Tracker',
 }
 
+export const viewport = {
+  viewportFit: 'cover' as const,
+}
+
 import { Roboto, Roboto_Mono } from 'next/font/google'
 
 const roboto = Roboto({

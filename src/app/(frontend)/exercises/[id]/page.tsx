@@ -15,10 +15,11 @@ import {
   Divider,
   Chip,
   Skeleton,
+  Fade,
   Alert,
 } from '@mui/material'
 import { ArrowBack, TrendingUp, CalendarToday, FitnessCenter } from '@mui/icons-material'
-import AppBarWithScroll from '@/components/AppBarWithScroll'
+import PageAppBar from '@/components/PageAppBar'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import type {
@@ -211,32 +212,7 @@ export default function ExerciseDetailPage() {
       }}
     >
       {/* Top AppBar with Scroll Elevation */}
-      <AppBarWithScroll position="sticky" elevationTrigger={10}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            onClick={() => router.back()}
-            sx={{ color: 'text.primary', mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-          {loading ? (
-            <Skeleton variant="text" width="50%" height={28} />
-          ) : (
-            <Typography
-              variant="h6"
-              sx={{
-                color: 'text.primary',
-                fontWeight: 900,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {exercise?.name || 'Exercise'}
-            </Typography>
-          )}
-        </Toolbar>
-      </AppBarWithScroll>
+      <PageAppBar title={exercise?.name || 'Exercise'} onBack={() => router.back()} />
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {error ? (
@@ -290,98 +266,25 @@ export default function ExerciseDetailPage() {
             </Card>
           </Box>
         ) : exercise ? (
-          <>
-            {/* Muscle Group Chip */}
-            {exercise.muscleGroup && (
-              <Chip
-                label={exercise.muscleGroup}
-                size="small"
-                sx={{
-                  mb: 2,
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  bgcolor: 'action.hover',
-                  color: 'text.secondary',
-                }}
-              />
-            )}
-
-            {/* Personal Best Card */}
-            {exercise.personalBest ? (
-              <Card
-                elevation={1}
-                sx={{
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  mb: 3,
-                }}
-              >
-                <CardContent sx={{ p: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                    <TrendingUp sx={{ color: 'primary.main', mr: 1, fontSize: '1.25rem' }} />
-                    <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700 }}>
-                      Personal Best
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.5 }}>
-                    <Typography
-                      variant="h3"
-                      sx={{ color: 'text.primary', fontWeight: 800, mr: 0.5 }}
-                    >
-                      {exercise.personalBest.weight} kg
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      sx={{ color: 'text.secondary', fontWeight: 800, mr: 0.5 }}
-                    >
-                      ×
-                    </Typography>
-                    <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 800 }}>
-                      {exercise.personalBest.reps}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    Set on {exercise.personalBest.date}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            {/* Historical Performances */}
-            <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: 'text.primary',
-                  fontWeight: 800,
-                  mb: 2,
-                  textTransform: 'uppercase',
-                  fontSize: '1rem',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                History
-              </Typography>
-
-              {exercise.history.length === 0 ? (
-                /* Empty History State */
-                <Box
+          <Fade in timeout={400}>
+            <Box>
+              {/* Muscle Group Chip */}
+              {exercise.muscleGroup && (
+                <Chip
+                  label={exercise.muscleGroup}
+                  size="small"
                   sx={{
-                    textAlign: 'center',
-                    py: 8,
+                    mb: 2,
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    bgcolor: 'action.hover',
+                    color: 'text.secondary',
                   }}
-                >
-                  <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
-                  <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                    No workout history yet
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                    Start a workout with this exercise to see your history here
-                  </Typography>
-                </Box>
-              ) : (
+                />
+              )}
+
+              {/* Personal Best Card */}
+              {exercise.personalBest ? (
                 <Card
                   elevation={1}
                   sx={{
@@ -389,86 +292,166 @@ export default function ExerciseDetailPage() {
                     border: 1,
                     borderColor: 'divider',
                     borderRadius: 2,
+                    mb: 3,
                   }}
                 >
-                  <List sx={{ p: 0 }}>
-                    {exercise.history.map((entry, index) => (
-                      <React.Fragment key={index}>
-                        <ListItem
-                          sx={{
-                            px: 2.5,
-                            py: 2,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}>
-                            <CalendarToday
-                              sx={{ fontSize: '0.85rem', color: 'text.secondary', mr: 1 }}
-                            />
-                            <Typography
-                              variant="body2"
-                              sx={{ color: 'text.secondary', flex: 1, fontWeight: 500 }}
-                            >
-                              {entry.date}
-                            </Typography>
-                            {entry.isPR && (
-                              <Chip
-                                label="PR"
-                                size="small"
-                                sx={{
-                                  bgcolor: 'primary.main',
-                                  color: 'primary.contrastText',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.65rem',
-                                  height: 20,
-                                }}
-                              />
-                            )}
-                          </Box>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <TrendingUp sx={{ color: 'primary.main', mr: 1, fontSize: '1.25rem' }} />
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ color: 'primary.main', fontWeight: 700 }}
+                      >
+                        Personal Best
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 0.5 }}>
+                      <Typography
+                        variant="h3"
+                        sx={{ color: 'text.primary', fontWeight: 700, mr: 0.5 }}
+                      >
+                        {exercise.personalBest.weight} kg
+                      </Typography>
+                      <Typography
+                        variant="h4"
+                        sx={{ color: 'text.secondary', fontWeight: 700, mr: 0.5 }}
+                      >
+                        ×
+                      </Typography>
+                      <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700 }}>
+                        {exercise.personalBest.reps}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Set on {exercise.personalBest.date}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ) : null}
 
-                          <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 0.5 }}>
-                            <Box>
-                              <Typography
-                                variant="h6"
-                                sx={{ color: 'text.primary', fontWeight: 800 }}
-                              >
-                                <span style={{ color: 'var(--mui-palette-primary-main)' }}>
-                                  {entry.weight}kg
-                                </span>{' '}
-                                × {entry.reps}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{ color: 'text.secondary', fontWeight: 500 }}
-                              >
-                                Best set
-                              </Typography>
-                            </Box>
-                            <Box sx={{ ml: 'auto', textAlign: 'right' }}>
+              {/* Historical Performances */}
+              <Box sx={{ mb: 3 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: 'text.primary',
+                    fontWeight: 700,
+                    mb: 2,
+                    textTransform: 'uppercase',
+                    fontSize: '1rem',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  History
+                </Typography>
+
+                {exercise.history.length === 0 ? (
+                  /* Empty History State */
+                  <Box
+                    sx={{
+                      textAlign: 'center',
+                      py: 8,
+                    }}
+                  >
+                    <FitnessCenter sx={{ fontSize: '4rem', color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+                      No workout history yet
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                      Start a workout with this exercise to see your history here
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Card
+                    elevation={1}
+                    sx={{
+                      bgcolor: 'background.paper',
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                    }}
+                  >
+                    <List sx={{ p: 0 }}>
+                      {exercise.history.map((entry, index) => (
+                        <React.Fragment key={index}>
+                          <ListItem
+                            sx={{
+                              px: 2.5,
+                              py: 2,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'flex-start',
+                            }}
+                          >
+                            <Box
+                              sx={{ display: 'flex', alignItems: 'center', mb: 1, width: '100%' }}
+                            >
+                              <CalendarToday
+                                sx={{ fontSize: '0.875rem', color: 'text.secondary', mr: 1 }}
+                              />
                               <Typography
                                 variant="body2"
-                                sx={{ color: 'text.secondary', fontWeight: 600 }}
+                                sx={{ color: 'text.secondary', flex: 1, fontWeight: 500 }}
                               >
-                                {entry.sets} sets
+                                {entry.date}
                               </Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {entry.volume}kg total
-                              </Typography>
+                              {entry.isPR && (
+                                <Chip
+                                  label="PR"
+                                  size="small"
+                                  sx={{
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.75rem',
+                                    height: 20,
+                                  }}
+                                />
+                              )}
                             </Box>
-                          </Box>
-                        </ListItem>
-                        {index < exercise.history.length - 1 && (
-                          <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </List>
-                </Card>
-              )}
+
+                            <Box sx={{ display: 'flex', gap: 2, width: '100%', mb: 0.5 }}>
+                              <Box>
+                                <Typography
+                                  variant="h6"
+                                  sx={{ color: 'text.primary', fontWeight: 700 }}
+                                >
+                                  <span style={{ color: 'var(--mui-palette-primary-main)' }}>
+                                    {entry.weight}kg
+                                  </span>{' '}
+                                  × {entry.reps}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: 'text.secondary', fontWeight: 500 }}
+                                >
+                                  Best set
+                                </Typography>
+                              </Box>
+                              <Box sx={{ ml: 'auto', textAlign: 'right' }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: 'text.secondary', fontWeight: 600 }}
+                                >
+                                  {entry.sets} sets
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {entry.volume}kg total
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </ListItem>
+                          {index < exercise.history.length - 1 && (
+                            <Divider sx={{ bgcolor: 'divider', mx: 2.5, opacity: 0.5 }} />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  </Card>
+                )}
+              </Box>
             </Box>
-          </>
+          </Fade>
         ) : (
           /* Exercise Not Found State */
           <Box

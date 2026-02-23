@@ -71,13 +71,11 @@ export default function ChipFilter({
               onClick={() => handleClick(option)}
               icon={selected && multiSelect ? <Check /> : undefined}
               sx={{
+                height: 36,
                 fontWeight: selected ? 600 : 400,
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  transform: 'translateY(-1px)',
-                },
                 '&:active': {
-                  transform: 'translateY(0)',
+                  transform: 'scale(0.98)',
                 },
               }}
             />

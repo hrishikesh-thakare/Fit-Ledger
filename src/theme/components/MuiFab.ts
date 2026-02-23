@@ -1,9 +1,9 @@
-import { Components, Theme } from '@mui/material/styles';
+import { alpha, Components, Theme } from '@mui/material/styles';
 
 const MuiFab: Components<Theme>['MuiFab'] = {
   styleOverrides: {
     root: ({ theme }) => ({
-      boxShadow: `0 6px 12px rgba(103, 80, 164, 0.3)`,
+      boxShadow: `0 6px 12px ${alpha(theme.palette.primary.dark, 0.3)}`,
       transition: theme.transitions.create(
         ['box-shadow', 'transform', 'background-color'],
         {
@@ -12,8 +12,7 @@ const MuiFab: Components<Theme>['MuiFab'] = {
         }
       ),
       '&:hover': {
-        boxShadow: `0 8px 16px rgba(103, 80, 164, 0.4)`,
-        transform: 'scale(1.05)',
+        boxShadow: `0 8px 16px ${alpha(theme.palette.primary.dark, 0.4)}`,
       },
       '&:active': {
         transform: 'scale(0.98)',

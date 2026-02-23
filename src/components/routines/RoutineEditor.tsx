@@ -48,6 +48,7 @@ import {
   DragHandle,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
 
 // dnd-kit imports
@@ -469,64 +470,31 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       }}
     >
       {/* App Bar (Sticky) */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-          height: appBarHeight,
-          justifyContent: 'center',
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="back"
-            onClick={() => router.back()}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 800,
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
-              fontSize: '1rem',
-              flexGrow: 1,
-            }}
-          >
-            {routineId === 'new' ? 'Create Routine' : 'Edit Routine'}
-          </Typography>
-
-          <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
-            <MoreVert />
-          </IconButton>
-
-          <Menu
-            anchorEl={menuAnchorEl}
-            open={Boolean(menuAnchorEl)}
-            onClose={() => setMenuAnchorEl(null)}
-          >
-            <MenuItem
-              onClick={() => {
-                setMenuAnchorEl(null)
-                setReorderDialogOpen(true)
-              }}
+      <PageAppBar
+        title={routineId === 'new' ? 'Create Routine' : 'Edit Routine'}
+        onBack={() => router.back()}
+        actions={
+          <>
+            <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
+              <MoreVert />
+            </IconButton>
+            <Menu
+              anchorEl={menuAnchorEl}
+              open={Boolean(menuAnchorEl)}
+              onClose={() => setMenuAnchorEl(null)}
             >
-              Reorder Exercises
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+              <MenuItem
+                onClick={() => {
+                  setMenuAnchorEl(null)
+                  setReorderDialogOpen(true)
+                }}
+              >
+                Reorder Exercises
+              </MenuItem>
+            </Menu>
+          </>
+        }
+      />
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>

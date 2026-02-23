@@ -1,4 +1,4 @@
-import { Components, Theme } from '@mui/material/styles'
+import { alpha, Components, Theme } from '@mui/material/styles'
 
 const MuiBottomNavigationAction: Components<Theme>['MuiBottomNavigationAction'] = {
   styleOverrides: {
@@ -15,7 +15,7 @@ const MuiBottomNavigationAction: Components<Theme>['MuiBottomNavigationAction'] 
         backgroundColor: 'transparent',
       },
       '&:hover': {
-        backgroundColor: 'rgba(230, 225, 229, 0.08)',
+        backgroundColor: alpha(theme.palette.text.primary, 0.08),
       },
     }),
     label: () => ({

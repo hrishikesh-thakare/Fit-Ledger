@@ -2,7 +2,7 @@ import { Components, Theme } from '@mui/material/styles';
 
 /**
  * Material Design Bottom Sheet styling
- * Using 28px corner radius for MD3
+ * Using shape.borderRadiusLarge for MD3
  */
 const MuiDrawer: Components<Theme>['MuiDrawer'] = {
   styleOverrides: {
@@ -12,29 +12,29 @@ const MuiDrawer: Components<Theme>['MuiDrawer'] = {
     }),
     
     // Bottom drawer (sheet)
-    paperAnchorBottom: {
-      borderTopLeftRadius: '28px',
-      borderTopRightRadius: '28px',
+    paperAnchorBottom: ({ theme }) => ({
+      borderTopLeftRadius: `${theme.shape.borderRadiusLarge}px`,
+      borderTopRightRadius: `${theme.shape.borderRadiusLarge}px`,
       maxHeight: '90vh',
-    },
+    }),
     
     // Top drawer
-    paperAnchorTop: {
-      borderBottomLeftRadius: '28px',
-      borderBottomRightRadius: '28px',
-    },
+    paperAnchorTop: ({ theme }) => ({
+      borderBottomLeftRadius: `${theme.shape.borderRadiusLarge}px`,
+      borderBottomRightRadius: `${theme.shape.borderRadiusLarge}px`,
+    }),
     
     // Right drawer
-    paperAnchorRight: {
-      borderTopLeftRadius: '28px',
-      borderBottomLeftRadius: '28px',
-    },
+    paperAnchorRight: ({ theme }) => ({
+      borderTopLeftRadius: `${theme.shape.borderRadiusLarge}px`,
+      borderBottomLeftRadius: `${theme.shape.borderRadiusLarge}px`,
+    }),
     
     // Left drawer
-    paperAnchorLeft: {
-      borderTopRightRadius: '28px',
-      borderBottomRightRadius: '28px',
-    },
+    paperAnchorLeft: ({ theme }) => ({
+      borderTopRightRadius: `${theme.shape.borderRadiusLarge}px`,
+      borderBottomRightRadius: `${theme.shape.borderRadiusLarge}px`,
+    }),
   },
 };
 

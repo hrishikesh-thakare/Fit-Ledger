@@ -1,10 +1,10 @@
-import { Components, Theme } from '@mui/material/styles';
+import { alpha, Components, Theme } from '@mui/material/styles';
 
 const MuiListItemButton: Components<Theme>['MuiListItemButton'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       minHeight: '56px',
-      borderRadius: '12px',
+      borderRadius: `${theme.shape.borderRadiusSmall}px`,
       transition: theme.transitions.create(
         ['background-color'],
         {
@@ -13,15 +13,15 @@ const MuiListItemButton: Components<Theme>['MuiListItemButton'] = {
         }
       ),
       '&:hover': {
-        backgroundColor: 'rgba(230, 225, 229, 0.08)',
+        backgroundColor: alpha(theme.palette.text.primary, 0.08),
       },
       '&:active': {
-        backgroundColor: 'rgba(230, 225, 229, 0.12)',
+        backgroundColor: alpha(theme.palette.text.primary, 0.12),
       },
       '&.Mui-selected': {
-        backgroundColor: 'rgba(208, 188, 255, 0.12)',
+        backgroundColor: alpha(theme.palette.primary.main, 0.12),
         '&:hover': {
-          backgroundColor: 'rgba(208, 188, 255, 0.16)',
+          backgroundColor: alpha(theme.palette.primary.main, 0.16),
         },
       },
     }),
