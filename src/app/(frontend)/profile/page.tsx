@@ -8,7 +8,6 @@ import {
   Typography,
   Card,
   CardContent,
-  AppBar,
   Toolbar,
   Avatar,
   List,
@@ -18,8 +17,6 @@ import {
   Divider,
   Select,
   MenuItem,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,6 +24,7 @@ import {
   Button,
   TextField,
   Skeleton,
+  Fade,
 } from '@mui/material'
 import {
   FitnessCenter,
@@ -41,7 +39,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
-import BottomNav from '@/components/BottomNav'
+import AppScaffold from '@/components/layout/AppScaffold'
+import PageContainer from '@/components/layout/PageContainer'
+import PageAppBar from '@/components/PageAppBar'
+import type { User } from '@/payload-types'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -49,13 +50,11 @@ export default function ProfilePage() {
   const { showSnackbar } = useSnackbar()
 
   // User data State
-  const [userData, setUserData] = useState<any>(null)
+  const [userData, setUserData] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Settings State
   const [units, setUnits] = useState<'kg' | 'lb'>('kg')
-  const [snackbarOpen, setSnackbarOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
 
   // Target Weight Dialog State
   const [targetWeightDialogOpen, setTargetWeightDialogOpen] = useState(false)
@@ -97,14 +96,6 @@ export default function ProfilePage() {
     fetchUserData()
   }, [authUser?.id])
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 0)
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   const handleUnitsChange = async (newUnits: 'kg' | 'lb') => {
     if (!authUser) return
 
@@ -140,7 +131,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify({ targetWeight: weightInKg }),
       })
-      setUserData({ ...userData, targetWeight: weightInKg })
+      if (userData) setUserData({ ...userData, targetWeight: weightInKg })
       showSnackbar({ message: 'Target weight updated successfully', severity: 'success' })
       setTargetWeightDialogOpen(false)
     } catch (error) {
@@ -181,7 +172,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify({ displayName: displayName.trim() }),
       })
-      setUserData({ ...userData, displayName: displayName.trim() })
+      if (userData) setUserData({ ...userData, displayName: displayName.trim() })
       showSnackbar({ message: 'Profile updated successfully', severity: 'success' })
       setEditProfileDialogOpen(false)
     } catch (error) {
@@ -193,42 +184,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        pb: 12, // Extra padding for bottom nav
-      }}
-    >
+    <AppScaffold showBottomNav>
       {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={scrolled ? 2 : 0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-          transition: 'box-shadow 0.3s ease',
-        }}
-      >
-        <Toolbar>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 'bold', flex: 1 }}>
-            Profile
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <PageAppBar title="Profile" />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
+      <PageContainer>
         {/* User Info Card */}
         <Card
-          elevation={0}
+          elevation={1}
           sx={{
             bgcolor: 'background.paper',
             border: 1,
             borderColor: 'divider',
-            borderRadius: 1,
+            borderRadius: 2,
             mb: 3,
           }}
         >
@@ -246,46 +214,48 @@ export default function ProfilePage() {
                 <Skeleton variant="text" width="50%" height={20} sx={{ margin: '0 auto' }} />
               </>
             ) : (
-              <>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    bgcolor: 'action.selected',
-                    color: 'text.secondary',
-                    margin: '0 auto',
-                    mb: 2,
-                    fontSize: '2rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {userData?.displayName
-                    ?.split(' ')
-                    .map((n: string) => n[0])
-                    .join('') || authUser?.email?.[0].toUpperCase()}
-                </Avatar>
-                <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5 }}>
-                  {userData?.displayName || authUser?.email}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                  {authUser?.email}
-                </Typography>
+              <Fade in timeout={400}>
+                <Box>
+                  <Avatar
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      bgcolor: 'action.selected',
+                      color: 'text.secondary',
+                      margin: '0 auto',
+                      mb: 2,
+                      fontSize: '2rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {userData?.displayName
+                      ?.split(' ')
+                      .map((n: string) => n[0])
+                      .join('') || authUser?.email?.[0].toUpperCase()}
+                  </Avatar>
+                  <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 0.5 }}>
+                    {userData?.displayName || authUser?.email}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                    {authUser?.email}
+                  </Typography>
 
-                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                  Member since{' '}
-                  {userData?.createdAt
-                    ? new Date(userData.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        year: 'numeric',
-                      })
-                    : userData?.updatedAt
-                      ? new Date(userData.updatedAt).toLocaleDateString('en-US', {
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                    Member since{' '}
+                    {userData?.createdAt
+                      ? new Date(userData.createdAt).toLocaleDateString('en-US', {
                           month: 'long',
                           year: 'numeric',
                         })
-                      : 'N/A'}
-                </Typography>
-              </>
+                      : userData?.updatedAt
+                        ? new Date(userData.updatedAt).toLocaleDateString('en-US', {
+                            month: 'long',
+                            year: 'numeric',
+                          })
+                        : 'N/A'}
+                  </Typography>
+                </Box>
+              </Fade>
             )}
 
             <Divider sx={{ my: 2 }} />
@@ -297,7 +267,7 @@ export default function ProfilePage() {
                 cursor: 'pointer',
                 py: 1,
                 px: 2,
-                borderRadius: 1,
+                borderRadius: 1.5,
                 bgcolor: 'action.hover',
                 '&:active': {
                   bgcolor: 'action.selected',
@@ -336,12 +306,12 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
             }}
           >
             <List sx={{ p: 0 }}>
@@ -352,7 +322,7 @@ export default function ProfilePage() {
                 <ListItemText
                   primary="Weight Units"
                   primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '1rem' },
                   }}
                 />
                 <Select
@@ -363,7 +333,7 @@ export default function ProfilePage() {
                   sx={{
                     color: 'text.primary',
                     bgcolor: 'background.paper',
-                    fontSize: '0.9rem',
+                    fontSize: '0.875rem',
                     height: 32,
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'divider',
@@ -407,10 +377,10 @@ export default function ProfilePage() {
                       : 'Not set'
                   }
                   primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '1rem' },
                   }}
                   secondaryTypographyProps={{
-                    sx: { color: 'text.secondary', fontSize: '0.85rem' },
+                    sx: { color: 'text.secondary', fontSize: '0.875rem' },
                   }}
                 />
                 <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
@@ -435,12 +405,12 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
             }}
           >
             <List sx={{ p: 0 }}>
@@ -462,7 +432,7 @@ export default function ProfilePage() {
                 <ListItemText
                   primary="Export Data"
                   primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '1rem' },
                   }}
                 />
                 <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
@@ -487,12 +457,12 @@ export default function ProfilePage() {
           </Typography>
 
           <Card
-            elevation={0}
+            elevation={1}
             sx={{
               bgcolor: 'background.paper',
               border: 1,
               borderColor: 'divider',
-              borderRadius: 1,
+              borderRadius: 2,
             }}
           >
             <List sx={{ p: 0 }}>
@@ -514,7 +484,7 @@ export default function ProfilePage() {
                 <ListItemText
                   primary="About FitLedger"
                   primaryTypographyProps={{
-                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '0.95rem' },
+                    sx: { color: 'text.primary', fontWeight: 500, fontSize: '1rem' },
                   }}
                 />
                 <ChevronRight sx={{ color: 'text.disabled', fontSize: '1.25rem' }} />
@@ -531,14 +501,14 @@ export default function ProfilePage() {
             onClick={logout}
             sx={{
               bgcolor: 'error.dark',
-              color: 'white',
+              color: 'common.white',
               py: 1.5,
               fontWeight: 600,
-              fontSize: '0.95rem',
+              fontSize: '1rem',
               textAlign: 'center',
-              borderRadius: 1,
+              borderRadius: 1.5,
               '&:hover': {
-                bgcolor: '#b71c1c',
+                bgcolor: 'error.main',
               },
             }}
           >
@@ -552,22 +522,7 @@ export default function ProfilePage() {
             FitLedger v1.0.0
           </Typography>
         </Box>
-      </Container>
-
-      {/* Bottom Navigation */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          bgcolor: 'background.paper',
-          borderTop: 1,
-          borderColor: 'divider',
-        }}
-      >
-        <BottomNav />
-      </Box>
+      </PageContainer>
 
       {/* Edit Profile Dialog */}
       <Dialog
@@ -641,32 +596,6 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Coming Soon Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ bottom: 80 }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="info"
-          variant="filled"
-          sx={{
-            width: '100%',
-            alignItems: 'center',
-            '& .MuiAlert-action': {
-              paddingTop: 0,
-              paddingBottom: 0,
-              alignItems: 'center',
-            },
-          }}
-        >
-          Coming soon
-        </Alert>
-      </Snackbar>
-    </Box>
+    </AppScaffold>
   )
 }

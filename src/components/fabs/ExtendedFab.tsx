@@ -3,6 +3,7 @@
 import React from 'react';
 import { Fab, Box } from '@mui/material';
 import { useExtendedFab } from '@/hooks/useExtendedFab';
+import { BOTTOM_NAV_HEIGHT } from '@/components/layout/constants';
 
 interface ExtendedFabProps {
   icon: React.ReactNode;
@@ -36,7 +37,7 @@ export default function ExtendedFab({
       sx={{
         position: 'fixed',
         right: 16,
-        bottom: bottom || 'calc(72px + 16px + env(safe-area-inset-bottom))',
+        bottom: bottom || `calc(${BOTTOM_NAV_HEIGHT}px + 16px + env(safe-area-inset-bottom))`,
         zIndex: 1050,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         opacity: visible ? 1 : 0,

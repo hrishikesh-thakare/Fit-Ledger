@@ -13,6 +13,7 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Fade,
 } from '@mui/material'
 import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material'
 
@@ -52,95 +53,102 @@ export default function LoginPage() {
       }}
     >
       <Container maxWidth="xs" disableGutters sx={{ width: '100%', maxWidth: '400px' }}>
-        <Box sx={{ p: 3, width: '100%' }}>
-          <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <Typography variant="headlineMedium" component="h1" fontWeight="bold" gutterBottom>
-              FitLedger
-            </Typography>
-            <Typography variant="bodyMedium" color="text.secondary">
-              Track your fitness journey
-            </Typography>
-          </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleLogin}>
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              margin="normal"
-              required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Email color="primary" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              margin="normal"
-              required
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock color="primary" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              type="submit"
-              disabled={loading}
-              sx={{ mt: 3, mb: 2 }}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
-            </Button>
-
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
+        <Fade in timeout={600}>
+          <Box sx={{ p: 3, width: '100%' }}>
+            <Box sx={{ mb: 4, textAlign: 'center' }}>
+              <Typography variant="headlineMedium" component="h1" fontWeight="bold" gutterBottom>
+                FitLedger
+              </Typography>
               <Typography variant="bodyMedium" color="text.secondary">
-                Don&apos;t have an account?{' '}
-                <Link
-                  href="/signup"
-                  sx={{
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                    },
-                  }}
-                >
-                  Sign Up
-                </Link>
+                Track your fitness journey
               </Typography>
             </Box>
-          </form>
-        </Box>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            <form onSubmit={handleLogin}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                margin="normal"
+                required
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email color="primary" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                margin="normal"
+                required
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="primary" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                type="submit"
+                disabled={loading}
+                sx={{ mt: 3, mb: 2, py: 1.5 }}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              </Button>
+
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="bodyMedium" color="text.secondary">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    href="/signup"
+                    sx={{
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      color: 'primary.main',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Sign Up
+                  </Link>
+                </Typography>
+              </Box>
+            </form>
+          </Box>
+        </Fade>
       </Container>
     </Box>
   )

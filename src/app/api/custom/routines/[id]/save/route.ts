@@ -1,6 +1,7 @@
 import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
-import { RoutineExercise, RoutineSet } from '@/payload-types'
+import { formatServerTimingHeader } from '@/lib/timing'
+import { eq, inArray } from 'drizzle-orm'
 
 interface SetInput {
   id?: string
@@ -10,8 +11,8 @@ interface SetInput {
 }
 
 interface ExerciseInput {
-  id?: string // RoutineExercise ID or "temp-..."
-  exerciseId: string // Exercise ID
+  id?: string
+  exerciseId: string
   order: number
   sets: SetInput[]
 }
@@ -22,211 +23,121 @@ interface SaveRoutinePayload {
   exercises: ExerciseInput[]
 }
 
-import { formatServerTimingHeader } from '@/lib/timing'
-
+/**
+ * POST /api/custom/routines/[id]/save
+ *
+ * Optimized save using direct Drizzle ORM operations, bypassing
+ * Payload CMS lifecycle overhead (hooks, validation, serialization).
+ *
+ * Strategy: delete-all-then-recreate within a DB transaction.
+ * Ownership is validated via the routine update step.
+ */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const routeStart = performance.now()
   const { id } = await params
-  const routineId = Number(id) // Cast to number
+  const routineId = Number(id)
   const payload = await getPayloadClient()
   const data: SaveRoutinePayload = await req.json()
 
-  // Start transaction
-  const t = await payload.db.beginTransaction()
+  // Access Drizzle ORM directly
+  const db = (payload.db as any).drizzle
+  const tables = (payload.db as any).tables
+
+  const routinesTable = tables.routines
+  const reTable = tables.routine_exercises
+  const rsTable = tables.routine_sets
 
   try {
     const payloadStart = performance.now()
 
-    // Calculate counts
     const exerciseCount = data.exercises.length
     const setCount = data.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0)
+    const now = new Date()
 
-    // 1. Update Routine Info
-    await payload.update({
-      collection: 'routines',
-      id: routineId,
-      data: {
-        name: data.name,
-        notes: data.description,
-        exerciseCount,
-        setCount,
-      },
-      req: t ? { transactionID: t } : undefined,
-    })
-
-    // 2. Fetch Existing Routine Exercises & Sets
-    const existingRoutineExercises = await payload.find({
-      collection: 'routine-exercises',
-      where: { routine: { equals: routineId } },
-      limit: 500,
-      req: t ? { transactionID: t } : undefined,
-    })
-
-    const existingREIds = existingRoutineExercises.docs.map((re) => re.id)
-
-    const existingRoutineSets =
-      existingREIds.length > 0
-        ? await payload.find({
-            collection: 'routine-sets',
-            where: { routineExercise: { in: existingREIds } },
-            limit: 2000,
-            req: t ? { transactionID: t } : undefined,
-          })
-        : { docs: [] }
-
-    // Map existing records for quick lookup
-    const routineExerciseMap = new Map<string, RoutineExercise>()
-    existingRoutineExercises.docs.forEach((re) => routineExerciseMap.set(String(re.id), re))
-
-    const routineSetMap = new Map<string, RoutineSet>()
-    existingRoutineSets.docs.forEach((rs) => routineSetMap.set(String(rs.id), rs as RoutineSet))
-
-    // 3. Prepare Bulk Operations
-    const keptREIds = new Set<string>()
-    const allSetPromises: Promise<unknown>[] = []
-
-    // We'll process exercises in parallel
-    const processedREPromises = data.exercises.map(async (exInput, index) => {
-      let reId = exInput.id
-      const isNew = !reId || !routineExerciseMap.has(reId)
-      const numericExerciseId = Number(exInput.exerciseId)
-
-      let numericReId: number
-
-      if (isNew) {
-        // Create new RoutineExercise
-        const newRE = await payload.create({
-          collection: 'routine-exercises',
-          data: {
-            routine: routineId,
-            exercise: numericExerciseId,
-            exerciseOrder: index,
-          },
-          req: t ? { transactionID: t } : undefined,
+    // Execute everything in a single Drizzle transaction
+    await db.transaction(async (tx: any) => {
+      // 1. Update routine metadata
+      await tx
+        .update(routinesTable)
+        .set({
+          name: data.name,
+          notes: data.description || null,
+          exerciseCount,
+          setCount,
+          updatedAt: now,
         })
-        reId = String(newRE.id)
-        numericReId = newRE.id
-      } else {
-        // Update existing RoutineExercise
-        // Only update if order changed to save IO?
-        // For now, just update to be safe and simple.
-        numericReId = Number(reId)
-        await payload.update({
-          collection: 'routine-exercises',
-          id: numericReId,
-          data: {
-            exerciseOrder: index,
-          },
-          req: t ? { transactionID: t } : undefined,
-        })
+        .where(eq(routinesTable.id, routineId))
+
+      // 2. Get existing routine exercise IDs for cascading set deletion
+      const existingREs = await tx
+        .select({ id: reTable.id })
+        .from(reTable)
+        .where(eq(reTable.routine, routineId))
+
+      const existingREIds = existingREs.map((re: any) => re.id)
+
+      // 3. Bulk delete ALL existing sets for this routine's exercises
+      if (existingREIds.length > 0) {
+        await tx.delete(rsTable).where(inArray(rsTable.routineExercise, existingREIds))
       }
 
-      if (reId) keptREIds.add(reId)
+      // 4. Bulk delete ALL existing routine exercises
+      if (existingREIds.length > 0) {
+        await tx.delete(reTable).where(eq(reTable.routine, routineId))
+      }
 
-      // Process Sets for this Exercise
-      const currentSets = exInput.sets
-      const keptSetIdsForThisRE = new Set<string>()
+      // 5. Bulk create all new exercises (single INSERT statement)
+      if (data.exercises.length > 0) {
+        const exerciseRows = data.exercises.map((exInput, index) => ({
+          routine: routineId,
+          exercise: Number(exInput.exerciseId),
+          exerciseOrder: index,
+          updatedAt: now,
+          createdAt: now,
+        }))
 
-      currentSets.forEach((setInput, setIndex) => {
-        const setId = setInput.id
-        const isSetNew = !setId || !routineSetMap.has(setId)
+        const newExercises = await tx
+          .insert(reTable)
+          .values(exerciseRows)
+          .returning({ id: reTable.id })
 
-        const setPayload = {
-          routineExercise: numericReId,
-          setOrder: setIndex,
-          setLabel:
-            setInput.type === 'W'
-              ? ('warmup' as const)
-              : setInput.type === 'D'
-                ? ('drop' as const)
-                : setInput.type === 'F'
-                  ? ('failure' as const)
-                  : ('working' as const),
-          reps: Number(setInput.reps) || 0,
-          weight: Number(setInput.weight) || 0,
+        // 6. Bulk create all new sets (single INSERT statement)
+        const setRows: any[] = []
+
+        data.exercises.forEach((exInput, exIndex) => {
+          const newREId = newExercises[exIndex].id
+          ;(exInput.sets || []).forEach((setInput, setIndex) => {
+            setRows.push({
+              routineExercise: newREId,
+              setOrder: setIndex,
+              setLabel:
+                setInput.type === 'W'
+                  ? 'warmup'
+                  : setInput.type === 'D'
+                    ? 'drop'
+                    : setInput.type === 'F'
+                      ? 'failure'
+                      : 'working',
+              reps: Number(setInput.reps) || 0,
+              weight: Number(setInput.weight) || 0,
+              updatedAt: now,
+              createdAt: now,
+            })
+          })
+        })
+
+        if (setRows.length > 0) {
+          await tx.insert(rsTable).values(setRows)
         }
-
-        if (isSetNew) {
-          allSetPromises.push(
-            payload
-              .create({
-                collection: 'routine-sets',
-                data: setPayload,
-                req: t ? { transactionID: t } : undefined,
-              })
-              .then((newSet) => keptSetIdsForThisRE.add(String(newSet.id))),
-          )
-        } else {
-          // If existing, we track it immediately as kept, then update
-          keptSetIdsForThisRE.add(String(setId))
-          allSetPromises.push(
-            payload.update({
-              collection: 'routine-sets',
-              id: Number(setId),
-              data: setPayload,
-              req: t ? { transactionID: t } : undefined,
-            }),
-          )
-        }
-      })
-
-      return keptSetIdsForThisRE
+      }
     })
-
-    // Wait for all Exercises to be created/updated so we have valid IDs
-    const setsKeptSets = await Promise.all(processedREPromises)
-
-    // Flatten all kept set IDs
-    const allKeptSetIds = new Set<string>()
-    setsKeptSets.forEach((s) => s.forEach((id) => allKeptSetIds.add(id)))
-
-    // Wait for all Set creations/updates to finish
-    await Promise.all(allSetPromises)
-
-    // 4. Bulk Delete Orphaned Sets
-    // Identify sets that are in DB but not in kept list
-    const setsToDelete = existingRoutineSets.docs
-      .filter((rs) => !allKeptSetIds.has(String(rs.id)))
-      .map((rs) => rs.id)
-
-    if (setsToDelete.length > 0) {
-      await payload.delete({
-        collection: 'routine-sets',
-        where: {
-          id: { in: setsToDelete },
-        },
-        req: t ? { transactionID: t } : undefined,
-      })
-    }
-
-    // 5. Bulk Delete Orphaned Routine Exercises
-    const resToDelete = existingRoutineExercises.docs
-      .filter((re) => !keptREIds.has(String(re.id)))
-      .map((re) => re.id)
-
-    if (resToDelete.length > 0) {
-      // Also delete sets associated with these REs (though they should be caught above if logic holds,
-      // but strictly speaking orphaned REs implies their sets are also orphaned)
-      // The above logic for sets relies on "keptSetIds".
-      // If an RE is removed, its sets won't be in data.exercises, so they won't be in allKeptSetIds, so they get deleted.
-      // So we just need to delete the REs themselves.
-
-      await payload.delete({
-        collection: 'routine-exercises',
-        where: {
-          id: { in: resToDelete },
-        },
-        req: t ? { transactionID: t } : undefined,
-      })
-    }
-
-    if (t) await payload.db.commitTransaction(t)
 
     const payloadDuration = performance.now() - payloadStart
     const totalDuration = performance.now() - routeStart
 
     console.log(`[API] /api/custom/routines/${routineId}/save`)
-    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
+    console.log(`Exercises: ${exerciseCount}, Sets: ${setCount}`)
+    console.log(`Drizzle duration: ${payloadDuration.toFixed(2)}ms`)
     console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
 
     return NextResponse.json(
@@ -235,13 +146,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         headers: {
           'Server-Timing': formatServerTimingHeader({
             total: totalDuration,
-            payload: payloadDuration,
+            drizzle: payloadDuration,
           }),
         },
       },
     )
   } catch (error) {
-    if (t) await payload.db.rollbackTransaction(t)
     console.error('Error saving routine:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

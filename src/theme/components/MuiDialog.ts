@@ -4,7 +4,7 @@ const MuiDialog: Components<Theme>['MuiDialog'] = {
   styleOverrides: {
     paper: ({ theme }) => ({
       backgroundColor: theme.palette.surfaceContainerHigh || theme.palette.background.paper,
-      borderRadius: '28px',
+      borderRadius: `${theme.shape.borderRadiusLarge}px`,
       boxShadow: theme.shadows[3],
     }),
   },

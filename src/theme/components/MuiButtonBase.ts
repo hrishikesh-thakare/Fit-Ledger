@@ -1,4 +1,4 @@
-import { Components, Theme } from '@mui/material/styles';
+import { alpha, Components, Theme } from '@mui/material/styles';
 
 const MuiButtonBase: Components<Theme>['MuiButtonBase'] = {
   defaultProps: {
@@ -6,10 +6,10 @@ const MuiButtonBase: Components<Theme>['MuiButtonBase'] = {
     disableTouchRipple: false,
   },
   styleOverrides: {
-    root: {
+    root: ({ theme }) => ({
       // Material ripple configuration
       '& .MuiTouchRipple-root': {
-        color: 'rgba(208, 188, 255, 0.12)',
+        color: alpha(theme.palette.primary.main, 0.12),
       },
       '& .MuiTouchRipple-rippleVisible': {
         opacity: 0.12,
@@ -18,7 +18,7 @@ const MuiButtonBase: Components<Theme>['MuiButtonBase'] = {
       '& .MuiTouchRipple-child': {
         backgroundColor: 'currentColor',
       },
-    },
+    }),
   },
 };
 

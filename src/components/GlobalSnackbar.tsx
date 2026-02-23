@@ -3,6 +3,7 @@
 import React from 'react'
 import { Snackbar, Alert, IconButton, Box } from '@mui/material'
 import { Close } from '@mui/icons-material'
+import { BOTTOM_NAV_HEIGHT } from '@/components/layout/constants'
 
 interface GlobalSnackbarProps {
   snackbar: {
@@ -31,7 +32,7 @@ export default function GlobalSnackbar({ snackbar, onClose }: GlobalSnackbarProp
       onClose={onClose}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       sx={{
-        bottom: 'calc(72px + 32px + env(safe-area-inset-bottom))',
+        bottom: `calc(${BOTTOM_NAV_HEIGHT}px + 32px + env(safe-area-inset-bottom))`,
         left: 16,
         right: 16,
         '& .MuiSnackbarContent-root': {

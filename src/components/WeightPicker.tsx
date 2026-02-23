@@ -137,7 +137,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
       maxWidth="xs"
       PaperProps={{
         sx: {
-          borderRadius: 4,
+          borderRadius: 3,
           bgcolor: 'background.paper',
           overflow: 'visible', // Allow picker popper to overflow if needed, though usually it's a portal
         },
@@ -172,8 +172,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
             display: 'flex',
             position: 'relative',
             overflow: 'hidden',
-            // bgcolor: 'surfaceContainer', // Removed as per request
-            borderRadius: 2,
+            borderRadius: 1.5,
           }}
         >
           {/* Integer Column */}
@@ -281,7 +280,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
           onClick={handleSave}
           variant="contained"
           size="large"
-          sx={{ px: 4, borderRadius: 2 }}
+          sx={{ px: 4, borderRadius: 1.5 }}
         >
           Save
         </Button>

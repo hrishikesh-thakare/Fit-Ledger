@@ -14,6 +14,19 @@ export const runtime = 'nodejs'
 export const metadata = {
   description: 'Track your fitness journey with FitLedger',
   title: 'FitLedger - Workout Tracker',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent' as const,
+    title: 'FitLedger',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+}
+
+export const viewport = {
+  viewportFit: 'cover' as const,
 }
 
 import { Roboto, Roboto_Mono } from 'next/font/google'
@@ -37,6 +50,10 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
 
   return (
     <html lang="en" data-scroll-behavior="smooth">
+      <head>
+        <meta name="theme-color" content="#121212" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className={`${roboto.variable} ${robotoMono.variable}`}>
         <ThemeProvider>
           <AuthProvider initialUser={user}>

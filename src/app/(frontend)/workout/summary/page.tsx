@@ -12,8 +12,7 @@ import {
   Container,
   Typography,
   Card,
-  AppBar,
-  Toolbar,
+  CardContent,
   Button,
   List,
   ListItem,
@@ -27,9 +26,12 @@ import {
   DialogContentText,
   DialogActions,
   Skeleton,
+  Fade,
   CircularProgress,
+  Alert,
 } from '@mui/material'
-import { useSnackbar } from '@/contexts/SnackbarContext'
+import { useSnackbar } from '@/hooks/useSnackbar'
+import PageAppBar from '@/components/PageAppBar'
 import { useBackgroundSync } from '@/contexts/BackgroundSyncContext'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
@@ -262,7 +264,7 @@ function WorkoutSummaryContent() {
         await apiFetch(`/workout-days/${workoutDayId}`, {
           method: 'DELETE',
         })
-
+        // Workout discarded successfully
         showSnackbar({ message: 'Workout discarded', severity: 'info' })
       }
 
@@ -285,237 +287,215 @@ function WorkoutSummaryContent() {
       }}
     >
       {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
-        <Toolbar>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.02em',
-              fontSize: '1rem',
-              flexGrow: 1,
-            }}
-          >
-            Workout Complete
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <PageAppBar title="Workout Complete" />
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
         {loading ? (
           <Box>
-            <Skeleton variant="text" width="60%" height={48} sx={{ mx: 'auto', mb: 1 }} />
-            <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto', mb: 3 }} />
+            {/* "Well Done!!" heading */}
+            <Skeleton variant="text" width="50%" height={48} sx={{ mx: 'auto', mb: 3 }} />
+            {/* Stats cards row (Duration + Volume) */}
             <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Skeleton variant="rectangular" width="50%" height={100} sx={{ borderRadius: 2 }} />
-              <Skeleton variant="rectangular" width="50%" height={100} sx={{ borderRadius: 2 }} />
+              <Skeleton variant="rectangular" width="50%" height={80} sx={{ borderRadius: 2 }} />
+              <Skeleton variant="rectangular" width="50%" height={80} sx={{ borderRadius: 2 }} />
             </Box>
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} variant="rectangular" height={80} sx={{ mb: 2, borderRadius: 2 }} />
+            {/* Exercise summary cards */}
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={64} sx={{ mb: 2, borderRadius: 2 }} />
             ))}
+            {/* Settings toggle card */}
+            <Skeleton variant="rectangular" height={56} sx={{ mb: 2, borderRadius: 2 }} />
+            {/* Save button */}
+            <Skeleton variant="rectangular" height={48} sx={{ mb: 2, borderRadius: 2 }} />
           </Box>
         ) : (
-          <>
-            {/* Header */}
-            <Box sx={{ mb: 3, textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
-                Good Job! 🎉
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                You crushed your chest day session.
-              </Typography>
-            </Box>
-
-            {/* Stats Cards */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  flex: 1,
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  p: 2,
-                  textAlign: 'center',
-                }}
-              >
-                <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, mb: 0 }}>
-                  {displayData.duration}
+          <Fade in timeout={400}>
+            <Box>
+              {/* Header */}
+              <Box sx={{ mb: 3, textAlign: 'center' }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  Well Done!!
                 </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+              </Box>
+
+              {/* Stats Cards */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                <Card
+                  elevation={1}
+                  sx={{
+                    flex: 1,
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    p: 2,
+                    textAlign: 'center',
+                  }}
                 >
-                  Duration
-                </Typography>
-              </Card>
+                  <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700, mb: 0 }}>
+                    {displayData.duration}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+                  >
+                    Duration
+                  </Typography>
+                </Card>
 
-              <Card
-                elevation={0}
-                sx={{
-                  flex: 1,
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  p: 2,
-                  textAlign: 'center',
-                }}
-              >
-                <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 800, mb: 0 }}>
-                  {displayData.totalVolume.toFixed(1)}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+                <Card
+                  elevation={1}
+                  sx={{
+                    flex: 1,
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    p: 2,
+                    textAlign: 'center',
+                  }}
                 >
-                  Volume ({preferredUnit})
-                </Typography>
-              </Card>
-            </Box>
+                  <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700, mb: 0 }}>
+                    {displayData.totalVolume.toFixed(1)}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}
+                  >
+                    Volume ({preferredUnit})
+                  </Typography>
+                </Card>
+              </Box>
 
-            {/* Exercises Summary */}
-            <Stack spacing={2} sx={{ mb: 4 }}>
-              {displayData.exercises.map(
-                (exercise: (typeof displayData.exercises)[number], index: number) => (
-                  <Card
-                    key={exercise.id}
-                    elevation={0}
+              {/* Exercises Summary */}
+              <Stack spacing={2} sx={{ mb: 4 }}>
+                {displayData.exercises.map(
+                  (exercise: (typeof displayData.exercises)[number], index: number) => (
+                    <Card
+                      key={exercise.id}
+                      elevation={0}
+                      sx={{
+                        bgcolor: 'background.paper',
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1,
+                            bgcolor: 'surfaceContainerHighest',
+                            color: 'text.secondary',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2,
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                            {exercise.name}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                            {exercise.sets} sets • {exercise.weight} best
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Card>
+                  ),
+                )}
+              </Stack>
+
+              {/* Settings & Actions */}
+              <Box sx={{ mb: 3 }}>
+                <Card
+                  elevation={1}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    mb: 3,
+                    p: 2,
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={updatePrevWeights}
+                        onChange={(e) => setUpdatePrevWeights(e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: 'primary.main',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: 'primary.main',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          Update Previous Weights
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Sync last performed weights to new workouts
+                        </Typography>
+                      </Box>
+                    }
                     sx={{
-                      bgcolor: 'background.paper',
-                      border: 1,
-                      borderColor: 'divider',
+                      width: '100%',
+                      ml: 0,
+                      justifyContent: 'space-between',
+                      flexDirection: 'row-reverse',
+                      m: 0,
+                    }}
+                  />
+                </Card>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  sx={{
+                    py: 1.5,
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    mb: 2,
+                  }}
+                >
+                  {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Save Workout'}
+                </Button>
+
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    variant="text"
+                    color="error"
+                    size="large"
+                    onClick={handleDiscard}
+                    sx={{
+                      fontWeight: 600,
+                      px: 4,
                       borderRadius: 2,
-                      overflow: 'hidden',
                     }}
                   >
-                    <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-                      <Box
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 1,
-                          bgcolor: 'surfaceContainerHighest',
-                          color: 'text.secondary',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: 2,
-                          fontWeight: 700,
-                          fontSize: '0.875rem',
-                        }}
-                      >
-                        {index + 1}
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                          {exercise.name}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                          {exercise.sets} sets • {exercise.weight} best
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Card>
-                ),
-              )}
-            </Stack>
-
-            {/* Settings & Actions */}
-            <Box sx={{ mb: 3 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  mb: 3,
-                  p: 2,
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={updatePrevWeights}
-                      onChange={(e) => setUpdatePrevWeights(e.target.checked)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: 'primary.main',
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: 'primary.main',
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        Update Previous Weights
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Sync last performed weights to new workouts
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{
-                    width: '100%',
-                    ml: 0,
-                    justifyContent: 'space-between',
-                    flexDirection: 'row-reverse',
-                    m: 0,
-                  }}
-                />
-              </Card>
-
-              <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                onClick={handleSave}
-                disabled={isSaving}
-                sx={{
-                  py: 1.5,
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  borderRadius: 2,
-                  mb: 2,
-                }}
-              >
-                {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Save Workout'}
-              </Button>
-
-              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                <Button
-                  variant="text"
-                  color="error"
-                  size="large"
-                  onClick={handleDiscard}
-                  sx={{
-                    fontWeight: 600,
-                    px: 4,
-                    borderRadius: 2,
-                  }}
-                >
-                  Discard Workout
-                </Button>
+                    Discard Workout
+                  </Button>
+                </Box>
               </Box>
             </Box>
-          </>
+          </Fade>
         )}
       </Container>
 
@@ -559,7 +539,21 @@ function WorkoutSummaryContent() {
 
 export default function WorkoutSummaryPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.default',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
       <WorkoutSummaryContent />
     </Suspense>
   )

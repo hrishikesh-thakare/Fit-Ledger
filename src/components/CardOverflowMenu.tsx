@@ -128,7 +128,7 @@ export default function CardOverflowMenu({
               disablePadding
               sx={{
                 bgcolor: 'background.paper', // Match app card background
-                borderRadius: 4,
+                borderRadius: 2,
                 overflow: 'hidden',
               }}
             >

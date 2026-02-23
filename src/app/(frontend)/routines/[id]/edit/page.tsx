@@ -38,6 +38,7 @@ import {
   CircularProgress,
   Alert,
   Skeleton,
+  Fade,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -51,6 +52,7 @@ import {
   DragHandle,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import {
@@ -439,6 +441,31 @@ export default function EditRoutinePage() {
     return normalCount
   }
 
+  const handleDeleteRoutine = async () => {
+    if (!window.confirm('Are you sure you want to delete this routine?')) return
+
+    try {
+      const routineId = params.id as string
+      // Assuming apiFetch handles the base URL
+      await apiFetch(`/routines/${routineId}`, {
+        method: 'DELETE',
+      })
+
+      showSnackbar({
+        message: 'Routine deleted successfully',
+        severity: 'success',
+      })
+
+      router.push('/routines')
+    } catch (err: any) {
+      console.error('Error deleting routine:', err)
+      showSnackbar({
+        message: 'Failed to delete routine',
+        severity: 'error',
+      })
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -448,64 +475,34 @@ export default function EditRoutinePage() {
       }}
     >
       {/* App Bar (Sticky) */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-          height: appBarHeight,
-          justifyContent: 'center',
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="back"
-            onClick={() => router.back()}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 800,
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
-              fontSize: '1rem',
-              flexGrow: 1,
-            }}
-          >
-            Edit Routine
-          </Typography>
-
-          <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
-            <MoreVert />
-          </IconButton>
-
-          <Menu
-            anchorEl={menuAnchorEl}
-            open={Boolean(menuAnchorEl)}
-            onClose={() => setMenuAnchorEl(null)}
-          >
-            <MenuItem
-              onClick={() => {
-                setMenuAnchorEl(null)
-                setReorderDialogOpen(true)
-              }}
+      <PageAppBar
+        title="Edit Routine"
+        onBack={() => router.back()}
+        actions={
+          <>
+            <IconButton onClick={handleDeleteRoutine} sx={{ mr: 1, color: 'error.main' }}>
+              <DeleteOutline />
+            </IconButton>
+            <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
+              <MoreVert />
+            </IconButton>
+            <Menu
+              anchorEl={menuAnchorEl}
+              open={Boolean(menuAnchorEl)}
+              onClose={() => setMenuAnchorEl(null)}
             >
-              Reorder Exercises
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+              <MenuItem
+                onClick={() => {
+                  setMenuAnchorEl(null)
+                  setReorderDialogOpen(true)
+                }}
+              >
+                Reorder Exercises
+              </MenuItem>
+            </Menu>
+          </>
+        }
+      />
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
@@ -583,279 +580,286 @@ export default function EditRoutinePage() {
             </Stack>
           </Box>
         ) : (
-          <>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-            <Stack spacing={3}>
-              {/* Routine Info */}
-              <Box sx={{ px: 1 }}>
-                <TextField
-                  fullWidth
-                  label="Routine Name"
-                  value={routineName}
-                  onChange={(e) => setRoutineName(e.target.value)}
-                  placeholder="e.g., Push Day"
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      bgcolor: 'background.paper',
-                    },
-                  }}
-                />
-              </Box>
-
-              {/* Exercises Section */}
-              <Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 1.5,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle2"
+          <Fade in timeout={400}>
+            <Box>
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+              <Stack spacing={3}>
+                {/* Routine Info */}
+                <Box sx={{ px: 1 }}>
+                  <TextField
+                    fullWidth
+                    label="Routine Name"
+                    value={routineName}
+                    onChange={(e) => setRoutineName(e.target.value)}
+                    placeholder="e.g., Push Day"
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
                     sx={{
-                      color: 'text.secondary',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
+                      '& .MuiOutlinedInput-root': {
+                        bgcolor: 'background.paper',
+                      },
                     }}
-                  >
-                    Exercises
-                  </Typography>
-                  <Button
-                    startIcon={<Add />}
-                    size="small"
-                    onClick={() => setOpenExerciseDrawer(true)}
-                    sx={{
-                      fontWeight: 600,
-                      textTransform: 'none',
-                    }}
-                  >
-                    Add Exercise
-                  </Button>
+                  />
                 </Box>
 
-                {exercises.length === 0 ? (
+                {/* Exercises Section */}
+                <Box>
                   <Box
                     sx={{
-                      textAlign: 'center',
-                      py: 6,
-                      bgcolor: 'background.paper',
-                      borderRadius: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderStyle: 'dashed',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 1.5,
                     }}
                   >
-                    <FitnessCenter
-                      sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1.5, opacity: 0.5 }}
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      No exercises added yet
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Exercises
                     </Typography>
+                    <Button
+                      startIcon={<Add />}
+                      size="small"
+                      onClick={() => setOpenExerciseDrawer(true)}
+                      sx={{
+                        fontWeight: 600,
+                        textTransform: 'none',
+                      }}
+                    >
+                      Add Exercise
+                    </Button>
                   </Box>
-                ) : (
-                  <Stack spacing={2}>
-                    {exercises.map((exercise) => (
-                      <Card
-                        key={exercise.id}
-                        elevation={1}
-                        sx={{
-                          bgcolor: 'background.paper',
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {/* Exercise Header */}
-                        <Box
+
+                  {exercises.length === 0 ? (
+                    <Box
+                      sx={{
+                        textAlign: 'center',
+                        py: 6,
+                        bgcolor: 'background.paper',
+                        borderRadius: 2,
+                        border: 1,
+                        borderColor: 'divider',
+                        borderStyle: 'dashed',
+                      }}
+                    >
+                      <FitnessCenter
+                        sx={{ fontSize: '3rem', color: 'text.disabled', mb: 1.5, opacity: 0.5 }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        No exercises added yet
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Stack spacing={2}>
+                      {exercises.map((exercise) => (
+                        <Card
+                          key={exercise.id}
+                          elevation={1}
                           sx={{
-                            p: 2,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            borderBottom: 1,
+                            bgcolor: 'background.paper',
+                            border: 1,
                             borderColor: 'divider',
+                            borderRadius: 2,
+                            overflow: 'hidden',
                           }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                              {exercise.name}
-                            </Typography>
-                          </Box>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveExercise(exercise.id)}
+                          {/* Exercise Header */}
+                          <Box
+                            sx={{
+                              p: 2,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              borderBottom: 1,
+                              borderColor: 'divider',
+                            }}
                           >
-                            <DeleteOutline fontSize="small" />
-                          </IconButton>
-                        </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                                {exercise.name}
+                              </Typography>
+                            </Box>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveExercise(exercise.id)}
+                            >
+                              <DeleteOutline fontSize="small" />
+                            </IconButton>
+                          </Box>
 
-                        {/* Sets Table */}
-                        <TableContainer sx={{ bgcolor: 'transparent' }}>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell
-                                  align="center"
-                                  width="20%"
-                                  sx={{
-                                    borderBottomColor: 'divider',
-                                    color: 'text.secondary',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  Set
-                                </TableCell>
-                                <TableCell
-                                  align="center"
-                                  width="40%"
-                                  sx={{
-                                    borderBottomColor: 'divider',
-                                    color: 'text.secondary',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {preferredUnit}
-                                </TableCell>
-                                <TableCell
-                                  align="center"
-                                  width="40%"
-                                  sx={{
-                                    borderBottomColor: 'divider',
-                                    color: 'text.secondary',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  Reps
-                                </TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {exercise.sets.map((set, index) => (
-                                <TableRow
-                                  key={set.id}
-                                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                >
-                                  <TableCell align="center">
-                                    <Button
-                                      variant="text"
-                                      disableElevation
-                                      size="small"
-                                      onClick={() =>
-                                        setActiveSet({ exerciseId: exercise.id, setId: set.id })
-                                      }
-                                      sx={{
-                                        minWidth: 32,
-                                        height: 32,
-                                        p: 0,
-                                        borderRadius: 1,
-                                        fontWeight: 700,
-                                        fontSize: '0.875rem',
-                                        color:
-                                          set.type === 'N'
-                                            ? 'text.secondary'
-                                            : set.type === 'W'
-                                              ? 'warning.main'
-                                              : set.type === 'D'
-                                                ? 'info.main'
-                                                : 'error.main',
-                                        bgcolor: 'transparent',
-                                        '&:hover': {
-                                          bgcolor: 'action.hover',
-                                        },
-                                      }}
-                                    >
-                                      {getSetLabel(exercise.sets, index)}
-                                    </Button>
+                          {/* Sets Table */}
+                          <TableContainer sx={{ bgcolor: 'transparent' }}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell
+                                    align="center"
+                                    width="20%"
+                                    sx={{
+                                      borderBottomColor: 'divider',
+                                      color: 'text.secondary',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Set
                                   </TableCell>
-                                  <TableCell align="center">
-                                    <TextField
-                                      variant="standard"
-                                      placeholder="-"
-                                      value={set.weight}
-                                      onChange={(e) =>
-                                        handleUpdateSet(
-                                          exercise.id,
-                                          set.id,
-                                          'weight',
-                                          e.target.value,
-                                        )
-                                      }
-                                      inputProps={{
-                                        style: {
-                                          textAlign: 'center',
-                                          fontWeight: 600,
-                                          fontFamily: 'var(--font-mono)',
-                                        },
-                                        inputMode: 'decimal',
-                                      }}
-                                      InputProps={{ disableUnderline: true }}
-                                      fullWidth
-                                    />
+                                  <TableCell
+                                    align="center"
+                                    width="40%"
+                                    sx={{
+                                      borderBottomColor: 'divider',
+                                      color: 'text.secondary',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {preferredUnit}
                                   </TableCell>
-                                  <TableCell align="center">
-                                    <TextField
-                                      variant="standard"
-                                      placeholder="-"
-                                      value={set.reps}
-                                      onChange={(e) =>
-                                        handleUpdateSet(exercise.id, set.id, 'reps', e.target.value)
-                                      }
-                                      inputProps={{
-                                        style: {
-                                          textAlign: 'center',
-                                          fontWeight: 600,
-                                          fontFamily: 'var(--font-mono)',
-                                        },
-                                        inputMode: 'numeric',
-                                      }}
-                                      InputProps={{ disableUnderline: true }}
-                                      fullWidth
-                                    />
+                                  <TableCell
+                                    align="center"
+                                    width="40%"
+                                    sx={{
+                                      borderBottomColor: 'divider',
+                                      color: 'text.secondary',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    Reps
                                   </TableCell>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
+                              </TableHead>
+                              <TableBody>
+                                {exercise.sets.map((set, index) => (
+                                  <TableRow
+                                    key={set.id}
+                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                  >
+                                    <TableCell align="center">
+                                      <Button
+                                        variant="text"
+                                        disableElevation
+                                        size="small"
+                                        onClick={() =>
+                                          setActiveSet({ exerciseId: exercise.id, setId: set.id })
+                                        }
+                                        sx={{
+                                          minWidth: 32,
+                                          height: 32,
+                                          p: 0,
+                                          borderRadius: 1,
+                                          fontWeight: 700,
+                                          fontSize: '0.875rem',
+                                          color:
+                                            set.type === 'N'
+                                              ? 'text.secondary'
+                                              : set.type === 'W'
+                                                ? 'warning.main'
+                                                : set.type === 'D'
+                                                  ? 'info.main'
+                                                  : 'error.main',
+                                          bgcolor: 'transparent',
+                                          '&:hover': {
+                                            bgcolor: 'action.hover',
+                                          },
+                                        }}
+                                      >
+                                        {getSetLabel(exercise.sets, index)}
+                                      </Button>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <TextField
+                                        variant="standard"
+                                        placeholder="-"
+                                        value={set.weight}
+                                        onChange={(e) =>
+                                          handleUpdateSet(
+                                            exercise.id,
+                                            set.id,
+                                            'weight',
+                                            e.target.value,
+                                          )
+                                        }
+                                        inputProps={{
+                                          style: {
+                                            textAlign: 'center',
+                                            fontWeight: 600,
+                                            fontFamily: 'var(--font-mono)',
+                                          },
+                                          inputMode: 'decimal',
+                                        }}
+                                        InputProps={{ disableUnderline: true }}
+                                        fullWidth
+                                      />
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <TextField
+                                        variant="standard"
+                                        placeholder="-"
+                                        value={set.reps}
+                                        onChange={(e) =>
+                                          handleUpdateSet(
+                                            exercise.id,
+                                            set.id,
+                                            'reps',
+                                            e.target.value,
+                                          )
+                                        }
+                                        inputProps={{
+                                          style: {
+                                            textAlign: 'center',
+                                            fontWeight: 600,
+                                            fontFamily: 'var(--font-mono)',
+                                          },
+                                          inputMode: 'numeric',
+                                        }}
+                                        InputProps={{ disableUnderline: true }}
+                                        fullWidth
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
 
-                        {/* Add Set Button */}
-                        <Button
-                          fullWidth
-                          onClick={() => handleAddSet(exercise.id)}
-                          sx={{
-                            py: 1.5,
-                            borderRadius: 0,
-                            borderTop: 1,
-                            borderColor: 'divider',
-                            color: 'primary.main',
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            bgcolor: 'transparent',
-                            '&:hover': {
-                              bgcolor: 'action.hover',
-                            },
-                          }}
-                        >
-                          + Add Set
-                        </Button>
-                      </Card>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
-            </Stack>
-          </>
+                          {/* Add Set Button */}
+                          <Button
+                            fullWidth
+                            onClick={() => handleAddSet(exercise.id)}
+                            sx={{
+                              py: 1.5,
+                              borderRadius: 0,
+                              borderTop: 1,
+                              borderColor: 'divider',
+                              color: 'primary.main',
+                              fontWeight: 600,
+                              fontSize: '0.875rem',
+                              bgcolor: 'transparent',
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                              },
+                            }}
+                          >
+                            + Add Set
+                          </Button>
+                        </Card>
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Stack>
+            </Box>
+          </Fade>
         )}
       </Container>
 
@@ -883,7 +887,6 @@ export default function EditRoutinePage() {
             sx={{
               py: 1.5,
               fontWeight: 700,
-              fontSize: '1rem',
               borderRadius: 2,
             }}
           >

@@ -3,6 +3,7 @@
 import React from 'react';
 import { SpeedDial, SpeedDialAction, SpeedDialIcon } from '@mui/material';
 import { Add } from '@mui/icons-material';
+import { BOTTOM_NAV_HEIGHT } from '@/components/layout/constants';
 
 export interface SpeedDialActionItem {
   icon: React.ReactNode;
@@ -42,7 +43,7 @@ export default function SpeedDialFab({ actions, mainIcon, bottom }: SpeedDialFab
       sx={{
         position: 'fixed',
         right: 16,
-        bottom: bottom || 'calc(72px + 16px + env(safe-area-inset-bottom))',
+        bottom: bottom || `calc(${BOTTOM_NAV_HEIGHT}px + 16px + env(safe-area-inset-bottom))`,
         zIndex: 1050,
         '& .MuiSpeedDial-fab': {
           bgcolor: 'primary.main',

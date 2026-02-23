@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Box,
   Container,
@@ -11,22 +11,61 @@ import {
   Link,
   InputAdornment,
   IconButton,
+  Alert,
+  CircularProgress,
 } from '@mui/material'
 import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material'
+import apiFetch from '@/lib/api/client'
 
 export default function SignUpPage() {
-  const router = useRouter()
+  const { login } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock signup - just redirect for now
-    router.push('/login')
+    setError(null)
+
+    // Client-side validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+    if (!name.trim()) {
+      setError('Name is required')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Create account via Payload CMS users collection
+      await apiFetch('/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+          displayName: name.trim(),
+        }),
+      })
+
+      // Auto-login after successful signup
+      await login({ email, password })
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -41,25 +80,22 @@ export default function SignUpPage() {
         py: 2,
       }}
     >
-      <Container 
-        maxWidth="xs"
-        disableGutters
-        sx={{ width: '100%', maxWidth: '400px' }}
-      >
+      <Container maxWidth="xs" disableGutters sx={{ width: '100%', maxWidth: '400px' }}>
         <Box sx={{ p: 3, width: '100%' }}>
           <Box sx={{ mb: 3, textAlign: 'center' }}>
-            <Typography 
-              variant="headlineMedium" 
-              component="h1" 
-              fontWeight="bold" 
-              gutterBottom
-            >
+            <Typography variant="headlineMedium" component="h1" fontWeight="bold" gutterBottom>
               FitLedger
             </Typography>
             <Typography variant="bodyMedium" color="text.secondary">
               Create your account
             </Typography>
           </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
           <form onSubmit={handleSignUp}>
             <TextField
@@ -70,6 +106,7 @@ export default function SignUpPage() {
               onChange={(e) => setName(e.target.value)}
               margin="normal"
               required
+              disabled={loading}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -87,6 +124,7 @@ export default function SignUpPage() {
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
               required
+              disabled={loading}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -104,6 +142,8 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               margin="normal"
               required
+              disabled={loading}
+              helperText="Minimum 6 characters"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -112,10 +152,7 @@ export default function SignUpPage() {
                 ),
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
@@ -131,6 +168,13 @@ export default function SignUpPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               margin="normal"
               required
+              disabled={loading}
+              error={confirmPassword.length > 0 && password !== confirmPassword}
+              helperText={
+                confirmPassword.length > 0 && password !== confirmPassword
+                  ? 'Passwords do not match'
+                  : ''
+              }
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -155,23 +199,22 @@ export default function SignUpPage() {
               variant="contained"
               size="large"
               type="submit"
+              disabled={loading}
               sx={{ mt: 3, mb: 2 }}
             >
-              Sign Up
+              {loading ? <CircularProgress size={24} /> : 'Sign Up'}
             </Button>
 
             <Box sx={{ textAlign: 'center', mt: 2 }}>
               <Typography variant="bodyMedium" color="text.secondary">
                 Already have an account?{' '}
                 <Link
-                  component="button"
-                  type="button"
-                  onClick={() => router.push('/login')}
-                  sx={{ 
+                  href="/login"
+                  sx={{
                     cursor: 'pointer',
                     fontWeight: 600,
                     textDecoration: 'none',
-                    '&:hover': { 
+                    '&:hover': {
                       textDecoration: 'underline',
                     },
                   }}

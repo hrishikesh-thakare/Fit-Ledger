@@ -41,6 +41,7 @@ import {
   Check,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
@@ -341,45 +342,7 @@ export default function NewRoutinePage() {
       }}
     >
       {/* App Bar (Sticky) */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-          height: appBarHeight,
-          justifyContent: 'center',
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="back"
-            onClick={() => router.back()}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 800,
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
-              fontSize: '1rem',
-              flexGrow: 1,
-            }}
-          >
-            Create Routine
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <PageAppBar title="Create Routine" onBack={() => router.back()} />
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
@@ -685,7 +648,6 @@ export default function NewRoutinePage() {
             sx={{
               py: 1.5,
               fontWeight: 700,
-              fontSize: '1rem',
               borderRadius: 2,
             }}
           >

@@ -26,6 +26,7 @@ import {
   ListItemText,
   Divider,
   Skeleton,
+  Fade,
 } from '@mui/material'
 import {
   ArrowBack,
@@ -37,6 +38,7 @@ import {
   Timer as TimerIcon,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
+import PageAppBar from '@/components/PageAppBar'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
 import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -97,6 +99,7 @@ function WorkoutLoggingContent() {
       setRemainingRest(remaining)
       if (remaining <= 0) {
         setActiveRestTimer(null)
+        if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
       }
     }, 200)
 
@@ -111,6 +114,9 @@ function WorkoutLoggingContent() {
 
   // Active Set for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
+
+  // Track last-completed set for animation
+  const [completedSetKey, setCompletedSetKey] = useState<string | null>(null)
 
   // Rest Time Configuration State
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
@@ -281,6 +287,11 @@ function WorkoutLoggingContent() {
 
     // Trigger Rest Timer if completing
     if (isCompleting) {
+      // Flash animation + haptic
+      setCompletedSetKey(`${exerciseId}-${setId}`)
+      if ('vibrate' in navigator) navigator.vibrate(50)
+      setTimeout(() => setCompletedSetKey(null), 600)
+
       const exercise = exercises.find((e) => e.id === exerciseId)
       if (exercise) {
         setActiveRestTimer({
@@ -458,46 +469,16 @@ function WorkoutLoggingContent() {
       sx={{
         minHeight: '100vh',
         bgcolor: 'background.default',
-        pb: 4, // Standard padding
+        pb: activeRestTimer && remainingRest > 0 ? 10 : 1, // Extra padding when rest timer is visible
       }}
     >
       {/* Top AppBar */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
-          top: 0,
-          zIndex: 1100,
-        }}
-      >
-        <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => router.back()} sx={{ mr: 2 }}>
-            <ArrowBack />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.primary',
-              fontWeight: 800,
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
-              fontSize: '1rem',
-              flexGrow: 1,
-            }}
-          >
-            Log Workout
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <PageAppBar title="Log Workout" onBack={() => router.back()} />
 
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3, pb: 12 }}>
         {/* Timer Section */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" fontWeight="800">
+          <Typography variant="h5" fontWeight="700">
             Workout
           </Typography>
           <Box sx={{ textAlign: 'right' }}>
@@ -519,21 +500,26 @@ function WorkoutLoggingContent() {
           <Box
             sx={{
               position: 'fixed',
-              bottom: 0,
+              bottom: 72, // Sit above the Finish Workout button
               left: 0,
               right: 0,
-              bgcolor: '#1e1e1e', // Dark background matching the image
-              color: 'white',
+              bgcolor: 'background.default', // #1B1B1F
+              color: 'text.primary',
               zIndex: 1200,
-              pb: 'safe-area-inset-bottom', // Handle safe area
+              boxShadow: '0 -8px 24px rgba(0,0,0,0.5)',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderTop: 1,
+              borderColor: 'divider',
+              overflow: 'hidden',
             }}
           >
             {/* Progress Bar Line */}
             <Box
               sx={{
-                height: 2,
+                height: 3,
                 width: '100%',
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                bgcolor: 'surfaceContainerHighest',
                 position: 'relative',
               }}
             >
@@ -571,33 +557,50 @@ function WorkoutLoggingContent() {
                   setRemainingRest((prev) => Math.max(0, prev - 15))
                 }}
                 sx={{
-                  bgcolor: '#333',
-                  color: 'white',
+                  bgcolor: 'surfaceContainerHigh',
+                  color: 'text.primary',
                   minWidth: 'auto',
-                  height: 48,
+                  height: 44,
                   px: 2,
                   fontWeight: 700,
-                  fontSize: '0.9rem',
+                  fontSize: '0.875rem',
                   borderRadius: 2,
-                  '&:hover': { bgcolor: '#444' },
+                  boxShadow: 'none',
+                  border: 1,
+                  borderColor: 'divider',
+                  '&:hover': { bgcolor: 'surfaceContainerHighest', boxShadow: 'none' },
                 }}
               >
                 -15
               </Button>
 
               {/* Timer Text */}
-              <Typography
-                variant="h4"
-                sx={{
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  flex: 1,
-                  textAlign: 'center',
-                }}
-              >
-                {formatTime(remainingRest)}
-              </Typography>
+              <Box sx={{ textAlign: 'center', flex: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    textTransform: 'uppercase',
+                    fontWeight: 800,
+                    letterSpacing: '0.1em',
+                    color: 'text.secondary',
+                    display: 'block',
+                    mb: -0.5,
+                  }}
+                >
+                  Resting
+                </Typography>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    letterSpacing: '0.02em',
+                    color: 'primary.main',
+                  }}
+                >
+                  {formatTime(remainingRest)}
+                </Typography>
+              </Box>
 
               {/* Right Side Buttons */}
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -612,15 +615,18 @@ function WorkoutLoggingContent() {
                     setRemainingRest((prev) => prev + 15)
                   }}
                   sx={{
-                    bgcolor: '#333',
-                    color: 'white',
+                    bgcolor: 'surfaceContainerHigh',
+                    color: 'text.primary',
                     minWidth: 'auto',
-                    height: 48,
+                    height: 44,
                     px: 2,
                     fontWeight: 700,
-                    fontSize: '0.9rem',
+                    fontSize: '0.875rem',
                     borderRadius: 2,
-                    '&:hover': { bgcolor: '#444' },
+                    boxShadow: 'none',
+                    border: 1,
+                    borderColor: 'divider',
+                    '&:hover': { bgcolor: 'surfaceContainerHighest', boxShadow: 'none' },
                   }}
                 >
                   +15
@@ -635,14 +641,15 @@ function WorkoutLoggingContent() {
                   }}
                   sx={{
                     bgcolor: 'primary.main',
-                    color: 'white',
+                    color: 'primary.contrastText',
                     minWidth: 'auto',
-                    height: 48,
+                    height: 44,
                     px: 3,
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
+                    fontWeight: 800,
+                    fontSize: '0.875rem',
                     borderRadius: 2,
-                    '&:hover': { bgcolor: 'primary.dark' },
+                    boxShadow: 'none',
+                    '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' },
                   }}
                 >
                   Skip
@@ -678,285 +685,292 @@ function WorkoutLoggingContent() {
             ))}
           </Stack>
         ) : (
-          <Stack spacing={2}>
-            {exercises.map((exercise) => (
-              <Card
-                key={exercise.id}
-                elevation={1}
-                sx={{
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Exercise Header */}
-                <Box
+          <Fade in timeout={400}>
+            <Stack spacing={2}>
+              {exercises.map((exercise) => (
+                <Card
+                  key={exercise.id}
+                  elevation={1}
                   sx={{
-                    p: 2,
-                    borderBottom: 1,
+                    bgcolor: 'background.paper',
+                    border: 1,
                     borderColor: 'divider',
+                    borderRadius: 2,
+                    overflow: 'hidden',
                   }}
                 >
+                  {/* Exercise Header */}
                   <Box
-                    sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    sx={{
+                      p: 2,
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                    }}
                   >
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                      {exercise.name}
-                    </Typography>
-                    <Button
-                      startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}
-                      size="small"
-                      variant="contained"
-                      onClick={(e) => setActiveRestTimeExerciseId(exercise.id)}
+                    <Box
                       sx={{
-                        borderRadius: 4,
-                        fontWeight: 700,
-                        bgcolor: 'primary.main',
-                        color: 'primary.contrastText',
-                        textTransform: 'none',
-                        minWidth: 'auto',
-                        px: 2,
-                        boxShadow: 'none',
-                        '&:hover': {
-                          bgcolor: 'primary.dark',
-                          boxShadow: 'none',
-                        },
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                       }}
                     >
-                      {exercise.restTime}s
-                    </Button>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        {exercise.name}
+                      </Typography>
+                      <Button
+                        startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}
+                        size="small"
+                        variant="contained"
+                        onClick={(e) => setActiveRestTimeExerciseId(exercise.id)}
+                        sx={{
+                          borderRadius: 1.5,
+                          fontWeight: 700,
+                          bgcolor: 'primary.main',
+                          color: 'primary.contrastText',
+                          textTransform: 'none',
+                          minWidth: 'auto',
+                          px: 2,
+                          boxShadow: 'none',
+                          '&:hover': {
+                            bgcolor: 'primary.dark',
+                            boxShadow: 'none',
+                          },
+                        }}
+                      >
+                        {exercise.restTime}s
+                      </Button>
+                    </Box>
                   </Box>
-                </Box>
 
-                {/* Sets Table */}
-                <TableContainer sx={{ bgcolor: 'transparent' }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          align="center"
-                          width="15%"
-                          sx={{
-                            borderBottomColor: 'divider',
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            py: 1,
-                          }}
-                        >
-                          Set
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          width="20%"
-                          sx={{
-                            borderBottomColor: 'divider',
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            py: 1,
-                          }}
-                        >
-                          Prev
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          width="25%"
-                          sx={{
-                            borderBottomColor: 'divider',
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            py: 1,
-                          }}
-                        >
-                          kg
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          width="25%"
-                          sx={{
-                            borderBottomColor: 'divider',
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            py: 1,
-                          }}
-                        >
-                          Reps
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          width="15%"
-                          sx={{
-                            borderBottomColor: 'divider',
-                            color: 'text.secondary',
-                            fontWeight: 600,
-                            p: 0,
-                          }}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => handleToggleAllSets(exercise.id)}
+                  {/* Sets Table */}
+                  <TableContainer sx={{ bgcolor: 'transparent' }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell
+                            align="center"
+                            width="15%"
                             sx={{
-                              color: exercise.sets.every((s) => s.completed)
-                                ? 'primary.main'
-                                : 'text.secondary',
-                              p: 0.5,
+                              borderBottomColor: 'divider',
+                              color: 'text.secondary',
+                              fontWeight: 600,
+                              py: 1,
                             }}
                           >
-                            {exercise.sets.every((s) => s.completed) ? (
-                              <CheckCircle fontSize="small" />
-                            ) : (
-                              <Check fontSize="small" />
-                            )}
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {exercise.sets.map((set, index) => (
-                        <TableRow
-                          key={set.id}
-                          sx={{
-                            '&:last-child td, &:last-child th': { border: 0 },
-                            bgcolor: 'transparent',
-                          }}
-                        >
-                          {/* Set Number / Type Button */}
-                          <TableCell align="center">
-                            <Button
-                              variant="text"
-                              disableElevation
-                              size="small"
-                              onClick={() =>
-                                setActiveSet({ exerciseId: exercise.id, setId: set.id })
-                              }
+                            Set
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            width="20%"
+                            sx={{
+                              borderBottomColor: 'divider',
+                              color: 'text.secondary',
+                              fontWeight: 600,
+                              py: 1,
+                            }}
+                          >
+                            Prev
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            width="25%"
+                            sx={{
+                              borderBottomColor: 'divider',
+                              color: 'text.secondary',
+                              fontWeight: 600,
+                              py: 1,
+                            }}
+                          >
+                            kg
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            width="25%"
+                            sx={{
+                              borderBottomColor: 'divider',
+                              color: 'text.secondary',
+                              fontWeight: 600,
+                              py: 1,
+                            }}
+                          >
+                            Reps
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            width="15%"
+                            sx={{
+                              borderBottomColor: 'divider',
+                              color: 'text.secondary',
+                              fontWeight: 600,
+                              p: 0,
+                            }}
+                          >
+                            <IconButton
+                              onClick={() => handleToggleAllSets(exercise.id)}
                               sx={{
-                                minWidth: 28,
-                                height: 28,
-                                p: 0,
-                                borderRadius: 1,
-                                fontWeight: 700,
-                                fontSize: '0.875rem',
-                                color:
-                                  set.type === 'N'
-                                    ? 'text.secondary'
-                                    : set.type === 'W'
-                                      ? 'warning.main'
-                                      : set.type === 'D'
-                                        ? 'info.main'
-                                        : 'error.main',
-                                bgcolor: 'transparent',
-                                '&:hover': {
-                                  bgcolor: 'action.hover',
-                                },
+                                color: exercise.sets.every((s) => s.completed)
+                                  ? 'primary.main'
+                                  : 'text.secondary',
+                                minWidth: 44,
+                                minHeight: 44,
                               }}
                             >
-                              {getSetLabel(exercise.sets, index)}
-                            </Button>
-                          </TableCell>
-
-                          {/* Previous Data */}
-                          <TableCell align="center">
-                            <Typography
-                              variant="body1"
-                              color="text.secondary"
-                              fontWeight={600}
-                              sx={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: '1rem',
-                                textAlign: 'center',
-                                width: '100%',
-                                display: 'block',
-                              }}
-                            >
-                              {set.previous || '-'}
-                            </Typography>
-                          </TableCell>
-
-                          {/* Weight Input */}
-                          <TableCell align="center">
-                            <TextField
-                              variant="standard"
-                              placeholder="-"
-                              value={set.weight}
-                              onChange={(e) =>
-                                handleSetChange(exercise.id, set.id, 'weight', e.target.value)
-                              }
-                              inputProps={{
-                                style: {
-                                  textAlign: 'center',
-                                  fontWeight: 600,
-                                  fontFamily: 'var(--font-mono)',
-                                },
-                                inputMode: 'decimal',
-                              }}
-                              InputProps={{ disableUnderline: true }}
-                              fullWidth
-                              size="small"
-                            />
-                          </TableCell>
-
-                          {/* Reps Input */}
-                          <TableCell align="center">
-                            <TextField
-                              variant="standard"
-                              placeholder="-"
-                              value={set.reps}
-                              onChange={(e) =>
-                                handleSetChange(exercise.id, set.id, 'reps', e.target.value)
-                              }
-                              inputProps={{
-                                style: {
-                                  textAlign: 'center',
-                                  fontWeight: 600,
-                                  fontFamily: 'var(--font-mono)',
-                                },
-                                inputMode: 'numeric',
-                              }}
-                              InputProps={{ disableUnderline: true }}
-                              fullWidth
-                              size="small"
-                            />
-                          </TableCell>
-
-                          {/* Completion Checkbox */}
-                          <TableCell align="center" sx={{ p: 0 }}>
-                            <Checkbox
-                              checked={set.completed}
-                              onChange={() => handleToggleComplete(exercise.id, set.id)}
-                              icon={<RadioButtonUnchecked />}
-                              checkedIcon={<CheckCircle color="primary" />}
-                            />
+                              {exercise.sets.every((s) => s.completed) ? (
+                                <CheckCircle fontSize="small" />
+                              ) : (
+                                <Check fontSize="small" />
+                              )}
+                            </IconButton>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </TableHead>
+                      <TableBody>
+                        {exercise.sets.map((set, index) => (
+                          <TableRow
+                            key={set.id}
+                            sx={{
+                              '&:last-child td, &:last-child th': { border: 0 },
+                              bgcolor: 'transparent',
+                              transition: 'background-color 0.3s ease',
+                            }}
+                          >
+                            {/* Set Number / Type Button */}
+                            <TableCell align="center">
+                              <Button
+                                variant="text"
+                                disableElevation
+                                size="small"
+                                onClick={() =>
+                                  setActiveSet({ exerciseId: exercise.id, setId: set.id })
+                                }
+                                sx={{
+                                  minWidth: 44,
+                                  height: 44,
+                                  p: 0,
+                                  borderRadius: 1,
+                                  fontWeight: 700,
+                                  fontSize: '0.875rem',
+                                  color:
+                                    set.type === 'N'
+                                      ? 'text.secondary'
+                                      : set.type === 'W'
+                                        ? 'warning.main'
+                                        : set.type === 'D'
+                                          ? 'info.main'
+                                          : 'error.main',
+                                  bgcolor: 'transparent',
+                                  '&:hover': {
+                                    bgcolor: 'action.hover',
+                                  },
+                                }}
+                              >
+                                {getSetLabel(exercise.sets, index)}
+                              </Button>
+                            </TableCell>
 
-                {/* Add Set Button */}
-                <Button
-                  fullWidth
-                  onClick={() => handleAddSet(exercise.id)}
-                  sx={{
-                    py: 1.5,
-                    borderRadius: 0,
-                    borderTop: 1,
-                    borderColor: 'divider',
-                    color: 'primary.main',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    bgcolor: 'transparent',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  + Add Set
-                </Button>
-              </Card>
-            ))}
-          </Stack>
+                            {/* Previous Data */}
+                            <TableCell align="center">
+                              <Typography
+                                variant="body1"
+                                color="text.secondary"
+                                fontWeight={600}
+                                sx={{
+                                  fontFamily: 'var(--font-mono)',
+                                  textAlign: 'center',
+                                  width: '100%',
+                                  display: 'block',
+                                }}
+                              >
+                                {set.previous || '-'}
+                              </Typography>
+                            </TableCell>
+
+                            {/* Weight Input */}
+                            <TableCell align="center">
+                              <TextField
+                                variant="standard"
+                                placeholder="-"
+                                value={set.weight}
+                                onChange={(e) =>
+                                  handleSetChange(exercise.id, set.id, 'weight', e.target.value)
+                                }
+                                inputProps={{
+                                  style: {
+                                    textAlign: 'center',
+                                    fontWeight: 600,
+                                    fontFamily: 'var(--font-mono)',
+                                  },
+                                  inputMode: 'decimal',
+                                }}
+                                InputProps={{ disableUnderline: true }}
+                                fullWidth
+                                size="small"
+                              />
+                            </TableCell>
+
+                            {/* Reps Input */}
+                            <TableCell align="center">
+                              <TextField
+                                variant="standard"
+                                placeholder="-"
+                                value={set.reps}
+                                onChange={(e) =>
+                                  handleSetChange(exercise.id, set.id, 'reps', e.target.value)
+                                }
+                                inputProps={{
+                                  style: {
+                                    textAlign: 'center',
+                                    fontWeight: 600,
+                                    fontFamily: 'var(--font-mono)',
+                                  },
+                                  inputMode: 'numeric',
+                                }}
+                                InputProps={{ disableUnderline: true }}
+                                fullWidth
+                                size="small"
+                              />
+                            </TableCell>
+
+                            {/* Completion Checkbox */}
+                            <TableCell align="center" sx={{ p: 0 }}>
+                              <Checkbox
+                                checked={set.completed}
+                                onChange={() => handleToggleComplete(exercise.id, set.id)}
+                                icon={<RadioButtonUnchecked />}
+                                checkedIcon={<CheckCircle color="primary" />}
+                                sx={{ p: 1.5 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  {/* Add Set Button */}
+                  <Button
+                    fullWidth
+                    onClick={() => handleAddSet(exercise.id)}
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 0,
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      color: 'primary.main',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      bgcolor: 'transparent',
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                      },
+                    }}
+                  >
+                    + Add Set
+                  </Button>
+                </Card>
+              ))}
+            </Stack>
+          </Fade>
         )}
       </Container>
 
@@ -971,6 +985,7 @@ function WorkoutLoggingContent() {
           borderTop: 1,
           borderColor: 'divider',
           p: 2,
+          pb: 'calc(16px + env(safe-area-inset-bottom))',
           zIndex: 1000,
         }}
       >
@@ -982,7 +997,6 @@ function WorkoutLoggingContent() {
           sx={{
             py: 1.5,
             fontWeight: 700,
-            fontSize: '1rem',
             borderRadius: 2,
           }}
         >

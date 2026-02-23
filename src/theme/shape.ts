@@ -1,18 +1,18 @@
 /**
  * Material Design 3 Shape System - Border Radius
- * Following MD3 rounded corner system
+ * 3-tier system: sm(12), md(16), lg(24) + xs(8) and full(pill)
  */
 
 const shape = {
-  borderRadius: 12, // Default border radius (Medium)
-  
-  // MD3 shape tokens
-  borderRadiusExtraSmall: 8,
-  borderRadiusSmall: 12,
-  borderRadiusMedium: 16,
-  borderRadiusLarge: 24,
-  borderRadiusExtraLarge: 28,
-  borderRadiusFull: 9999,
-};
+  borderRadius: 12, // Global default fallback
 
-export default shape;
+  // MD3 shape tokens
+  borderRadiusExtraSmall: 8,   // Small chips, badges
+  borderRadiusSmall: 12,       // Inputs, buttons, icon buttons
+  borderRadiusMedium: 16,      // Cards, papers, containers
+  borderRadiusLarge: 24,       // Dialogs, drawers, bottom sheets
+  borderRadiusExtraLarge: 28,  // Alias for large (legacy compat)
+  borderRadiusFull: 9999,      // Pills
+}
+
+export default shape

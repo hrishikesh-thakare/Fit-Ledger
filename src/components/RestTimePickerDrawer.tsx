@@ -157,7 +157,7 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
             display: 'flex',
             position: 'relative',
             overflow: 'hidden',
-            borderRadius: 2,
+            borderRadius: 1.5,
             mb: 3,
           }}
         >
@@ -233,9 +233,8 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
           onClick={handleSave}
           sx={{
             py: 1.5,
-            fontSize: '1rem',
             fontWeight: 700,
-            borderRadius: 3,
+            borderRadius: 1.5,
           }}
         >
           Done

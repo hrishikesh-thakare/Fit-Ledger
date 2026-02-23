@@ -1,9 +1,9 @@
-import { Components, Theme } from '@mui/material/styles'
+import { alpha, Components, Theme } from '@mui/material/styles'
 
 const MuiChip: Components<Theme>['MuiChip'] = {
   styleOverrides: {
     root: ({ theme }) => ({
-      borderRadius: '8px',
+      borderRadius: `${theme.shape.borderRadiusExtraSmall}px`,
       height: '32px',
       fontSize: '0.875rem',
       fontWeight: 500,
@@ -24,16 +24,13 @@ const MuiChip: Components<Theme>['MuiChip'] = {
       borderColor: theme.palette.outline,
       backgroundColor: 'transparent',
       '&:hover': {
-        backgroundColor: 'rgba(208, 188, 255, 0.08)',
+        backgroundColor: alpha(theme.palette.primary.main, 0.08),
       },
     }),
     clickable: ({ theme }) => ({
-      '&:hover': {
-        transform: 'translateY(-1px)',
-      },
       '&:active': {
         boxShadow: 'none',
-        transform: 'translateY(0)',
+        transform: 'scale(0.98)',
       },
     }),
     icon: ({ theme }) => ({
