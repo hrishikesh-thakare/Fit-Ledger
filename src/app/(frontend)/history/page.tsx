@@ -4,16 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
+import { fromKg } from '@/lib/utils/weightConversion'
 import {
   Box,
-  Container,
   Typography,
   Card,
   CardContent,
-  Toolbar,
   IconButton,
-  Divider,
   Skeleton,
   Fade,
   CardActionArea,
@@ -54,25 +51,6 @@ export default function HistoryPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('All')
   const [rawWorkouts, setRawWorkouts] = useState<WorkoutHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchWorkoutHistory = async () => {
-      if (!user) {
-        // No user found, skipping fetch
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        await fetchData()
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchWorkoutHistory()
-  }, [user?.id, selectedMonth, showSnackbar])
 
   const fetchData = useCallback(async () => {
     if (!user) return
@@ -133,6 +111,25 @@ export default function HistoryPage() {
   }, [user, selectedMonth, showSnackbar])
 
   const { isRefreshing, pullDistance } = usePullToRefresh({ onRefresh: fetchData })
+
+  useEffect(() => {
+    const fetchWorkoutHistory = async () => {
+      if (!user) {
+        // No user found, skipping fetch
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        await fetchData()
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWorkoutHistory()
+  }, [user, fetchData, selectedMonth, showSnackbar])
 
   const formatDurationString = (dur: string) => {
     if (!dur) return '0m'

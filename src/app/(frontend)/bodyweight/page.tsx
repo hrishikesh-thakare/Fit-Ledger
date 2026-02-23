@@ -8,11 +8,9 @@ import { useSnackbar } from '@/hooks/useSnackbar'
 import { toKg, fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
   Box,
-  Container,
   Typography,
   Card,
   CardContent,
-  Toolbar,
   List,
   ListItem,
   ListItemButton,
@@ -75,24 +73,6 @@ export default function BodyweightLogPage() {
   const [selectedLog, setSelectedLog] = useState<ProcessedLog | null>(null)
   const [editPickerOpen, setEditPickerOpen] = useState(false)
 
-  useEffect(() => {
-    const fetchWeightLogs = async () => {
-      if (!user) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        await fetchData()
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchWeightLogs()
-  }, [user?.id, showSnackbar])
-
   const fetchData = useCallback(async () => {
     if (!user) return
 
@@ -116,8 +96,6 @@ export default function BodyweightLogPage() {
       showSnackbar({ message: 'Failed to load weight logs', severity: 'error' })
     }
   }, [user, showSnackbar])
-
-  const { isRefreshing, pullDistance } = usePullToRefresh({ onRefresh: fetchData })
 
   const processAndSetLogs = (docs: BodyWeightLog[], unit: 'kg' | 'lb') => {
     const logsWithChanges = docs.map((log, index) => {
@@ -147,6 +125,26 @@ export default function BodyweightLogPage() {
     })
     setWeightLogs(logsWithChanges)
   }
+
+  const { isRefreshing, pullDistance } = usePullToRefresh({ onRefresh: fetchData })
+
+  useEffect(() => {
+    const fetchWeightLogs = async () => {
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        await fetchData()
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWeightLogs()
+  }, [user, fetchData, showSnackbar])
 
   const currentWeight = weightLogs.length > 0 ? weightLogs[0].weight : 0
 

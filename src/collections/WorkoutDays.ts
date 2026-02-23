@@ -108,13 +108,6 @@ export const WorkoutDays: CollectionConfig = {
       index: true,
     },
     {
-      name: 'routine',
-      type: 'relationship',
-      relationTo: 'routines',
-      required: false,
-      index: true,
-    },
-    {
       name: 'title',
       type: 'text',
       required: true,
