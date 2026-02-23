@@ -502,7 +502,7 @@ export default function ProfilePage() {
             onClick={logout}
             sx={{
               bgcolor: 'error.dark',
-              color: 'error.contrastText',
+              color: 'common.white',
               py: 1.5,
               fontWeight: 600,
               fontSize: '1rem',
