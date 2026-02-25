@@ -51,17 +51,22 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
   const saveWorkoutInBackground = useCallback(
     async (draft: SaveWorkoutDraft) => {
       try {
-        await saveWorkout(draft)
+        const result = await saveWorkout(draft)
 
-        // ✅ Success — clear draft only after confirmed HTTP 200
+        // ✅ Success — clear draft only after confirmed save (online or offline)
         setPendingWorkoutDraft(null)
         setLastError(null)
         setIsSaving(false)
         isSavingRef.current = false
 
+        // Detect offline save by checking if workoutDayId looks like a UUID (offline id)
+        const savedOffline = result.workoutDayId?.includes('-') && result.workoutDayId?.length === 36
+
         showSnackbar({
-          message: 'Workout saved successfully',
-          severity: 'success',
+          message: savedOffline
+            ? 'Workout saved locally — will sync when online'
+            : 'Workout saved successfully',
+          severity: savedOffline ? 'info' : 'success',
           duration: 3000,
         })
       } catch (err) {

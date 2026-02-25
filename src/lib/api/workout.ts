@@ -1,4 +1,5 @@
 import apiFetch from './client'
+import { syncManager } from '@/lib/offline/sync-manager'
 
 /**
  * Load workout data from a routine (read-only, no DB writes)
@@ -74,6 +75,22 @@ interface SaveWorkoutParams {
 }
 
 export const saveWorkout = async (params: SaveWorkoutParams): Promise<{ workoutDayId: string }> => {
+  // ── Offline path: save locally, queue for sync later ──────────
+  if (!navigator.onLine) {
+    const offlineId = crypto.randomUUID()
+    await syncManager.saveWorkoutOffline({
+      id: offlineId,
+      routineId: params.routineId,
+      date: params.date,
+      durationSeconds: params.durationSeconds,
+      exercises: params.exercises,
+      createdAt: new Date().toISOString(),
+    })
+    console.log('[Workout] Saved offline, will sync when online:', offlineId)
+    return { workoutDayId: offlineId }
+  }
+
+  // ── Online path: try server, fallback to IndexedDB on network error ──
   try {
     const response = await apiFetch<{ workoutDayId: string; saved: boolean }>(
       '/custom/workouts/start',
@@ -85,6 +102,26 @@ export const saveWorkout = async (params: SaveWorkoutParams): Promise<{ workoutD
     )
     return { workoutDayId: response.workoutDayId }
   } catch (error) {
+    // Network error (Failed to fetch, ERR_INTERNET_DISCONNECTED, etc.) → save offline
+    const isNetworkError =
+      error instanceof TypeError &&
+      (error.message.includes('fetch') || error.message.includes('network'))
+
+    if (isNetworkError) {
+      const offlineId = crypto.randomUUID()
+      await syncManager.saveWorkoutOffline({
+        id: offlineId,
+        routineId: params.routineId,
+        date: params.date,
+        durationSeconds: params.durationSeconds,
+        exercises: params.exercises,
+        createdAt: new Date().toISOString(),
+      })
+      console.log('[Workout] Network error — saved offline, will sync when online:', offlineId)
+      return { workoutDayId: offlineId }
+    }
+
+    // Server error (4xx/5xx) — re-throw so BackgroundSyncContext can retry
     console.error('Error saving workout:', error)
     throw error
   }

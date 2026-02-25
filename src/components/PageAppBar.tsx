@@ -1,9 +1,10 @@
 'use client'
 
 import React, { ReactNode } from 'react'
-import { Toolbar, Typography, IconButton } from '@mui/material'
+import { Toolbar, Typography, IconButton, Box } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
 import AppBarWithScroll from '@/components/AppBarWithScroll'
+import SyncStatusIndicator from '@/components/SyncStatusIndicator'
 
 interface PageAppBarProps {
   title: string
@@ -44,6 +45,9 @@ export default function PageAppBar({
         >
           {title}
         </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mr: actions ? 1 : 0 }}>
+          <SyncStatusIndicator />
+        </Box>
         {actions}
       </Toolbar>
     </AppBarWithScroll>
