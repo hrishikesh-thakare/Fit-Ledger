@@ -61,6 +61,7 @@ import {
   saveRoutine,
   type AvailableExercise,
 } from '@/lib/api/routines'
+import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
 
 // dnd-kit imports
 import {
@@ -163,6 +164,7 @@ export default function EditRoutinePage() {
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [selectedEquipment, setSelectedEquipment] = useState('All')
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
 
   // State for Set Options Drawer
@@ -171,6 +173,7 @@ export default function EditRoutinePage() {
   // Menu & Dialog State
   const [reorderDialogOpen, setReorderDialogOpen] = useState(false)
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null)
+  const [customExerciseDialogOpen, setCustomExerciseDialogOpen] = useState(false)
 
   // Data states
   const [routineName, setRoutineName] = useState('')
@@ -267,10 +270,17 @@ export default function EditRoutinePage() {
   }
 
   const handleCustomExercise = () => {
-    showSnackbar({
-      message: 'Custom exercise functionality coming soon',
-      severity: 'info',
-    })
+    setCustomExerciseDialogOpen(true)
+  }
+
+  const handleCustomExerciseAdded = (exercise: CreatedExercise) => {
+    // Add to the available exercises list so it appears in the drawer and chips
+    setAvailableExercises((prev) => [
+      ...prev,
+      { id: exercise.id, name: exercise.name, bodyPart: exercise.bodyPart },
+    ])
+    // Immediately add to the routine
+    handleAddExercise({ id: exercise.id, name: exercise.name, bodyPart: exercise.bodyPart })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -414,10 +424,23 @@ export default function EditRoutinePage() {
     return ['All', ...Array.from(parts).sort()]
   }, [availableExercises])
 
+  const equipmentOptions = useMemo(() => {
+    const eqs = new Set<string>()
+    availableExercises.forEach((ex) => {
+      if (ex.equipment) ex.equipment.forEach((e) => eqs.add(e))
+    })
+    return ['All', ...Array.from(eqs).sort()]
+  }, [availableExercises])
+
   const filteredExercises = useMemo(() => {
-    if (selectedBodyPart === 'All') return availableExercises
-    return availableExercises.filter((ex) => ex.bodyPart === selectedBodyPart)
-  }, [selectedBodyPart, availableExercises])
+    return availableExercises.filter((ex) => {
+      const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
+      const matchesEquipment =
+        selectedEquipment === 'All' ||
+        (ex.equipment && ex.equipment.includes(selectedEquipment))
+      return matchesBodyPart && matchesEquipment
+    })
+  }, [selectedBodyPart, selectedEquipment, availableExercises])
 
   const appBarHeight = 64
 
@@ -959,6 +982,31 @@ export default function EditRoutinePage() {
               />
             ))}
           </Box>
+
+          {/* Horizontal Equipment Filter */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              mt: 1,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {equipmentOptions.map((eq) => (
+              <Chip
+                key={eq}
+                label={eq === 'All' ? 'All' : eq.replace('_', ' ')}
+                onClick={() => setSelectedEquipment(eq)}
+                color={selectedEquipment === eq ? 'secondary' : 'default'}
+                variant={selectedEquipment === eq ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+              />
+            ))}
+          </Box>
         </Box>
 
         {/* Exercises List */}
@@ -968,12 +1016,27 @@ export default function EditRoutinePage() {
               <React.Fragment key={exercise.name}>
                 <ListItem disablePadding>
                   <ListItemButton onClick={() => handleAddExercise(exercise)}>
-                    <ListItemText
-                      primary={exercise.name}
-                      secondary={exercise.bodyPart}
-                      primaryTypographyProps={{ fontWeight: 500 }}
-                      secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                    />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {exercise.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {exercise.bodyPart}
+                      </Typography>
+                      {exercise.equipment && exercise.equipment.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                          {exercise.equipment.map((eq) => (
+                            <Chip
+                              key={eq}
+                              label={eq.replace('_', ' ')}
+                              size="small"
+                              variant="outlined"
+                              sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
                     <IconButton
                       edge="end"
                       onClick={(e) => {
@@ -1088,6 +1151,13 @@ export default function EditRoutinePage() {
           <Button onClick={() => setReorderDialogOpen(false)}>Done</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Custom Exercise Dialog */}
+      <AddCustomExerciseDialog
+        open={customExerciseDialogOpen}
+        onClose={() => setCustomExerciseDialogOpen(false)}
+        onSuccess={handleCustomExerciseAdded}
+      />
     </Box>
   )
 }

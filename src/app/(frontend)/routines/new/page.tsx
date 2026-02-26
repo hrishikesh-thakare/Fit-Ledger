@@ -34,6 +34,7 @@ import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
 
 type SetType = 'N' | 'W' | 'D' | 'F'
 
@@ -56,6 +57,7 @@ interface ExerciseOption {
   id: number
   name: string
   bodyPart: string
+  equipment?: string[]
 }
 
 // Derive body parts from exercises later
@@ -73,6 +75,7 @@ export default function NewRoutinePage() {
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [selectedEquipment, setSelectedEquipment] = useState('All')
   const [routineName, setRoutineName] = useState('')
   const [routineNotes, setRoutineNotes] = useState('')
 
@@ -85,6 +88,7 @@ export default function NewRoutinePage() {
 
   // State for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
+  const [customExerciseDialogOpen, setCustomExerciseDialogOpen] = useState(false)
 
   const { showSnackbar } = useSnackbar()
 
@@ -131,10 +135,21 @@ export default function NewRoutinePage() {
   }
 
   const handleCustomExercise = () => {
-    showSnackbar({
-      message: 'Custom exercise functionality coming soon',
-      severity: 'info',
-    })
+    setCustomExerciseDialogOpen(true)
+  }
+
+  const handleCustomExerciseAdded = (exercise: CreatedExercise) => {
+    // Add to the available exercises list so it appears in the drawer
+    setAvailableExercises((prev) => [
+      ...prev,
+      { id: Number(exercise.id), name: exercise.name, bodyPart: exercise.bodyPart },
+    ])
+    // Add muscle group chip if new
+    setBodyParts((prev) =>
+      prev.includes(exercise.bodyPart) ? prev : [...prev, exercise.bodyPart],
+    )
+    // Immediately add to the routine
+    handleAddExercise({ id: Number(exercise.id), name: exercise.name, bodyPart: exercise.bodyPart })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -220,10 +235,23 @@ export default function NewRoutinePage() {
     setActiveSet(null)
   }
 
+  const equipmentOptions = useMemo(() => {
+    const eqs = new Set<string>()
+    availableExercises.forEach((ex) => {
+      if (ex.equipment) ex.equipment.forEach((e) => eqs.add(e))
+    })
+    return ['All', ...Array.from(eqs).sort()]
+  }, [availableExercises])
+
   const filteredExercises = useMemo(() => {
-    if (selectedBodyPart === 'All') return availableExercises
-    return availableExercises.filter((ex) => ex.bodyPart === selectedBodyPart)
-  }, [selectedBodyPart, availableExercises])
+    return availableExercises.filter((ex) => {
+      const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
+      const matchesEquipment =
+        selectedEquipment === 'All' ||
+        (ex.equipment && ex.equipment.includes(selectedEquipment))
+      return matchesBodyPart && matchesEquipment
+    })
+  }, [selectedBodyPart, selectedEquipment, availableExercises])
 
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {
@@ -700,6 +728,31 @@ export default function NewRoutinePage() {
               />
             ))}
           </Box>
+
+          {/* Horizontal Equipment Filter */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              mt: 1,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {equipmentOptions.map((eq) => (
+              <Chip
+                key={eq}
+                label={eq === 'All' ? 'All' : eq.replace('_', ' ')}
+                onClick={() => setSelectedEquipment(eq)}
+                color={selectedEquipment === eq ? 'secondary' : 'default'}
+                variant={selectedEquipment === eq ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+              />
+            ))}
+          </Box>
         </Box>
 
         {/* Exercises List */}
@@ -714,12 +767,27 @@ export default function NewRoutinePage() {
                 <React.Fragment key={exercise.name}>
                   <ListItem disablePadding>
                     <ListItemButton onClick={() => handleAddExercise(exercise)}>
-                      <ListItemText
-                        primary={exercise.name}
-                        secondary={exercise.bodyPart}
-                        primaryTypographyProps={{ fontWeight: 500 }}
-                        secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {exercise.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {exercise.bodyPart}
+                        </Typography>
+                        {exercise.equipment && exercise.equipment.length > 0 && (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {exercise.equipment.map((eq) => (
+                              <Chip
+                                key={eq}
+                                label={eq.replace('_', ' ')}
+                                size="small"
+                                variant="outlined"
+                                sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                              />
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
                       <IconButton
                         edge="end"
                         onClick={(e) => {
@@ -798,6 +866,13 @@ export default function NewRoutinePage() {
           </List>
         </Box>
       </SwipeableDrawer>
+
+      {/* Add Custom Exercise Dialog */}
+      <AddCustomExerciseDialog
+        open={customExerciseDialogOpen}
+        onClose={() => setCustomExerciseDialogOpen(false)}
+        onSuccess={handleCustomExerciseAdded}
+      />
     </Box>
   )
 }

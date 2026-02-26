@@ -5,6 +5,53 @@ export const dynamic = 'force-dynamic'
 
 import { formatServerTimingHeader } from '@/lib/timing'
 
+export async function POST(req: NextRequest) {
+  const payload = await getPayloadClient()
+
+  // Authenticate user
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await req.json()
+    const { name, muscleGroupId, equipment } = body
+
+    if (!name?.trim()) {
+      return NextResponse.json({ error: 'Exercise name is required' }, { status: 400 })
+    }
+    if (!muscleGroupId) {
+      return NextResponse.json({ error: 'Muscle group is required' }, { status: 400 })
+    }
+
+    // Create exercise bypassing admin-only access control; mark as custom
+    const exercise = await payload.create({
+      collection: 'exercises',
+      data: {
+        name: name.trim(),
+        muscleGroup: Number(muscleGroupId),
+        equipment: Array.isArray(equipment) && equipment.length > 0 ? equipment : undefined,
+        isCustom: true,
+      },
+      overrideAccess: true,
+    })
+
+    const bodyPart =
+      typeof exercise.muscleGroup === 'object' && exercise.muscleGroup !== null
+        ? (exercise.muscleGroup as any).name
+        : 'Other'
+
+    return NextResponse.json(
+      { doc: { id: String(exercise.id), name: exercise.name, bodyPart } },
+      { status: 201 },
+    )
+  } catch (error) {
+    console.error('Error creating custom exercise:', error)
+    return NextResponse.json({ error: 'Failed to create exercise' }, { status: 500 })
+  }
+}
+
 export async function GET(req: NextRequest) {
   const routeStart = performance.now()
   const payload = await getPayloadClient()
@@ -20,6 +67,7 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         muscleGroup: true,
+        equipment: true,
       },
       sort: 'name',
     })
@@ -30,6 +78,7 @@ export async function GET(req: NextRequest) {
       id: ex.id,
       name: ex.name,
       bodyPart: typeof ex.muscleGroup === 'object' ? ex.muscleGroup.name : 'Other',
+      equipment: Array.isArray(ex.equipment) ? ex.equipment : [],
     }))
 
     const totalDuration = performance.now() - routeStart

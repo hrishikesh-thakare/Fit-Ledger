@@ -50,6 +50,7 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
+import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
 
 // dnd-kit imports
 import {
@@ -159,6 +160,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [selectedEquipment, setSelectedEquipment] = useState('All')
 
   // State for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
@@ -166,6 +168,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   // Menu & Dialog State
   const [reorderDialogOpen, setReorderDialogOpen] = useState(false)
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null)
+  const [customExerciseDialogOpen, setCustomExerciseDialogOpen] = useState(false)
 
   // Fetch Data State
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
@@ -305,10 +308,21 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   }
 
   const handleCustomExercise = () => {
-    showSnackbar({
-      message: 'Custom exercise functionality coming soon',
-      severity: 'info',
-    })
+    setCustomExerciseDialogOpen(true)
+  }
+
+  const handleCustomExerciseAdded = (exercise: CreatedExercise) => {
+    // Add to available exercises list so it shows up in the drawer filter
+    setAvailableExercises((prev) => [
+      ...prev,
+      { id: exercise.id, name: exercise.name, muscleGroup: { name: exercise.bodyPart } },
+    ])
+    // Add muscle group chip if not already present
+    setMuscleGroups((prev) =>
+      prev.includes(exercise.bodyPart) ? prev : [...prev, exercise.bodyPart],
+    )
+    // Immediately add the exercise to the routine and close the drawer
+    handleAddExercise({ id: exercise.id, name: exercise.name, muscleGroup: { name: exercise.bodyPart } })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -430,14 +444,25 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
     setActiveSet(null)
   }
 
+  const equipmentOptions = useMemo(() => {
+    const eqs = new Set<string>()
+    availableExercises.forEach((ex) => {
+      if (Array.isArray(ex.equipment)) ex.equipment.forEach((e: string) => eqs.add(e))
+    })
+    return ['All', ...Array.from(eqs).sort()]
+  }, [availableExercises])
+
   const filteredExercises = useMemo(() => {
     return availableExercises.filter((ex) => {
       const matchesBodyPart =
         selectedBodyPart === 'All' || ex.muscleGroup?.name === selectedBodyPart
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase())
-      return matchesBodyPart && matchesSearch
+      const matchesEquipment =
+        selectedEquipment === 'All' ||
+        (Array.isArray(ex.equipment) && ex.equipment.includes(selectedEquipment))
+      return matchesBodyPart && matchesSearch && matchesEquipment
     })
-  }, [selectedBodyPart, availableExercises, searchQuery])
+  }, [selectedBodyPart, availableExercises, searchQuery, selectedEquipment])
 
   const appBarHeight = 64
 
@@ -881,6 +906,31 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
               />
             ))}
           </Box>
+
+          {/* Horizontal Equipment Filter */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              mt: 1,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {equipmentOptions.map((eq) => (
+              <Chip
+                key={eq}
+                label={eq === 'All' ? 'All' : eq.replace('_', ' ')}
+                onClick={() => setSelectedEquipment(eq)}
+                color={selectedEquipment === eq ? 'secondary' : 'default'}
+                variant={selectedEquipment === eq ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+              />
+            ))}
+          </Box>
         </Box>
 
         {/* Exercises List */}
@@ -890,12 +940,27 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
               <React.Fragment key={exercise.id}>
                 <ListItem disablePadding>
                   <ListItemButton onClick={() => handleAddExercise(exercise)}>
-                    <ListItemText
-                      primary={exercise.name}
-                      secondary={exercise.muscleGroup?.name}
-                      primaryTypographyProps={{ fontWeight: 500 }}
-                      secondaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                    />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {exercise.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {exercise.muscleGroup?.name}
+                      </Typography>
+                      {Array.isArray(exercise.equipment) && exercise.equipment.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                          {exercise.equipment.map((eq: string) => (
+                            <Chip
+                              key={eq}
+                              label={eq.replace('_', ' ')}
+                              size="small"
+                              variant="outlined"
+                              sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
                     <IconButton
                       edge="end"
                       onClick={(e) => {
@@ -987,6 +1052,13 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
           <Button onClick={() => setReorderDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Custom Exercise Dialog */}
+      <AddCustomExerciseDialog
+        open={customExerciseDialogOpen}
+        onClose={() => setCustomExerciseDialogOpen(false)}
+        onSuccess={handleCustomExerciseAdded}
+      />
     </Box>
   )
 }

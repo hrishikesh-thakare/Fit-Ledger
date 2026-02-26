@@ -28,6 +28,20 @@ export const Exercises: CollectionConfig = {
       required: true,
     },
     {
+      name: 'equipment',
+      type: 'select',
+      hasMany: true,
+      required: false,
+      options: [
+        { label: 'Barbell', value: 'barbell' },
+        { label: 'Dumbbell', value: 'dumbbell' },
+        { label: 'Machine', value: 'machine' },
+        { label: 'Cable', value: 'cable' },
+        { label: 'Smith Machine', value: 'smith_machine' },
+        { label: 'Bodyweight', value: 'bodyweight' },
+      ],
+    },
+    {
       name: 'isCustom',
       type: 'checkbox',
       defaultValue: false,

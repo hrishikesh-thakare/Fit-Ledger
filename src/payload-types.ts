@@ -203,6 +203,7 @@ export interface Exercise {
   id: number;
   name: string;
   muscleGroup: number | MuscleGroup;
+  equipment?: ('barbell' | 'dumbbell' | 'machine' | 'cable' | 'smith_machine' | 'bodyweight')[] | null;
   isCustom?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -478,6 +479,7 @@ export interface MuscleGroupsSelect<T extends boolean = true> {
 export interface ExercisesSelect<T extends boolean = true> {
   name?: T;
   muscleGroup?: T;
+  equipment?: T;
   isCustom?: T;
   updatedAt?: T;
   createdAt?: T;
