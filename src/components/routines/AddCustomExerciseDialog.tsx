@@ -63,17 +63,17 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
   useEffect(() => {
     if (!open) return
     let active = true
-      ; (async () => {
-        setLoadingGroups(true)
-        try {
-          const res = await apiFetch<{ docs: MuscleGroup[] }>('/muscle-groups?limit=100&sort=name')
-          if (active) setMuscleGroups(res.docs)
-        } catch {
-          // ignore – user will see empty dropdown
-        } finally {
-          if (active) setLoadingGroups(false)
-        }
-      })()
+    ;(async () => {
+      setLoadingGroups(true)
+      try {
+        const res = await apiFetch<{ docs: MuscleGroup[] }>('/muscle-groups?limit=100&sort=name')
+        if (active) setMuscleGroups(res.docs)
+      } catch {
+        // ignore – user will see empty dropdown
+      } finally {
+        if (active) setLoadingGroups(false)
+      }
+    })()
     return () => {
       active = false
     }
@@ -115,8 +115,8 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
       })
       onSuccess(res.doc)
       reset()
-    } catch (err: unknown) {
-      setErrors({ submit: err instanceof Error ? err.message : 'Failed to create exercise. Please try again.' })
+    } catch (err: any) {
+      setErrors({ submit: err.message || 'Failed to create exercise. Please try again.' })
     } finally {
       setSubmitting(false)
     }

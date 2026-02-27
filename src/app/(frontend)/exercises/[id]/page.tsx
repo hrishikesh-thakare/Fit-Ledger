@@ -8,6 +8,8 @@ import {
   Typography,
   Card,
   CardContent,
+  Toolbar,
+  IconButton,
   List,
   ListItem,
   Divider,
@@ -16,7 +18,7 @@ import {
   Fade,
   Alert,
 } from '@mui/material'
-import { TrendingUp, CalendarToday, FitnessCenter } from '@mui/icons-material'
+import { ArrowBack, TrendingUp, CalendarToday, FitnessCenter } from '@mui/icons-material'
 import PageAppBar from '@/components/PageAppBar'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -190,9 +192,9 @@ export default function ExerciseDetailPage() {
             bestWeight > 0 ? { weight: bestWeight, reps: bestReps, date: bestDate } : null,
           history: historyEntries,
         })
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching exercise data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load exercise data')
+        setError(err.message || 'Failed to load exercise data')
       } finally {
         setLoading(false)
       }

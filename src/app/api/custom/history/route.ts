@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const payloadStart = performance.now()
     // 1. Fetch Workout Days
     // Optimized: Select denormalized fields directly. No related queries.
-    const where: Record<string, unknown> = {
+    const where: any = {
       user: {
         equals: numericUserId,
       },

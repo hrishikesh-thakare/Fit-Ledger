@@ -11,7 +11,7 @@ interface LoadWorkoutParams {
 
 export interface WorkoutSetData {
   id?: string
-  type: 'N' | 'W' | 'D'
+  type: 'N' | 'W' | 'D' | 'F'
   weight: string
   reps: string
   completed: boolean
@@ -171,7 +171,7 @@ export const addWorkoutSet = async (
   templateSet?: { weight: number; reps: number; setLabel: string },
 ) => {
   try {
-    const response = await apiFetch<{ doc: { id: string | number; previousWeight?: string | number; previousReps?: string | number } }>('/workout-sets', {
+    const response = await apiFetch<{ doc: any }>('/workout-sets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -191,7 +191,9 @@ export const addWorkoutSet = async (
           ? 'W'
           : templateSet?.setLabel === 'drop'
             ? 'D'
-            : ('N' as const),
+            : templateSet?.setLabel === 'failure'
+              ? 'F'
+              : ('N' as const),
       weight: String(templateSet?.weight || 0),
       reps: String(templateSet?.reps || 0),
       completed: false,

@@ -7,6 +7,8 @@ import {
   Container,
   Typography,
   Card,
+  AppBar,
+  Toolbar,
   Button,
   IconButton,
   TextField,
@@ -27,6 +29,7 @@ import {
   Fade,
 } from '@mui/material'
 import {
+  ArrowBack,
   CheckCircle,
   RadioButtonUnchecked,
   Close,
@@ -37,9 +40,10 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
-import { loadWorkoutFromRoutine, type WorkoutExerciseData } from '@/lib/api/workout'
+import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
-import { toKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
+import apiFetch from '@/lib/api/client'
+import { toKg, fromKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
@@ -110,11 +114,15 @@ function WorkoutLoggingContent() {
   // Active Set for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
+  // Track last-completed set for animation
+  const [completedSetKey, setCompletedSetKey] = useState<string | null>(null)
+
   // Rest Time Configuration State
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
 
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const workoutInitializedRef = useRef(false)
   const routineIdRef = useRef<string | null>(null)
   const workoutDateRef = useRef<string>(new Date().toISOString())
@@ -131,7 +139,7 @@ function WorkoutLoggingContent() {
       setElapsedTime(session.getElapsedSeconds())
     }, 1000)
     return () => clearInterval(timer)
-  }, [session.isActive, exercises.length, session])
+  }, [session.isActive, exercises.length, session.getElapsedSeconds])
 
   // Sync exercises to context via useEffect (avoids setState-during-render)
   const exercisesSyncedRef = useRef(false)
@@ -176,7 +184,7 @@ function WorkoutLoggingContent() {
         routineIdRef.current = routineId
         preferredUnitRef.current = user?.preferredUnit || 'kg'
         // Restore exerciseDataRef from context exercises (exerciseId = real DB ID)
-        exerciseDataRef.current = session.exercises.map((ex: { exerciseId?: string; id: string; name: string }) => ({
+        exerciseDataRef.current = session.exercises.map((ex: any) => ({
           exerciseId: ex.exerciseId || ex.id,
           name: ex.name,
         }))
@@ -195,14 +203,14 @@ function WorkoutLoggingContent() {
         preferredUnitRef.current = userUnit
         workoutDateRef.current = workoutData.date
 
-        exerciseDataRef.current = workoutData.exercises.map((ex: { exerciseId: string; name: string }) => ({
+        exerciseDataRef.current = workoutData.exercises.map((ex: any) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
         }))
 
-        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: WorkoutExerciseData) => ({
+        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
           ...ex,
-          sets: ex.sets.map((set) => {
+          sets: ex.sets.map((set: any) => {
             let previousDisplay = set.previous
             if (set.previous && set.previous !== '-' && set.previous.includes('x')) {
               const [prevWeight, prevReps] = set.previous.split('x')
@@ -218,7 +226,7 @@ function WorkoutLoggingContent() {
               previous: previousDisplay,
             }
           }),
-        })) as WorkoutExercise[]
+        }))
 
         setExercises(exercisesWithConvertedWeights)
 
@@ -235,7 +243,7 @@ function WorkoutLoggingContent() {
     }
 
     loadWorkout()
-  }, [user, searchParams, session, showSnackbar])
+  }, [user?.id])
 
   const handleSetChange = (
     exerciseId: string,
@@ -279,7 +287,9 @@ function WorkoutLoggingContent() {
     // Trigger Rest Timer if completing
     if (isCompleting) {
       // Flash animation + haptic
+      setCompletedSetKey(`${exerciseId}-${setId}`)
       if ('vibrate' in navigator) navigator.vibrate(50)
+      setTimeout(() => setCompletedSetKey(null), 600)
 
       const exercise = exercises.find((e) => e.id === exerciseId)
       if (exercise) {
@@ -374,6 +384,7 @@ function WorkoutLoggingContent() {
     }
 
     try {
+      setIsSaving(true)
       const userUnit = preferredUnitRef.current
 
       // Build save payload — only include completed (ticked) sets, skip exercises with none
@@ -403,6 +414,7 @@ function WorkoutLoggingContent() {
           message: 'No sets completed — tick at least one set to save',
           severity: 'warning',
         })
+        setIsSaving(false)
         return
       }
 
@@ -424,6 +436,8 @@ function WorkoutLoggingContent() {
       showSnackbar({ message: 'Failed to save workout progress', severity: 'error' })
       // Fallback
       router.push('/routines')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -704,7 +718,7 @@ function WorkoutLoggingContent() {
                         startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}
                         size="small"
                         variant="contained"
-                        onClick={() => setActiveRestTimeExerciseId(exercise.id)}
+                        onClick={(e) => setActiveRestTimeExerciseId(exercise.id)}
                         sx={{
                           borderRadius: 1.5,
                           fontWeight: 700,

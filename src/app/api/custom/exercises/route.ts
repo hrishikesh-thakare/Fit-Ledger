@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const bodyPart =
       typeof exercise.muscleGroup === 'object' && exercise.muscleGroup !== null
-        ? (exercise.muscleGroup as { name: string }).name
+        ? (exercise.muscleGroup as any).name
         : 'Other'
 
     return NextResponse.json(
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const routeStart = performance.now()
   const payload = await getPayloadClient()
 

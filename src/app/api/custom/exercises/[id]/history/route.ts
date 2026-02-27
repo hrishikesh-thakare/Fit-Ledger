@@ -1,5 +1,4 @@
 import { getPayloadClient } from '@/lib/payload'
-import { WorkoutSet } from '@/payload-types'
 import { NextRequest, NextResponse } from 'next/server'
 import { formatServerTimingHeader } from '@/lib/timing'
 
@@ -106,7 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     })
 
     // Group sets by workoutExercise ID
-    const setsByWorkoutExercise = new Map<number, WorkoutSet[]>()
+    const setsByWorkoutExercise = new Map<number, any[]>()
 
     for (const s of setsRes.docs) {
       const key = typeof s.workoutExercise === 'object' ? s.workoutExercise.id : s.workoutExercise

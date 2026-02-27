@@ -2,17 +2,10 @@ import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import type { Payload } from 'payload'
 
-interface GlobalPayload {
-  payload: {
-    client: Payload | null
-    promise: Promise<Payload> | null
-  }
-}
-
-let cached = (global as unknown as GlobalPayload).payload
+let cached = (global as any).payload
 
 if (!cached) {
-  cached = (global as unknown as GlobalPayload).payload = {
+  cached = (global as any).payload = {
     client: null,
     promise: null,
   }

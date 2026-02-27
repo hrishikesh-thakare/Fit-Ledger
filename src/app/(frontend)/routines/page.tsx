@@ -4,23 +4,30 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-
+import type { Routine, RoutineExercise } from '@/payload-types'
 import {
   Box,
+  Container,
   Typography,
   Card,
   CardContent,
+  Toolbar,
   Button,
   Divider,
   Fab,
   Alert,
   Chip,
   Stack,
+  IconButton,
   Fade,
 } from '@mui/material'
 import {
   FitnessCenter,
   Add,
+  PlayArrow,
+  FormatListBulleted,
+  History,
+  Edit,
   ArrowForward,
 } from '@mui/icons-material'
 import AppScaffold from '@/components/layout/AppScaffold'
@@ -68,7 +75,7 @@ export default function RoutinesPage() {
         )
 
         setRoutines(result.docs)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching routines:', err)
         setError('Failed to load routines')
       } finally {
@@ -77,16 +84,16 @@ export default function RoutinesPage() {
     }
 
     fetchRoutines()
-  }, [user])
+  }, [user?.id])
 
-  const handleEdit = (routineId: number) => {
+  const handleEdit = (routineId: number, routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
   }
 
   const handleDelete = async (routineId: number, routineName: string) => {
     try {
       // Deleting routine...
-      await apiFetch(`/routines/${routineId}`, {
+      const response = await apiFetch(`/routines/${routineId}`, {
         method: 'DELETE',
       })
       // Delete response processed...
@@ -99,10 +106,10 @@ export default function RoutinesPage() {
         severity: 'success',
         duration: 3000,
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error('Delete error:', err)
       showSnackbar({
-        message: `Failed to delete routine: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        message: `Failed to delete routine: ${err.message || 'Unknown error'}`,
         severity: 'error',
         duration: 3000,
       })
@@ -200,7 +207,7 @@ export default function RoutinesPage() {
                         <CardOverflowMenu
                           title={routine.name}
                           actions={[
-                            commonActions.edit(() => handleEdit(routine.id)),
+                            commonActions.edit(() => handleEdit(routine.id, routine.name)),
                             commonActions.delete(() => handleDelete(routine.id, routine.name)),
                           ]}
                         />

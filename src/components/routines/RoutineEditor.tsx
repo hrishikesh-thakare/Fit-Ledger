@@ -8,9 +8,12 @@ import {
   Box,
   Container,
   Typography,
+  AppBar,
+  Toolbar,
   IconButton,
   Button,
   Card,
+  CardContent,
   TextField,
   List,
   ListItem,
@@ -34,6 +37,7 @@ import {
   DialogActions,
 } from '@mui/material'
 import {
+  ArrowBack,
   Add,
   Close,
   ChevronRight,
@@ -41,6 +45,7 @@ import {
   FitnessCenter,
   Check,
   MoreVert,
+  DragHandle,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
@@ -62,9 +67,11 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  useSortable,
 } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
-type SetType = 'N' | 'W' | 'D'
+type SetType = 'N' | 'W' | 'D' | 'F'
 
 interface RoutineSet {
   id: string
@@ -85,13 +92,62 @@ const SET_TYPE_LABELS: { [key in SetType]: string } = {
   N: 'Normal',
   W: 'Warm Up',
   D: 'Drop Set',
+  F: 'Failure',
 }
 
-interface ExerciseData {
-  id: string
-  name: string
-  muscleGroup?: { name: string }
-  equipment?: string[]
+// --- Sortable Item Component ---
+function SortableExerciseItem(props: { id: string; name: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, setActivatorNodeRef } =
+    useSortable({ id: props.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <ListItem
+      ref={setNodeRef}
+      style={style}
+      sx={{
+        mb: 1,
+        p: 0,
+        bgcolor: 'background.paper',
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 2,
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          p: 2,
+        }}
+      >
+        {/* Drag Handle */}
+        <Box
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'grab',
+            mr: 2,
+            color: 'text.secondary',
+            touchAction: 'none', // Required for PointerSensor
+            '&:active': { cursor: 'grabbing' },
+          }}
+        >
+          <DragHandle />
+        </Box>
+        <ListItemText primary={props.name} primaryTypographyProps={{ fontWeight: 600 }} />
+      </Box>
+    </ListItem>
+  )
 }
 
 interface RoutineEditorProps {
@@ -115,7 +171,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   const [customExerciseDialogOpen, setCustomExerciseDialogOpen] = useState(false)
 
   // Fetch Data State
-  const [availableExercises, setAvailableExercises] = useState<ExerciseData[]>([])
+  const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [muscleGroups, setMuscleGroups] = useState<string[]>(['All'])
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -127,13 +183,13 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   const fetchOptions = React.useCallback(async () => {
     try {
       const [exercisesRes, muscleGroupsRes] = await Promise.all([
-        apiFetch<{ docs: ExerciseData[] }>('/exercises?limit=500&depth=1'), // Fetch all exercises
-        apiFetch<{ docs: { name: string }[] }>('/muscle-groups?limit=100'),
+        apiFetch('/exercises?limit=500&depth=1'), // Fetch all exercises
+        apiFetch('/muscle-groups?limit=100'),
       ])
 
       setAvailableExercises(exercisesRes.docs || [])
 
-      const groups = muscleGroupsRes.docs.map((g) => g.name)
+      const groups = muscleGroupsRes.docs.map((g: any) => g.name)
       setMuscleGroups(['All', ...groups])
     } catch (error) {
       console.error('Failed to fetch options', error)
@@ -151,17 +207,17 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
 
     try {
       // 1. Fetch Routine Info
-      const routineData = await apiFetch<{ name: string }>(`/routines/${routineId}`)
+      const routineData = await apiFetch(`/routines/${routineId}`)
       setRoutineName(routineData.name)
 
       // 2. Fetch Routine Exercises
-      const exercisesData = await apiFetch<{ docs: Array<{ id: string; exercise: string | { id: string; name: string; muscleGroup?: { name: string } }; exerciseOrder: number }> }>(
+      const exercisesData = await apiFetch(
         `/routine-exercises?where[routine][equals]=${routineId}&depth=1&sort=exerciseOrder`,
       )
 
       // 3. Fetch Routine Sets (for all exercises)
-      const routineExerciseIds = exercisesData.docs.map((re) => re.id)
-      let setsData: Array<{ id: string; routineExercise: string | { id: string }; setOrder: number; setLabel: string; weight?: number; reps?: number }> = []
+      const routineExerciseIds = exercisesData.docs.map((re: any) => re.id)
+      let setsData: any[] = []
 
       if (routineExerciseIds.length > 0) {
         const setsParams = new URLSearchParams()
@@ -171,19 +227,19 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
         setsParams.append('limit', '300')
         setsParams.append('sort', 'setOrder')
 
-        const setsRes = await apiFetch<{ docs: typeof setsData }>(`/routine-sets?${setsParams.toString()}`)
+        const setsRes = await apiFetch(`/routine-sets?${setsParams.toString()}`)
         setsData = setsRes.docs
       }
 
       // 4. Map to State
-      const formattedExercises = exercisesData.docs.map((re) => {
+      const formattedExercises = exercisesData.docs.map((re: any) => {
         const exerciseSets = setsData
           .filter(
-            (s) =>
+            (s: any) =>
               (typeof s.routineExercise === 'string' ? s.routineExercise : s.routineExercise.id) ===
               re.id,
           )
-          .sort((a, b) => a.setOrder - b.setOrder)
+          .sort((a: any, b: any) => a.setOrder - b.setOrder)
 
         return {
           id: re.id,
@@ -193,7 +249,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
             typeof re.exercise === 'object' && re.exercise.muscleGroup
               ? re.exercise.muscleGroup.name
               : '',
-          sets: exerciseSets.map((s) => ({
+          sets: exerciseSets.map((s: any) => ({
             id: s.id,
             type: (s.setLabel === 'warmup'
               ? 'W'
@@ -219,21 +275,6 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
     fetchRoutineConfig()
   }, [fetchRoutineConfig])
 
-  // Protect against accidental refresh / tab close
-  React.useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // If there are unsaved changes
-      if (exercises.length > 0 || routineName.trim().length > 0) {
-        // Standard way to show a prompt
-        e.preventDefault()
-        e.returnValue = ''
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [exercises, routineName])
-
   // dnd-kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -254,7 +295,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
     }
   }
 
-  const handleAddExercise = (exercise: { id: string; name: string; muscleGroup?: { name: string } }) => {
+  const handleAddExercise = (exercise: any) => {
     const newExercise: Exercise = {
       id: crypto.randomUUID(),
       exerciseDefId: exercise.id,
@@ -381,7 +422,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       } else {
         router.push('/routines')
       }
-    } catch {
+    } catch (error) {
       showSnackbar({ message: 'Failed to save routine', severity: 'error' })
     }
   }
@@ -423,6 +464,8 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
     })
   }, [selectedBodyPart, availableExercises, searchQuery, selectedEquipment])
 
+  const appBarHeight = 64
+
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {
     if (!activeSet) return null
@@ -454,15 +497,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       {/* App Bar (Sticky) */}
       <PageAppBar
         title={routineId === 'new' ? 'Create Routine' : 'Edit Routine'}
-        onBack={() => {
-          if (exercises.length > 0 || routineName.trim().length > 0) {
-            if (window.confirm("You have unsaved changes in your routine. Are you sure you want to go back and lose them?")) {
-              router.back()
-            }
-          } else {
-            router.back()
-          }
-        }}
+        onBack={() => router.back()}
         actions={
           <>
             <IconButton onClick={(e) => setMenuAnchorEl(e.currentTarget)}>
@@ -568,7 +603,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext items={exercises} strategy={verticalListSortingStrategy}>
-                    {exercises.map((exercise) => (
+                    {exercises.map((exercise, index) => (
                       <Card
                         key={exercise.id}
                         elevation={1}
@@ -930,15 +965,8 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
                       edge="end"
                       onClick={(e) => {
                         e.stopPropagation()
-                        const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
-                        // If there are unsaved changes, prompt first
-                        if (exercises.length > 0 || routineName.trim().length > 0) {
-                          if (window.confirm("You have unsaved changes in your routine. Are you sure you want to leave and view exercise stats?")) {
-                            router.push(`/exercises/${slug}`)
-                          }
-                        } else {
-                          router.push(`/exercises/${slug}`)
-                        }
+                        // const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
+                        // router.push(`/exercises/${slug}`)
                       }}
                     >
                       <ChevronRight color="action" />
@@ -957,7 +985,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
         anchor="bottom"
         open={!!activeSet}
         onClose={() => setActiveSet(null)}
-        onOpen={() => { }}
+        onOpen={() => {}}
         disableSwipeToOpen={true}
         PaperProps={{
           sx: {

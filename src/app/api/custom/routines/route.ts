@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     const exercises = exercisesRes.docs
 
     // Map exerciseId → exercise
-    const exerciseMap = new Map<number, Record<string, unknown>>()
+    const exerciseMap = new Map<number, any>()
     exercises.forEach((ex) => {
       exerciseMap.set(ex.id, ex)
     })
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     // ------------------------------------------------
     // 5️⃣ Group exercises by routine
     // ------------------------------------------------
-    const exercisesByRoutine: Record<number, Record<string, unknown>[]> = {}
+    const exercisesByRoutine: Record<number, any[]> = {}
 
     routineExercises.forEach((rx) => {
       const routineId = typeof rx.routine === 'object' ? rx.routine.id : rx.routine
@@ -188,14 +188,13 @@ export async function GET(req: NextRequest) {
         },
       },
     )
-  } catch (error: unknown) {
-    const isError = error instanceof Error
+  } catch (error: any) {
     return NextResponse.json(
       {
         errors: [
           {
-            message: isError ? error.message : 'Internal Server Error',
-            stack: process.env.NODE_ENV === 'development' && isError ? error.stack : undefined,
+            message: error?.message || 'Internal Server Error',
+            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
           },
         ],
       },

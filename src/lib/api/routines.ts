@@ -1,8 +1,9 @@
 import apiFetch from './client'
+import type { Exercise } from '@/payload-types'
 
 interface RoutineSetData {
   id?: string
-  type: 'N' | 'W' | 'D'
+  type: 'N' | 'W' | 'D' | 'F'
   weight: string
   reps: string
   // internal temporary id for UI tracking, not sent to backend if new
@@ -24,19 +25,49 @@ interface SaveRoutineParams {
 
 export const saveRoutine = async (data: SaveRoutineParams) => {
   try {
-    const routineId = data.id && data.id !== 'new' ? data.id : 'new'
+    let routineId = data.id && data.id !== 'new' ? data.id : null
 
-    const response = await apiFetch<{ success: boolean; id: number }>(`/custom/routines/${routineId}/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: data.name,
-        description: data.description,
-        exercises: data.exercises,
-      }),
-    })
+    if (routineId) {
+      // Edit existing routine using custom endpoint
+      await apiFetch(`/custom/routines/${routineId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          exercises: data.exercises,
+        }),
+      })
+    } else {
+      // Create new routine
+      // We can use the standard endpoint to create the shell, then save the content?
+      // Or make the save endpoint handle creation if ID is missing.
+      // But the route is /custom/routines/[id]/save...
+      // So let's create the shell first.
+      const createRes = await apiFetch<{ doc: { id: string } }>('/routines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          user: undefined, // Payload infers user from auth context usually
+        }),
+      })
+      routineId = String(createRes.doc.id)
 
-    return String(response.id)
+      // Now save the content
+      await apiFetch(`/custom/routines/${routineId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          exercises: data.exercises,
+        }),
+      })
+    }
+
+    return routineId
   } catch (error) {
     console.error('Error saving routine:', error)
     throw error
@@ -48,7 +79,7 @@ export const saveRoutine = async (data: SaveRoutineParams) => {
  */
 export interface FetchedRoutineSet {
   id: string
-  type: 'N' | 'W' | 'D'
+  type: 'N' | 'W' | 'D' | 'F'
   weight: string
   reps: string
   setOrder: number

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
-import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
+import type { WorkoutDay, WorkoutExercise, WorkoutSet, Exercise } from '@/payload-types'
 import { useAuth } from '@/contexts/AuthContext'
 import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
@@ -24,6 +24,7 @@ import {
   Paper,
   Skeleton,
   Fade,
+  Stack,
 } from '@mui/material'
 import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
 
@@ -209,7 +210,7 @@ export default function HistoryDetailPage() {
     }
 
     fetchWorkoutDetails()
-  }, [workoutId, user])
+  }, [workoutId, user?.id])
 
   return (
     <Box

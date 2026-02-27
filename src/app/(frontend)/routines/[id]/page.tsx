@@ -12,6 +12,8 @@ import {
   Container,
   Typography,
   Card,
+  AppBar,
+  Toolbar,
   Button,
   IconButton,
   Table,
@@ -32,6 +34,7 @@ import {
   DialogActions,
 } from '@mui/material'
 import {
+  ArrowBack,
   Edit,
   PlayArrow,
   AccessTime,
@@ -137,7 +140,7 @@ export default function RoutineDetailPage() {
         }))
 
         setExercises(mappedExercises)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching routine details:', err)
         setError('Failed to load routine details')
       } finally {
@@ -146,7 +149,7 @@ export default function RoutineDetailPage() {
     }
 
     fetchRoutineDetails()
-  }, [routineId, user, preferredUnit])
+  }, [routineId, user?.id])
 
   const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
 
