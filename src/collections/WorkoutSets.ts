@@ -65,8 +65,8 @@ export const WorkoutSets: CollectionConfig = {
         if (!workoutDay || !exercise) return data
         if (typeof workoutDay === 'number' || typeof exercise === 'number') return data
 
-        // Step 2: Find the previous WorkoutSet
-        const previousSets = await req.payload.find({
+        // Step 2: Find the most recent WorkoutDay where this exercise was performed
+        const mostRecentWorkoutResult = await req.payload.find({
           collection: 'workout-sets',
           where: {
             and: [
@@ -90,6 +90,31 @@ export const WorkoutSets: CollectionConfig = {
           },
           sort: '-createdAt',
           limit: 1,
+          depth: 1, // need workoutDay ID
+        })
+
+        if (!mostRecentWorkoutResult.docs.length) return data
+
+        const mostRecentSet = mostRecentWorkoutResult.docs[0]
+        let targetWorkoutDayId: string | number
+        if (mostRecentSet.workoutDay && typeof mostRecentSet.workoutDay === 'object' && 'id' in mostRecentSet.workoutDay) {
+          targetWorkoutDayId = mostRecentSet.workoutDay.id
+        } else {
+          targetWorkoutDayId = mostRecentSet.workoutDay as string | number
+        }
+
+        // Step 3: Find the specific set by setOrder on that previous day
+        const previousSets = await req.payload.find({
+          collection: 'workout-sets',
+          where: {
+            and: [
+              { 'workoutExercise.exercise': { equals: typeof exercise === 'number' ? exercise : exercise.id } },
+              { 'workoutDay': { equals: targetWorkoutDayId } },
+              { 'setOrder': { equals: data.setOrder } }
+            ]
+          },
+          limit: 1,
+          depth: 0
         })
 
         const previousSet = previousSets.docs[0]
@@ -139,7 +164,6 @@ export const WorkoutSets: CollectionConfig = {
         { label: 'Warmup', value: 'warmup' },
         { label: 'Working Set', value: 'working' },
         { label: 'Drop Set', value: 'drop' },
-        { label: 'Failure', value: 'failure' },
       ],
     },
     {

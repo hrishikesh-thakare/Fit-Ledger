@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { Box, CircularProgress } from '@mui/material'
-import { ArrowDownward } from '@mui/icons-material'
 
 interface PullToRefreshIndicatorProps {
   pullDistance: number
@@ -22,7 +21,6 @@ export default function PullToRefreshIndicator({
   if (pullDistance <= 0 && !isRefreshing) return null
 
   const progress = Math.min(1, pullDistance / threshold)
-  const rotation = progress * 180
 
   return (
     <Box
@@ -38,12 +36,13 @@ export default function PullToRefreshIndicator({
       {isRefreshing ? (
         <CircularProgress size={24} thickness={4} />
       ) : (
-        <ArrowDownward
+        <CircularProgress
+          variant="determinate"
+          value={progress * 100}
+          size={24}
+          thickness={4}
           sx={{
-            fontSize: 24,
             color: progress >= 1 ? 'primary.main' : 'text.secondary',
-            transform: `rotate(${rotation}deg)`,
-            transition: 'color 0.2s ease',
             opacity: Math.min(1, progress * 1.5),
           }}
         />

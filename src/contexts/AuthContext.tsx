@@ -9,7 +9,7 @@ import type { User } from '@/payload-types'
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (data: any) => Promise<void>
+  login: (data: Record<string, unknown>) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -35,7 +35,7 @@ export function AuthProvider({
       } else {
         setUser(null)
       }
-    } catch (error) {
+    } catch {
       // Identify 401/403 as "not logged in" but don't throw to UI
       setUser(null)
     } finally {
@@ -51,7 +51,7 @@ export function AuthProvider({
     }
   }, [refreshUser, initialUser])
 
-  const login = async (credentials: any) => {
+  const login = async (credentials: Record<string, unknown>) => {
     await apiFetch('/users/login', {
       method: 'POST',
       body: JSON.stringify(credentials),

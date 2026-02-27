@@ -20,6 +20,7 @@ interface WeightPickerProps {
   onClose: () => void
   onSave: (weight: number, date: Date) => void
   initialWeight?: number
+  initialDate?: Date
 }
 
 // Weights from 20 to 300
@@ -65,44 +66,58 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
   onClose,
   onSave,
   initialWeight = 75.0,
+  initialDate,
 }) => {
   const [integerPart, setIntegerPart] = useState(Math.floor(initialWeight))
   const [decimalPart, setDecimalPart] = useState(Math.round((initialWeight % 1) * 10))
   // Use dayjs state for the picker, initialize to today
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs())
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs(initialDate || new Date()))
 
   const integerScrollRef = useRef<HTMLDivElement>(null)
   const decimalScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) {
-      // Scroll integers
-      if (integerScrollRef.current) {
-        const intIndex = integers.indexOf(integerPart)
-        if (intIndex !== -1) {
-          setTimeout(() => {
-            if (integerScrollRef.current) {
-              integerScrollRef.current.scrollTop =
-                intIndex * 50 - integerScrollRef.current.clientHeight / 2 + 25
-            }
-          }, 100)
+      // Synchronize states with initial values when opening
+      const newInt = Math.floor(initialWeight)
+      const newDec = Math.round((initialWeight % 1) * 10)
+      const newDate = dayjs(initialDate || new Date())
+
+      setIntegerPart(newInt)
+      setDecimalPart(newDec)
+      setSelectedDate(newDate)
+
+      let retries = 0
+      const maxRetries = 20 // ~300ms, covers typical dialog entry animation time
+
+      const scrollToInitial = () => {
+        // Wait until Dialog DOM is fully laid out and clientHeight > 0
+        if (
+          integerScrollRef.current &&
+          decimalScrollRef.current &&
+          integerScrollRef.current.clientHeight > 0
+        ) {
+          const intIndex = integers.indexOf(newInt)
+          const decIndex = decimals.indexOf(newDec)
+
+          if (intIndex !== -1) {
+            // Formula corresponding to the inverse function in handleScroll: 
+            // scrollTarget = index * 50
+            integerScrollRef.current.scrollTop = intIndex * 50
+          }
+          if (decIndex !== -1) {
+            decimalScrollRef.current.scrollTop = decIndex * 50
+          }
+        } else if (retries < maxRetries) {
+          retries++
+          requestAnimationFrame(scrollToInitial)
         }
       }
-      // Scroll decimals
-      if (decimalScrollRef.current) {
-        const decIndex = decimals.indexOf(decimalPart)
-        if (decIndex !== -1) {
-          setTimeout(() => {
-            if (decimalScrollRef.current) {
-              decimalScrollRef.current.scrollTop =
-                decIndex * 50 - decimalScrollRef.current.clientHeight / 2 + 25
-            }
-          }, 100)
-        }
-      }
+
+      // Start scroll positioning loop
+      requestAnimationFrame(scrollToInitial)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, initialWeight, initialDate])
 
   const handleSave = () => {
     // Must have a date to save, default to today if null for robustness
@@ -118,8 +133,8 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
   ) => {
     const container = e.currentTarget
     // Item height is 50px.
-    // Index calculation based on visual center alignment
-    const index = Math.round((container.scrollTop - 5) / 50)
+    // Index calculation based on visual center alignment and precise 75px spacers
+    const index = Math.round(container.scrollTop / 50)
 
     if (index >= 0 && index < items.length) {
       const newValue = items[index]
@@ -190,7 +205,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
             ref={integerScrollRef}
             onScroll={(e) => handleScroll(e, integers, integerPart, setIntegerPart)}
           >
-            <Box sx={{ height: '40%' }} />
+            <Box sx={{ height: 75, flexShrink: 0 }} />
             {integers.map((val) => (
               <PickerItem
                 key={val}
@@ -200,7 +215,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
                 align="right"
               />
             ))}
-            <Box sx={{ height: '40%' }} />
+            <Box sx={{ height: 75, flexShrink: 0 }} />
           </Box>
 
           {/* Separator */}
@@ -225,7 +240,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
             ref={decimalScrollRef}
             onScroll={(e) => handleScroll(e, decimals, decimalPart, setDecimalPart)}
           >
-            <Box sx={{ height: '40%' }} />
+            <Box sx={{ height: 75, flexShrink: 0 }} />
             {decimals.map((val) => (
               <PickerItem
                 key={val}
@@ -235,7 +250,7 @@ const WeightPicker: React.FC<WeightPickerProps> = ({
                 align="left"
               />
             ))}
-            <Box sx={{ height: '40%' }} />
+            <Box sx={{ height: 75, flexShrink: 0 }} />
           </Box>
 
           {/* Selection Indicator Line */}

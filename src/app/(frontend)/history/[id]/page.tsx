@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
-import type { WorkoutDay, WorkoutExercise, WorkoutSet, Exercise } from '@/payload-types'
+import type { WorkoutDay, WorkoutExercise, WorkoutSet } from '@/payload-types'
 import { useAuth } from '@/contexts/AuthContext'
 import { fromKg, formatWeight } from '@/lib/utils/weightConversion'
 import {
@@ -24,17 +24,28 @@ import {
   Paper,
   Skeleton,
   Fade,
-  Stack,
 } from '@mui/material'
 import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
 
-type SetDisplayType = 'Warmup' | 'Working' | 'Drop' | 'Failure'
+type SetDisplayType = 'Warmup' | 'Working' | 'Drop'
 
 interface SetDetail {
   id: number
   type: SetDisplayType
   weight: string
-  reps: number
+  reps: number | string
+}
+
+const getSetLabel = (sets: SetDetail[], currentIndex: number) => {
+  const currentSet = sets[currentIndex]
+  if (currentSet.type === 'Warmup') return 'W'
+  if (currentSet.type === 'Drop') return 'D'
+
+  let normalCount = 0
+  for (let i = 0; i <= currentIndex; i++) {
+    if (sets[i].type === 'Working') normalCount++
+  }
+  return normalCount
 }
 
 interface ExerciseDetail {
@@ -113,7 +124,6 @@ export default function HistoryDetailPage() {
           warmup: 'Warmup',
           working: 'Working',
           drop: 'Drop',
-          failure: 'Failure',
         }
 
         const exercisesWithSets = workoutExercisesResponse.docs.map((workoutExercise) => {
@@ -128,7 +138,7 @@ export default function HistoryDetailPage() {
               id: set.id,
               type: setLabelMap[set.setLabel] || 'Working',
               weight: formatWeight(set.weight || 0, userUnit),
-              reps: set.reps || 0,
+              reps: set.reps || '-',
             })),
           }
         })
@@ -138,7 +148,8 @@ export default function HistoryDetailPage() {
           return (
             sum +
             exercise.sets.reduce((exSum, set) => {
-              return exSum + parseFloat(set.weight) * set.reps
+              const repsNum = set.reps === '-' ? 0 : Number(set.reps)
+              return exSum + parseFloat(set.weight) * repsNum
             }, 0)
           )
         }, 0)
@@ -198,7 +209,7 @@ export default function HistoryDetailPage() {
     }
 
     fetchWorkoutDetails()
-  }, [workoutId, user?.id])
+  }, [workoutId, user])
 
   return (
     <Box
@@ -418,12 +429,19 @@ export default function HistoryDetailPage() {
                                 align="center"
                                 scope="row"
                                 sx={{
-                                  color: set.type === 'Warmup' ? 'warning.main' : 'text.secondary',
+                                  color:
+                                    set.type === 'Working'
+                                      ? 'text.secondary'
+                                      : set.type === 'Warmup'
+                                        ? 'warning.main'
+                                        : set.type === 'Drop'
+                                          ? 'info.main'
+                                          : 'error.main',
                                   fontSize: '0.875rem',
-                                  fontWeight: set.type === 'Warmup' ? 700 : 400,
+                                  fontWeight: set.type === 'Working' ? 400 : 700,
                                 }}
                               >
-                                {set.type === 'Warmup' ? 'W' : index + 1}
+                                {getSetLabel(exercise.sets, index)}
                               </TableCell>
                               <TableCell
                                 align="center"

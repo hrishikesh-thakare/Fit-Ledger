@@ -12,16 +12,19 @@ interface RestTimePickerDrawerProps {
   initialValue?: number
 }
 
-// Seconds from 5 to 300 in steps of 5
-const secondsOptions = Array.from({ length: 60 }, (_, i) => (i + 1) * 10)
+// Options for minutes (0-15) and seconds (0-59 by 5s or just 0-59)
+// Let's use 0-59 for seconds for precision, similar to standard timers.
+const minutesOptions = Array.from({ length: 16 }, (_, i) => i) // 0 to 15
+const secondsOptions = Array.from({ length: 60 }, (_, i) => i) // 0 to 59
 
 interface PickerItemProps {
   value: number
   isActive: boolean
   onClick: (value: number) => void
+  align?: 'left' | 'right' | 'center'
 }
 
-const PickerItem = React.memo<PickerItemProps>(({ value, isActive, onClick }) => {
+const PickerItem = React.memo<PickerItemProps>(({ value, isActive, onClick, align = 'center' }) => {
   return (
     <Box
       onClick={() => onClick(value)}
@@ -29,7 +32,7 @@ const PickerItem = React.memo<PickerItemProps>(({ value, isActive, onClick }) =>
         height: 50,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: align === 'right' ? 'flex-end' : align === 'left' ? 'flex-start' : 'center',
         scrollSnapAlign: 'center',
         cursor: 'pointer',
         opacity: isActive ? 1 : 0.4,
@@ -41,7 +44,7 @@ const PickerItem = React.memo<PickerItemProps>(({ value, isActive, onClick }) =>
         fontWeight="bold"
         color={isActive ? 'primary.main' : 'text.disabled'}
       >
-        {value}
+        {value.toString().padStart(2, '0')}
       </Typography>
     </Box>
   )
@@ -54,64 +57,71 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
   onSave,
   initialValue = 60,
 }) => {
-  const [selectedValue, setSelectedValue] = useState(initialValue)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [selectedMinutes, setSelectedMinutes] = useState(Math.floor(initialValue / 60))
+  const [selectedSeconds, setSelectedSeconds] = useState(initialValue % 60)
 
-  // Scroll to initial value when opened
+  const minScrollRef = useRef<HTMLDivElement>(null)
+  const secScrollRef = useRef<HTMLDivElement>(null)
+
+  // Initialization scroll loop, identical to WeightPicker robustness fix
   useEffect(() => {
-    if (open && scrollRef.current) {
-      // Find closest value in options
-      const closest = secondsOptions.reduce((prev, curr) => {
-        return Math.abs(curr - initialValue) < Math.abs(prev - initialValue) ? curr : prev
-      })
+    if (open) {
+      const initMin = Math.floor(initialValue / 60)
+      const initSec = initialValue % 60
 
-      setSelectedValue(closest)
+      // Cap initial minutes at 15
+      const safeInitMin = Math.min(initMin, 15)
 
-      const index = secondsOptions.indexOf(closest)
-      if (index !== -1) {
-        setTimeout(() => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTop = index * 50 - scrollRef.current.clientHeight / 2 + 25
+      setSelectedMinutes(safeInitMin)
+      setSelectedSeconds(initSec)
+
+      let retries = 0
+      const maxRetries = 20
+
+      const scrollToInitial = () => {
+        if (
+          minScrollRef.current &&
+          secScrollRef.current &&
+          minScrollRef.current.clientHeight > 0
+        ) {
+          const minIndex = minutesOptions.indexOf(safeInitMin)
+          const secIndex = secondsOptions.indexOf(initSec)
+
+          if (minIndex !== -1) {
+            minScrollRef.current.scrollTop = minIndex * 50
           }
-        }, 100)
+          if (secIndex !== -1) {
+            secScrollRef.current.scrollTop = secIndex * 50
+          }
+        } else if (retries < maxRetries) {
+          retries++
+          requestAnimationFrame(scrollToInitial)
+        }
       }
+
+      requestAnimationFrame(scrollToInitial)
     }
   }, [open, initialValue])
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = (
+    e: React.UIEvent<HTMLDivElement>,
+    items: number[],
+    currentValue: number,
+    setState: React.Dispatch<React.SetStateAction<number>>,
+  ) => {
     const container = e.currentTarget
-    const index = Math.round((container.scrollTop - container.clientHeight / 2 + 25) / 50)
-    // Adjust logic to match WeightPicker's simplified calculation if centered padding is used
-    // WeightPicker logic: index = Math.round((container.scrollTop - 5) / 50) (approximated)
-    // Let's use clean calculation based on item height 50
-    // Center is scrollTop + clientHeight/2
-    // Item center at index i is i*50 + 25 + padding
+    const index = Math.round(container.scrollTop / 50)
 
-    // Using the same logic style as WeightPicker for consistency and robustness
-    const visualCenter = container.scrollTop + container.clientHeight / 2
-    // Subtract padding top (which is 40% height ~ 80px maybe? let's assume padding logic holds)
-    // Let's rely on simple item index mapping assuming padding aligns the first item
-
-    // Actually, let's stick to the WeightPicker logic exactly
-    // scrollTop 0 means first item is at top? No, WeightPicker has huge padding.
-    // Box sx={{ height: '40%' }} corresponds to ~80px padding if height is 200px.
-
-    // Simplified logic:
-    const itemHeight = 50
-    const padding = 80 // 40% of 200px
-    const scrolledTop = container.scrollTop
-    const selectedIndex = Math.round(scrolledTop / itemHeight)
-
-    if (selectedIndex >= 0 && selectedIndex < secondsOptions.length) {
-      const newValue = secondsOptions[selectedIndex]
-      if (newValue !== selectedValue) {
-        setSelectedValue(newValue)
+    if (index >= 0 && index < items.length) {
+      const newValue = items[index]
+      if (newValue !== currentValue) {
+        setState(newValue)
       }
     }
   }
 
   const handleSave = () => {
-    onSave(selectedValue)
+    onSave(selectedMinutes * 60 + selectedSeconds)
     onClose()
   }
 
@@ -120,7 +130,7 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
       anchor="bottom"
       open={open}
       onClose={onClose}
-      onOpen={() => {}}
+      onOpen={() => { }}
       disableSwipeToOpen={true}
       PaperProps={{
         sx: {
@@ -150,7 +160,7 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
           </IconButton>
         </Box>
 
-        {/* Carousel */}
+        {/* Dual Carousels */}
         <Box
           sx={{
             height: 200,
@@ -161,6 +171,7 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
             mb: 3,
           }}
         >
+          {/* Minutes Column */}
           <Box
             sx={{
               flex: 1,
@@ -169,27 +180,58 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
               '&::-webkit-scrollbar': { display: 'none' },
               msOverflowStyle: 'none',
               scrollbarWidth: 'none',
-              textAlign: 'center',
+              textAlign: 'right',
+              pr: 2,
             }}
-            ref={scrollRef}
-            onScroll={handleScroll}
+            ref={minScrollRef}
+            onScroll={(e) => handleScroll(e, minutesOptions, selectedMinutes, setSelectedMinutes)}
           >
-            <Box sx={{ height: 75 }} /> {/* Padding to center first item */}
+            <Box sx={{ height: 75, flexShrink: 0 }} />
+            {minutesOptions.map((val) => (
+              <PickerItem
+                key={val}
+                value={val}
+                isActive={val === selectedMinutes}
+                onClick={setSelectedMinutes}
+                align="right"
+              />
+            ))}
+            <Box sx={{ height: 75, flexShrink: 0 }} />
+          </Box>
+
+          {/* Separator / Colon */}
+          <Box sx={{ display: 'flex', alignItems: 'center', pb: 1 }}>
+            <Typography variant="h4" fontWeight="bold" color="text.primary">
+              :
+            </Typography>
+          </Box>
+
+          {/* Seconds Column */}
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: 'auto',
+              scrollSnapType: 'y mandatory',
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+              textAlign: 'left',
+              pl: 2,
+            }}
+            ref={secScrollRef}
+            onScroll={(e) => handleScroll(e, secondsOptions, selectedSeconds, setSelectedSeconds)}
+          >
+            <Box sx={{ height: 75, flexShrink: 0 }} />
             {secondsOptions.map((val) => (
               <PickerItem
                 key={val}
                 value={val}
-                isActive={val === selectedValue}
-                onClick={(v) => {
-                  setSelectedValue(v)
-                  const idx = secondsOptions.indexOf(v)
-                  if (scrollRef.current) {
-                    scrollRef.current.scrollTo({ top: idx * 50, behavior: 'smooth' })
-                  }
-                }}
+                isActive={val === selectedSeconds}
+                onClick={setSelectedSeconds}
+                align="left"
               />
             ))}
-            <Box sx={{ height: 75 }} /> {/* Padding to center last item */}
+            <Box sx={{ height: 75, flexShrink: 0 }} />
           </Box>
 
           {/* Selection Indicator Line */}
@@ -197,27 +239,42 @@ const RestTimePickerDrawer: React.FC<RestTimePickerDrawerProps> = ({
             sx={{
               position: 'absolute',
               top: '50%',
-              left: 32,
-              right: 32,
+              left: 16,
+              right: 16,
               height: 50,
               marginTop: '-25px',
               borderTop: '1px solid',
               borderBottom: '1px solid',
               borderColor: 'primary.main',
               pointerEvents: 'none',
-              opacity: 0.2,
+              opacity: 0.1,
             }}
           />
 
+          {/* Stationary Labels */}
           <Typography
-            variant="h6"
+            variant="body1"
+            fontWeight="bold"
+            color="text.secondary"
             sx={{
               position: 'absolute',
               top: '50%',
-              right: 60,
-              transform: 'translateY(-50%)',
-              color: 'text.secondary',
-              fontWeight: 600,
+              left: '15%',
+              marginTop: '-12px',
+              pointerEvents: 'none',
+            }}
+          >
+            min
+          </Typography>
+          <Typography
+            variant="body1"
+            fontWeight="bold"
+            color="text.secondary"
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              right: '15%',
+              marginTop: '-12px',
               pointerEvents: 'none',
             }}
           >

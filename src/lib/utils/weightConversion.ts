@@ -25,7 +25,8 @@ export function fromKg(weightInKg: number, toUnit: WeightUnit): number {
 /**
  * Format weight for display with appropriate precision
  */
-export function formatWeight(weightInKg: number, unit: WeightUnit, decimals: number = 0): string {
+export function formatWeight(weightInKg: number, unit: WeightUnit, maxDecimals: number = 2): string {
   const displayWeight = fromKg(weightInKg, unit)
-  return displayWeight.toFixed(decimals)
+  // parseFloat strips trailing zeroes (e.g. 2.50 -> 2.5, 3.00 -> 3)
+  return parseFloat(displayWeight.toFixed(maxDecimals)).toString()
 }

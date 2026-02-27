@@ -500,7 +500,7 @@ export default function BodyweightLogPage() {
         anchor="bottom"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableSwipeToOpen
         PaperProps={{
           sx: {
@@ -622,6 +622,7 @@ export default function BodyweightLogPage() {
           }}
           onSave={handleEditLog}
           initialWeight={selectedLog.weight}
+          initialDate={new Date(selectedLog.rawDate)}
         />
       )}
     </AppScaffold>

@@ -1,7 +1,7 @@
 import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { formatServerTimingHeader } from '@/lib/timing'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, and } from 'drizzle-orm'
 
 interface SetInput {
   id?: string
@@ -35,12 +35,20 @@ interface SaveRoutinePayload {
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const routeStart = performance.now()
   const { id } = await params
-  const routineId = Number(id)
   const payload = await getPayloadClient()
+
+  // Authenticate user
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const data: SaveRoutinePayload = await req.json()
 
   // Access Drizzle ORM directly
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (payload.db as any).drizzle
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tables = (payload.db as any).tables
 
   const routinesTable = tables.routines
@@ -54,42 +62,77 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const setCount = data.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0)
     const now = new Date()
 
+    let finalRoutineId: number
+
     // Execute everything in a single Drizzle transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.transaction(async (tx: any) => {
-      // 1. Update routine metadata
-      await tx
-        .update(routinesTable)
-        .set({
-          name: data.name,
-          notes: data.description || null,
-          exerciseCount,
-          setCount,
-          updatedAt: now,
-        })
-        .where(eq(routinesTable.id, routineId))
 
-      // 2. Get existing routine exercise IDs for cascading set deletion
-      const existingREs = await tx
-        .select({ id: reTable.id })
-        .from(reTable)
-        .where(eq(reTable.routine, routineId))
+      if (id === 'new') {
+        // 1. Create a new routine
+        const newRoutine = await tx
+          .insert(routinesTable)
+          .values({
+            name: data.name,
+            notes: data.description || null,
+            exerciseCount,
+            setCount,
+            user: user.id, // Explicitly set the authenticated user
+            isActive: 'active',
+            updatedAt: now,
+            createdAt: now,
+          })
+          .returning({ id: routinesTable.id })
 
-      const existingREIds = existingREs.map((re: any) => re.id)
+        finalRoutineId = newRoutine[0].id
+      } else {
+        // 1. Update existing routine, ensuring the user owns it
+        finalRoutineId = Number(id)
 
-      // 3. Bulk delete ALL existing sets for this routine's exercises
-      if (existingREIds.length > 0) {
-        await tx.delete(rsTable).where(inArray(rsTable.routineExercise, existingREIds))
-      }
+        const updateResult = await tx
+          .update(routinesTable)
+          .set({
+            name: data.name,
+            notes: data.description || null,
+            exerciseCount,
+            setCount,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(routinesTable.id, finalRoutineId),
+              user.role === 'admin' ? undefined : eq(routinesTable.user, user.id)
+            )
+          )
+          .returning({ id: routinesTable.id })
 
-      // 4. Bulk delete ALL existing routine exercises
-      if (existingREIds.length > 0) {
-        await tx.delete(reTable).where(eq(reTable.routine, routineId))
+        if (updateResult.length === 0) {
+          throw new Error('NOT_FOUND_OR_UNAUTHORIZED')
+        }
+
+        // 2. Get existing routine exercise IDs for cascading set deletion
+        const existingREs = await tx
+          .select({ id: reTable.id })
+          .from(reTable)
+          .where(eq(reTable.routine, finalRoutineId))
+
+        const existingREIds = existingREs.map((re: { id: number }) => re.id)
+
+        // 3. Bulk delete ALL existing sets for this routine's exercises
+        if (existingREIds.length > 0) {
+          await tx.delete(rsTable).where(inArray(rsTable.routineExercise, existingREIds))
+        }
+
+        // 4. Bulk delete ALL existing routine exercises
+        if (existingREIds.length > 0) {
+          await tx.delete(reTable).where(eq(reTable.routine, finalRoutineId))
+        }
       }
 
       // 5. Bulk create all new exercises (single INSERT statement)
       if (data.exercises.length > 0) {
         const exerciseRows = data.exercises.map((exInput, index) => ({
-          routine: routineId,
+          routine: finalRoutineId,
           exercise: Number(exInput.exerciseId),
           exerciseOrder: index,
           updatedAt: now,
@@ -102,28 +145,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .returning({ id: reTable.id })
 
         // 6. Bulk create all new sets (single INSERT statement)
-        const setRows: any[] = []
+        const setRows: Record<string, unknown>[] = []
 
         data.exercises.forEach((exInput, exIndex) => {
           const newREId = newExercises[exIndex].id
-          ;(exInput.sets || []).forEach((setInput, setIndex) => {
-            setRows.push({
-              routineExercise: newREId,
-              setOrder: setIndex,
-              setLabel:
-                setInput.type === 'W'
-                  ? 'warmup'
-                  : setInput.type === 'D'
-                    ? 'drop'
-                    : setInput.type === 'F'
-                      ? 'failure'
+            ; (exInput.sets || []).forEach((setInput, setIndex) => {
+              setRows.push({
+                routineExercise: newREId,
+                setOrder: setIndex,
+                setLabel:
+                  setInput.type === 'W'
+                    ? 'warmup'
+                    : setInput.type === 'D'
+                      ? 'drop'
                       : 'working',
-              reps: Number(setInput.reps) || 0,
-              weight: Number(setInput.weight) || 0,
-              updatedAt: now,
-              createdAt: now,
+                reps: Number(setInput.reps) || 0,
+                weight: Number(setInput.weight) || 0,
+                updatedAt: now,
+                createdAt: now,
+              })
             })
-          })
         })
 
         if (setRows.length > 0) {
@@ -135,13 +176,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const payloadDuration = performance.now() - payloadStart
     const totalDuration = performance.now() - routeStart
 
-    console.log(`[API] /api/custom/routines/${routineId}/save`)
+    console.log(`[API] /api/custom/routines/${finalRoutineId!}/save`)
     console.log(`Exercises: ${exerciseCount}, Sets: ${setCount}`)
     console.log(`Drizzle duration: ${payloadDuration.toFixed(2)}ms`)
     console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
 
     return NextResponse.json(
-      { success: true, id: routineId },
+      { success: true, id: finalRoutineId! },
       {
         headers: {
           'Server-Timing': formatServerTimingHeader({
@@ -151,8 +192,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       },
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error saving routine:', error)
+    if (error instanceof Error && error.message === 'NOT_FOUND_OR_UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Routine not found or you do not have permission to edit it' }, { status: 403 })
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
+

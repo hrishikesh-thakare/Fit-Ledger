@@ -243,7 +243,7 @@ export interface RoutineSet {
   id: number;
   routineExercise: number | RoutineExercise;
   setOrder: number;
-  setLabel: 'warmup' | 'working' | 'drop' | 'failure';
+  setLabel: 'warmup' | 'working' | 'drop';
   reps: number;
   weight: number;
   updatedAt: string;
@@ -288,7 +288,7 @@ export interface WorkoutSet {
   workoutDay: number | WorkoutDay;
   workoutExercise: number | WorkoutExercise;
   setOrder: number;
-  setLabel: 'warmup' | 'working' | 'drop' | 'failure';
+  setLabel: 'warmup' | 'working' | 'drop';
   reps: number;
   weight: number;
   previousWeight?: number | null;

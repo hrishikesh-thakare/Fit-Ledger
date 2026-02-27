@@ -14,14 +14,15 @@ interface GlobalSnackbarProps {
     duration?: number | null
     key: number
   }
-  onClose: () => void
+  onClose: (event: React.SyntheticEvent | Event, reason?: string) => void
+  onExited?: () => void
 }
 
 /**
  * Global Snackbar component for Material Design notifications
  * Positioned above BottomNav following Android patterns
  */
-export default function GlobalSnackbar({ snackbar, onClose }: GlobalSnackbarProps) {
+export default function GlobalSnackbar({ snackbar, onClose, onExited }: GlobalSnackbarProps) {
   const { open, message, severity, action, duration, key } = snackbar
 
   return (
@@ -30,6 +31,7 @@ export default function GlobalSnackbar({ snackbar, onClose }: GlobalSnackbarProp
       open={open}
       autoHideDuration={duration}
       onClose={onClose}
+      TransitionProps={{ onExited }}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       sx={{
         bottom: `calc(${BOTTOM_NAV_HEIGHT}px + 32px + env(safe-area-inset-bottom))`,

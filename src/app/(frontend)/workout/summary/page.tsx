@@ -29,13 +29,26 @@ import PageAppBar from '@/components/PageAppBar'
 import { useBackgroundSync } from '@/contexts/BackgroundSyncContext'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
+interface WorkoutSummaryData {
+  duration: string
+  totalVolume: number
+  exercises: {
+    id: string | number
+    name: string
+    sets: number
+    reps: number
+    weight: string
+    volume: number
+  }[]
+}
+
 function WorkoutSummaryContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user } = useAuth()
   const [updatePrevWeights, setUpdatePrevWeights] = useState(true)
   const [openDiscardDialog, setOpenDiscardDialog] = useState(false)
-  const [workoutData, setWorkoutData] = useState<any>(null)
+  const [workoutData, setWorkoutData] = useState<WorkoutSummaryData | null>(null)
   const [loading, setLoading] = useState(true)
   const [isDiscarding, setIsDiscarding] = useState(false)
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
@@ -90,21 +103,21 @@ function WorkoutSummaryContent() {
           const pendingData = JSON.parse(pendingDataStr)
 
           // Transform for display
-          const exercisesWithSets = pendingData.exercises.map((ex: any) => {
+          const exercisesWithSets = pendingData.exercises.map((ex: { exerciseId: string; name: string; sets: { reps: string; weight: string }[] }) => {
             const totalReps = ex.sets.reduce(
-              (sum: number, set: any) => sum + (parseInt(set.reps) || 0),
+              (sum: number, set: { reps: string }) => sum + (parseInt(set.reps) || 0),
               0,
             )
 
             // Calculate volume (weights are stored in kg in pendingData)
             const totalVolumeKg = ex.sets.reduce(
-              (sum: number, set: any) =>
+              (sum: number, set: { weight: string; reps: string }) =>
                 sum + (parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0),
               0,
             )
             const totalVolume = fromKg(totalVolumeKg, userUnit)
 
-            const maxWeightKg = Math.max(...ex.sets.map((set: any) => parseFloat(set.weight) || 0))
+            const maxWeightKg = Math.max(...ex.sets.map((set) => parseFloat(set.weight) || 0))
 
             return {
               id: ex.exerciseId,
@@ -116,7 +129,7 @@ function WorkoutSummaryContent() {
             }
           })
 
-          const totalVolume = exercisesWithSets.reduce((sum: any, ex: any) => sum + ex.volume, 0)
+          const totalVolume = exercisesWithSets.reduce((sum: number, ex: WorkoutSummaryData['exercises'][0]) => sum + ex.volume, 0)
           const durationSeconds = pendingData.durationSeconds || 0
 
           // Format duration

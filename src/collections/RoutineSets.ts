@@ -72,7 +72,6 @@ export const RoutineSets: CollectionConfig = {
         { label: 'Warmup', value: 'warmup' },
         { label: 'Working Set', value: 'working' },
         { label: 'Drop Set', value: 'drop' },
-        { label: 'Failure', value: 'failure' },
       ],
     },
 

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 
 export interface SnackbarMessage {
   message: string
@@ -16,41 +16,63 @@ interface SnackbarContextType {
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined)
 
 interface SnackbarState extends SnackbarMessage {
-  open: boolean
   key: number
-  duration?: number | null
 }
 
 export function SnackbarProvider({ children }: { children: ReactNode }) {
-  const [snackbar, setSnackbar] = useState<SnackbarState>({
-    open: false,
-    message: '',
-    severity: 'info',
-    key: 0,
-  })
+  const [snackPack, setSnackPack] = useState<readonly SnackbarState[]>([])
+  const [open, setOpen] = useState(false)
+  const [messageInfo, setMessageInfo] = useState<SnackbarState | undefined>(undefined)
+
+  useEffect(() => {
+    if (snackPack.length && !messageInfo) {
+      // Set a new snack when we don't have an active one
+      setMessageInfo({ ...snackPack[0] })
+      setSnackPack((prev) => prev.slice(1))
+      setOpen(true)
+    } else if (snackPack.length && messageInfo && open) {
+      // Close an active snack when a new one is added
+      setOpen(false)
+    }
+  }, [snackPack, messageInfo, open])
 
   const showSnackbar = useCallback(
     ({ message, severity = 'info', action, duration = 4000 }: SnackbarMessage) => {
-      setSnackbar({
-        open: true,
-        message,
-        severity,
-        action,
-        duration,
-        key: Date.now(),
-      })
+      setSnackPack((prev) => [
+        ...prev,
+        { message, severity, action, duration, key: new Date().getTime() },
+      ])
     },
     [],
   )
 
-  const handleClose = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }))
+  const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      // Don't close on clickaway for important or persistent messages
+      return
+    }
+    setOpen(false)
+  }
+
+  const handleExited = () => {
+    setMessageInfo(undefined)
   }
 
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>
       {children}
-      <GlobalSnackbar snackbar={snackbar} onClose={handleClose} />
+      <GlobalSnackbar
+        snackbar={{
+          open,
+          key: messageInfo ? messageInfo.key : 0,
+          message: messageInfo ? messageInfo.message : '',
+          severity: messageInfo?.severity,
+          action: messageInfo?.action,
+          duration: messageInfo?.duration,
+        }}
+        onClose={handleClose}
+        onExited={handleExited}
+      />
     </SnackbarContext.Provider>
   )
 }

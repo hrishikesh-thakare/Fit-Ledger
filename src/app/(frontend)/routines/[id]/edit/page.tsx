@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { toKg, formatWeight } from '@/lib/utils/weightConversion'
@@ -9,8 +9,6 @@ import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
   IconButton,
   Button,
   Card,
@@ -41,7 +39,6 @@ import {
   Fade,
 } from '@mui/material'
 import {
-  ArrowBack,
   Add,
   Close,
   ChevronRight,
@@ -54,10 +51,10 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
-import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+
 import {
   fetchRoutineDetails,
-  fetchExercises,
+  fetchExercises as apiFetchExercises, // Renamed to avoid conflict with local fetchExercises
   saveRoutine,
   type AvailableExercise,
 } from '@/lib/api/routines'
@@ -82,7 +79,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type SetType = 'N' | 'W' | 'D' | 'F'
+type SetType = 'N' | 'W' | 'D'
 
 interface RoutineSet {
   id: string
@@ -160,7 +157,6 @@ export default function EditRoutinePage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
-  const { isActive: isWorkoutActive } = useWorkoutSession()
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
@@ -185,55 +181,58 @@ export default function EditRoutinePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const routineId = params.id as string
+
+
+
+  const fetchRoutine = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const userId = user?.id
+
+      // Fetch routine details, available exercises, and user profile in parallel
+      const [routineData, exercisesData, userProfile] = await Promise.all([
+        fetchRoutineDetails(routineId),
+        apiFetchExercises(),
+        userId ? apiFetch(`/users/${userId}`) : null,
+      ])
+
+      const userUnit: 'kg' | 'lb' = userProfile?.preferredUnit || 'kg'
+      setPreferredUnit(userUnit)
+
+      // Set routine data
+      setRoutineName(routineData.name)
+
+      // Map exercises to UI format and convert weights from kg to user's unit
+      const mappedExercises: Exercise[] = routineData.exercises.map((ex: { id: string; name: string; bodyPart?: string; exerciseId?: string; sets: { id: string; type: SetType; weight: string; reps: string }[] }) => ({
+        id: ex.id,
+        name: ex.name,
+        bodyPart: ex.bodyPart,
+        exerciseId: ex.exerciseId,
+        sets: ex.sets.map((set) => ({
+          id: set.id,
+          type: set.type,
+          weight: set.weight ? formatWeight(parseFloat(set.weight), userUnit) : set.weight,
+          reps: set.reps,
+        })),
+      }))
+
+      setExercises(mappedExercises)
+      setAvailableExercises(exercisesData)
+    } catch (err) {
+      console.error('Error loading routine:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load routine')
+    } finally {
+      setLoading(false)
+    }
+  }, [routineId, user?.id])
+
   // Fetch data on mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const routineId = params.id as string
-        const userId = user?.id
-
-        // Fetch routine details, available exercises, and user profile in parallel
-        const [routineData, exercisesData, userProfile] = await Promise.all([
-          fetchRoutineDetails(routineId),
-          fetchExercises(),
-          userId ? apiFetch(`/users/${userId}`) : null,
-        ])
-
-        const userUnit: 'kg' | 'lb' = userProfile?.preferredUnit || 'kg'
-        setPreferredUnit(userUnit)
-
-        // Set routine data
-        setRoutineName(routineData.name)
-
-        // Map exercises to UI format and convert weights from kg to user's unit
-        const mappedExercises: Exercise[] = routineData.exercises.map((ex) => ({
-          id: ex.id,
-          name: ex.name,
-          bodyPart: ex.bodyPart,
-          exerciseId: ex.exerciseId,
-          sets: ex.sets.map((set) => ({
-            id: set.id,
-            type: set.type,
-            weight: set.weight ? formatWeight(parseFloat(set.weight), userUnit) : set.weight,
-            reps: set.reps,
-          })),
-        }))
-
-        setExercises(mappedExercises)
-        setAvailableExercises(exercisesData)
-      } catch (err: any) {
-        console.error('Error loading routine:', err)
-        setError(err.message || 'Failed to load routine')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
-  }, [params.id, user?.id])
+    fetchRoutine()
+  }, [fetchRoutine])
 
   // dnd-kit sensors
   const sensors = useSensors(
@@ -369,7 +368,7 @@ export default function EditRoutinePage() {
         sets: ex.sets.map((set) => ({
           ...set,
           weight: set.weight
-            ? String(Math.round(toKg(parseFloat(set.weight), preferredUnit)))
+            ? String(toKg(parseFloat(set.weight), preferredUnit))
             : set.weight,
         })),
         order: index,
@@ -387,10 +386,10 @@ export default function EditRoutinePage() {
         severity: 'success',
       })
 
-      router.push(`/routines/${routineId}`)
-    } catch (err: any) {
+      router.replace(`/routines/${routineId}`)
+    } catch (err) {
       console.error('Error saving routine:', err)
-      setError(err.message || 'Failed to save routine')
+      setError(err instanceof Error ? err.message : 'Failed to save routine')
       showSnackbar({
         message: 'Failed to save routine',
         severity: 'error',
@@ -442,7 +441,7 @@ export default function EditRoutinePage() {
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
 
-  const appBarHeight = 64
+
 
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {
@@ -480,7 +479,7 @@ export default function EditRoutinePage() {
       })
 
       router.push('/routines')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting routine:', err)
       showSnackbar({
         message: 'Failed to delete routine',
@@ -500,7 +499,15 @@ export default function EditRoutinePage() {
       {/* App Bar (Sticky) */}
       <PageAppBar
         title="Edit Routine"
-        onBack={() => router.back()}
+        onBack={() => {
+          if (exercises.length > 0 || routineName.trim().length > 0) {
+            if (window.confirm("You have unsaved changes in your routine. Are you sure you want to go back and lose them?")) {
+              router.back()
+            }
+          } else {
+            router.back()
+          }
+        }}
         actions={
           <>
             <IconButton onClick={handleDeleteRoutine} sx={{ mr: 1, color: 'error.main' }}>
@@ -1042,7 +1049,14 @@ export default function EditRoutinePage() {
                       onClick={(e) => {
                         e.stopPropagation()
                         const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
-                        router.push(`/exercises/${slug}`)
+                        // If there are unsaved changes, prompt first
+                        if (exercises.length > 0 || routineName.trim().length > 0) {
+                          if (window.confirm("You have unsaved changes in your routine. Are you sure you want to leave and view exercise stats?")) {
+                            router.push(`/exercises/${slug}`)
+                          }
+                        } else {
+                          router.push(`/exercises/${slug}`)
+                        }
                       }}
                     >
                       <ChevronRight color="action" />
@@ -1061,7 +1075,7 @@ export default function EditRoutinePage() {
         anchor="bottom"
         open={!!activeSet}
         onClose={() => setActiveSet(null)}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableSwipeToOpen={true}
         PaperProps={{
           sx: {
@@ -1106,11 +1120,6 @@ export default function EditRoutinePage() {
             <ListItemButton onClick={() => handleChangeSetType('D')} sx={{ px: 3, py: 2 }}>
               <ListItemText primary="Drop Set" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'D' && <Check color="primary" />}
-            </ListItemButton>
-            <Divider variant="middle" />
-            <ListItemButton onClick={() => handleChangeSetType('F')} sx={{ px: 3, py: 2 }}>
-              <ListItemText primary="Failure" primaryTypographyProps={{ fontWeight: 600 }} />
-              {currentActiveSet?.type === 'F' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />
             <ListItemButton onClick={handleRemoveSet} sx={{ px: 3, py: 2, color: 'error.main' }}>

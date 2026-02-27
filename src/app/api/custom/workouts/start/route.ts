@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     // Calculate stats
     let totalVolumeKg = 0
     exercises.forEach((ex) => {
-      ;(ex.sets || []).forEach((set) => {
+      ; (ex.sets || []).forEach((set) => {
         totalVolumeKg += (Number(set.weight) || 0) * (Number(set.reps) || 0)
       })
     })
@@ -115,34 +115,34 @@ export async function POST(req: NextRequest) {
     // Ownership is already validated above via the routine fetch (line 52-62).
     // previousWeight/previousReps are left null here — they are only needed for
     // the live "add set" flow during active workouts, which still uses the hook.
-    const allSetPromises: Promise<any>[] = []
-    const validSetLabels = ['warmup', 'working', 'drop', 'failure']
+    const allSetPromises: Promise<unknown>[] = []
+    const validSetLabels = ['warmup', 'working', 'drop']
 
     exercises.forEach((ex, exIndex) => {
       const workoutExercise = workoutExercises[exIndex]
-      ;(ex.sets || []).forEach((set, setIndex) => {
-        let setLabel: 'warmup' | 'working' | 'drop' | 'failure' = 'working'
-        if (set.setLabel && validSetLabels.includes(set.setLabel)) {
-          setLabel = set.setLabel as 'warmup' | 'working' | 'drop' | 'failure'
-        }
+        ; (ex.sets || []).forEach((set, setIndex) => {
+          let setLabel: 'warmup' | 'working' | 'drop' = 'working'
+          if (set.setLabel && validSetLabels.includes(set.setLabel)) {
+            setLabel = set.setLabel as 'warmup' | 'working' | 'drop'
+          }
 
-        allSetPromises.push(
-          payload.create({
-            collection: 'workout-sets',
-            data: {
-              workoutDay: workoutDay.id,
-              workoutExercise: workoutExercise.id,
-              setOrder: setIndex,
-              setLabel: setLabel,
-              reps: Number(set.reps) || 0,
-              weight: Number(set.weight) || 0,
-            },
-            overrideAccess: true,
-            depth: 0,
-            req: t ? { transactionID: t } : undefined,
-          }),
-        )
-      })
+          allSetPromises.push(
+            payload.create({
+              collection: 'workout-sets',
+              data: {
+                workoutDay: workoutDay.id,
+                workoutExercise: workoutExercise.id,
+                setOrder: setIndex,
+                setLabel: setLabel,
+                reps: Number(set.reps) || 0,
+                weight: Number(set.weight) || 0,
+              },
+              overrideAccess: true,
+              depth: 0,
+              req: t ? { transactionID: t } : undefined,
+            }),
+          )
+        })
     })
 
     await Promise.all(allSetPromises)

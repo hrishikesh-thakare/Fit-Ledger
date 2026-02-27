@@ -86,24 +86,24 @@ export async function GET(req: NextRequest) {
     const exercisesRes =
       exerciseIds.length > 0
         ? await payload.find({
-            collection: 'exercises',
-            where: {
-              id: { in: exerciseIds },
-            },
-            depth: 1, // only to get muscleGroup
-            limit: 500,
-            select: {
-              id: true,
-              name: true,
-              muscleGroup: true,
-            },
-          })
+          collection: 'exercises',
+          where: {
+            id: { in: exerciseIds },
+          },
+          depth: 1, // only to get muscleGroup
+          limit: 500,
+          select: {
+            id: true,
+            name: true,
+            muscleGroup: true,
+          },
+        })
         : { docs: [] }
 
     const exercises = exercisesRes.docs
 
     // Map exerciseId → exercise
-    const exerciseMap = new Map<number, any>()
+    const exerciseMap = new Map<number, Record<string, unknown>>()
     exercises.forEach((ex) => {
       exerciseMap.set(ex.id, ex)
     })
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     // ------------------------------------------------
     // 5️⃣ Group exercises by routine
     // ------------------------------------------------
-    const exercisesByRoutine: Record<number, any[]> = {}
+    const exercisesByRoutine: Record<number, Record<string, unknown>[]> = {}
 
     routineExercises.forEach((rx) => {
       const routineId = typeof rx.routine === 'object' ? rx.routine.id : rx.routine
@@ -188,13 +188,14 @@ export async function GET(req: NextRequest) {
         },
       },
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const isError = error instanceof Error
     return NextResponse.json(
       {
         errors: [
           {
-            message: error?.message || 'Internal Server Error',
-            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+            message: isError ? error.message : 'Internal Server Error',
+            stack: process.env.NODE_ENV === 'development' && isError ? error.stack : undefined,
           },
         ],
       },

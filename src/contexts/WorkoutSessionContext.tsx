@@ -11,7 +11,7 @@ import React, {
 } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────
-type SetType = 'N' | 'W' | 'D' | 'F'
+type SetType = 'N' | 'W' | 'D'
 
 export interface SessionWorkoutSet {
   id: string

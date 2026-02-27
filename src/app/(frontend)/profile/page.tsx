@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+
 import {
   Box,
   Typography,
@@ -23,6 +23,7 @@ import {
   TextField,
   Skeleton,
   Fade,
+  CircularProgress,
 } from '@mui/material'
 import { FitnessCenter, CloudDownload, Edit, ChevronRight, Info, Flag } from '@mui/icons-material'
 import { useAuth } from '@/contexts/AuthContext'
@@ -55,6 +56,9 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
 
+  // Logout State
+  const [loggingOut, setLoggingOut] = useState(false)
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!authUser) {
@@ -64,7 +68,7 @@ export default function ProfilePage() {
 
       try {
         setLoading(true)
-        const response = await apiFetch(`/users/${authUser.id}`)
+        const response = await apiFetch<User>(`/users/${authUser.id}`)
 
         setUserData(response)
         setUnits(response.preferredUnit || 'kg')
@@ -145,6 +149,29 @@ export default function ProfilePage() {
   const handleOpenEditProfileDialog = () => {
     setDisplayName(userData?.displayName || '')
     setEditProfileDialogOpen(true)
+  }
+
+  // About Dialog State
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
+
+  const handleExportData = () => {
+    showSnackbar({ message: 'Export Data feature coming soon!', severity: 'info' })
+  }
+
+  const handleOpenAboutDialog = () => {
+    setAboutDialogOpen(true)
+  }
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true)
+      await logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+      showSnackbar({ message: 'Logout failed', severity: 'error' })
+    } finally {
+      setLoggingOut(false)
+    }
   }
 
   const handleSaveProfile = async () => {
@@ -233,14 +260,14 @@ export default function ProfilePage() {
                     Member since{' '}
                     {userData?.createdAt
                       ? new Date(userData.createdAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                      : userData?.updatedAt
+                        ? new Date(userData.updatedAt).toLocaleDateString('en-US', {
                           month: 'long',
                           year: 'numeric',
                         })
-                      : userData?.updatedAt
-                        ? new Date(userData.updatedAt).toLocaleDateString('en-US', {
-                            month: 'long',
-                            year: 'numeric',
-                          })
                         : 'N/A'}
                   </Typography>
                 </Box>
@@ -404,9 +431,7 @@ export default function ProfilePage() {
           >
             <List sx={{ p: 0 }}>
               <ListItem
-                onClick={() => {
-                  /* UI only - would export data */
-                }}
+                onClick={handleExportData}
                 sx={{
                   cursor: 'pointer',
                   py: 1.5,
@@ -456,9 +481,7 @@ export default function ProfilePage() {
           >
             <List sx={{ p: 0 }}>
               <ListItem
-                onClick={() => {
-                  /* UI only - would show about page */
-                }}
+                onClick={handleOpenAboutDialog}
                 sx={{
                   cursor: 'pointer',
                   py: 1.5,
@@ -487,7 +510,8 @@ export default function ProfilePage() {
           <Button
             fullWidth
             variant="contained"
-            onClick={logout}
+            onClick={handleLogout}
+            disabled={loggingOut}
             sx={{
               bgcolor: 'error.dark',
               color: 'common.white',
@@ -496,21 +520,17 @@ export default function ProfilePage() {
               fontSize: '1rem',
               textAlign: 'center',
               borderRadius: 1.5,
+              height: 56, // Fixed height to prevent layout shift
               '&:hover': {
                 bgcolor: 'error.main',
               },
             }}
           >
-            Log Out
+            {loggingOut ? <CircularProgress size={24} color="inherit" /> : 'Log Out'}
           </Button>
         </Box>
 
-        {/* App Version */}
-        <Box sx={{ textAlign: 'center', py: 2 }}>
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-            FitLedger v1.0.0
-          </Typography>
-        </Box>
+
       </PageContainer>
 
       {/* Edit Profile Dialog */}
@@ -585,6 +605,52 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </AppScaffold>
+
+      {/* About FitLedger Dialog */}
+      <Dialog
+        open={aboutDialogOpen}
+        onClose={() => setAboutDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 3 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              mb: 2,
+            }}
+          >
+            <FitnessCenter sx={{ fontSize: '2rem' }} />
+          </Box>
+          <Typography variant="h5" fontWeight="bold" component="div">FitLedger</Typography>
+          <Typography variant="body2" color="text.secondary" component="div">Version 1.0.0</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center', pb: 3 }}>
+          <Typography variant="body1" sx={{ mt: 1, mb: 2 }}>
+            A premium fitness tracking experience designed for progress.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Built with modern technologies to help you reach your peak performance.
+          </Typography>
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+            © 2026 FitLedger Team
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button onClick={() => setAboutDialogOpen(false)} variant="contained" sx={{ px: 4 }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </AppScaffold >
   )
 }

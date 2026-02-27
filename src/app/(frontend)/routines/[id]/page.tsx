@@ -12,8 +12,6 @@ import {
   Container,
   Typography,
   Card,
-  AppBar,
-  Toolbar,
   Button,
   IconButton,
   Table,
@@ -34,7 +32,6 @@ import {
   DialogActions,
 } from '@mui/material'
 import {
-  ArrowBack,
   Edit,
   PlayArrow,
   AccessTime,
@@ -42,7 +39,7 @@ import {
   FitnessCenter,
 } from '@mui/icons-material'
 
-type SetType = 'N' | 'W' | 'D' | 'F'
+type SetType = 'N' | 'W' | 'D'
 
 interface RoutineSet {
   id: string
@@ -140,7 +137,7 @@ export default function RoutineDetailPage() {
         }))
 
         setExercises(mappedExercises)
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error fetching routine details:', err)
         setError('Failed to load routine details')
       } finally {
@@ -149,7 +146,7 @@ export default function RoutineDetailPage() {
     }
 
     fetchRoutineDetails()
-  }, [routineId, user?.id])
+  }, [routineId, user, preferredUnit])
 
   const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
 
@@ -194,7 +191,7 @@ export default function RoutineDetailPage() {
       {/* Top AppBar */}
       <PageAppBar
         title="Routine Details"
-        onBack={() => router.push('/routines')}
+        onBack={() => router.back()}
         actions={
           <IconButton
             onClick={() => router.push(`/routines/${params.id}/edit`)}
@@ -440,9 +437,7 @@ export default function RoutineDetailPage() {
                                         ? 'text.secondary'
                                         : set.type === 'W'
                                           ? 'warning.main'
-                                          : set.type === 'D'
-                                            ? 'info.main'
-                                            : 'error.main',
+                                          : 'info.main',
                                   }}
                                 >
                                   {getSetLabel(exercise.sets, index)}

@@ -61,40 +61,72 @@ export async function GET(req: NextRequest) {
     const [routineSetsResponse, previousStatsMap] = await Promise.all([
       routineExerciseIds.length > 0
         ? payload.find({
-            collection: 'routine-sets',
-            where: {
-              routineExercise: { in: routineExerciseIds },
-            },
-            limit: 1000,
-            sort: 'setOrder',
-            depth: 0,
-          })
+          collection: 'routine-sets',
+          where: {
+            routineExercise: { in: routineExerciseIds },
+          },
+          limit: 1000,
+          sort: 'setOrder',
+          depth: 0,
+        })
         : Promise.resolve({ docs: [] as RoutineSet[] }),
 
-      // Fetch previous stats: Parallel queries for accuracy
+      // Fetch previous stats: Map sets 1-to-1 by setOrder
       Promise.all(
         exerciseIds.map(async (exId) => {
-          const sets = await payload.find({
+          // Find the most recent WorkoutDay where this user did this exercise
+          const mostRecentWorkoutResult = await payload.find({
             collection: 'workout-sets',
             where: {
               and: [
                 { 'workoutExercise.exercise': { equals: exId } },
                 { 'workoutExercise.workoutDay.user': { equals: resolvedUserId } },
                 { 'workoutExercise.workoutDay.date': { less_than: date } },
-              ],
+              ]
             },
             sort: '-createdAt',
             limit: 1,
-            depth: 0, // We only need weight/reps, no joins
+            depth: 1 // Need workoutDay to get its ID
           })
-          return { exId: String(exId), set: sets.docs[0] }
+
+          if (!mostRecentWorkoutResult.docs.length) {
+            return { exId: String(exId), sets: [] }
+          }
+
+          const mostRecentSet = mostRecentWorkoutResult.docs[0]
+          // In payload the relation could be populated (object) or just an ID (number/string)
+          let targetWorkoutDayId: string | number
+          if (mostRecentSet.workoutDay && typeof mostRecentSet.workoutDay === 'object' && 'id' in mostRecentSet.workoutDay) {
+            targetWorkoutDayId = mostRecentSet.workoutDay.id
+          } else {
+            targetWorkoutDayId = mostRecentSet.workoutDay as string | number
+          }
+
+          // Now fetch all sets from that specific workout day for this exercise
+          const allPreviousSets = await payload.find({
+            collection: 'workout-sets',
+            where: {
+              and: [
+                { 'workoutExercise.exercise': { equals: exId } },
+                { 'workoutDay': { equals: targetWorkoutDayId } }
+              ]
+            },
+            limit: 50,
+            sort: 'setOrder',
+            depth: 0
+          })
+
+          return { exId: String(exId), sets: allPreviousSets.docs }
         }),
       ).then((results) => {
+        // Map keyed by `${exId}:${setOrder}`
         const statsMap = new Map<string, { weight: number; reps: number }>()
-        results.forEach(({ exId, set }) => {
-          if (set) {
-            statsMap.set(exId, { weight: set.weight, reps: set.reps })
-          }
+        results.forEach(({ exId, sets }) => {
+          sets.forEach(set => {
+            if (set) {
+              statsMap.set(`${exId}:${set.setOrder}`, { weight: set.weight, reps: set.reps })
+            }
+          })
         })
         return statsMap
       }),
@@ -117,25 +149,25 @@ export async function GET(req: NextRequest) {
         })
         .sort((a, b) => a.setOrder - b.setOrder)
 
-      const prevStats = previousStatsMap.get(exerciseIdString)
+      const setsData = relatedSets.map((routineSet, j) => {
+        const prevStats = previousStatsMap.get(`${exerciseIdString}:${j}`)
 
-      const setsData = relatedSets.map((routineSet, j) => ({
-        id: `temp-${i}-${j}`, // Temporary client-side ID
-        type:
-          routineSet.setLabel === 'warmup'
-            ? 'W'
-            : routineSet.setLabel === 'drop'
-              ? 'D'
-              : routineSet.setLabel === 'failure'
-                ? 'F'
+        return {
+          id: `temp-${i}-${j}`, // Temporary client-side ID
+          type:
+            routineSet.setLabel === 'warmup'
+              ? 'W'
+              : routineSet.setLabel === 'drop'
+                ? 'D'
                 : 'N',
-        weight: String(routineSet.weight),
-        reps: String(routineSet.reps),
-        completed: false,
-        previous: prevStats ? `${prevStats.weight}x${prevStats.reps}` : '-',
-        setOrder: j,
-        setLabel: routineSet.setLabel,
-      }))
+          weight: String(routineSet.weight),
+          reps: String(routineSet.reps),
+          completed: false,
+          previous: prevStats ? `${prevStats.weight}x${prevStats.reps}` : '-',
+          setOrder: j,
+          setLabel: routineSet.setLabel,
+        }
+      })
 
       return {
         id: `temp-ex-${i}`,

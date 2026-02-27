@@ -7,8 +7,6 @@ import {
   Container,
   Typography,
   Card,
-  AppBar,
-  Toolbar,
   Button,
   IconButton,
   TextField,
@@ -29,7 +27,6 @@ import {
   Fade,
 } from '@mui/material'
 import {
-  ArrowBack,
   CheckCircle,
   RadioButtonUnchecked,
   Close,
@@ -40,21 +37,19 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
-import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
+import { loadWorkoutFromRoutine, type WorkoutExerciseData } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
-import apiFetch from '@/lib/api/client'
-import { toKg, fromKg, type WeightUnit } from '@/lib/utils/weightConversion'
+import { toKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
 // Types
-type SetType = 'N' | 'W' | 'D' | 'F'
+type SetType = 'N' | 'W' | 'D'
 
 const SET_TYPE_LABELS: { [key in SetType]: string } = {
   N: 'Normal',
   W: 'Warm Up',
   D: 'Drop Set',
-  F: 'Failure',
 }
 
 interface WorkoutSet {
@@ -115,15 +110,11 @@ function WorkoutLoggingContent() {
   // Active Set for Set Options Drawer
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
-  // Track last-completed set for animation
-  const [completedSetKey, setCompletedSetKey] = useState<string | null>(null)
-
   // Rest Time Configuration State
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
 
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const workoutInitializedRef = useRef(false)
   const routineIdRef = useRef<string | null>(null)
   const workoutDateRef = useRef<string>(new Date().toISOString())
@@ -140,7 +131,7 @@ function WorkoutLoggingContent() {
       setElapsedTime(session.getElapsedSeconds())
     }, 1000)
     return () => clearInterval(timer)
-  }, [session.isActive, exercises.length, session.getElapsedSeconds])
+  }, [session.isActive, exercises.length, session])
 
   // Sync exercises to context via useEffect (avoids setState-during-render)
   const exercisesSyncedRef = useRef(false)
@@ -185,7 +176,7 @@ function WorkoutLoggingContent() {
         routineIdRef.current = routineId
         preferredUnitRef.current = user?.preferredUnit || 'kg'
         // Restore exerciseDataRef from context exercises (exerciseId = real DB ID)
-        exerciseDataRef.current = session.exercises.map((ex: any) => ({
+        exerciseDataRef.current = session.exercises.map((ex: { exerciseId?: string; id: string; name: string }) => ({
           exerciseId: ex.exerciseId || ex.id,
           name: ex.name,
         }))
@@ -204,30 +195,30 @@ function WorkoutLoggingContent() {
         preferredUnitRef.current = userUnit
         workoutDateRef.current = workoutData.date
 
-        exerciseDataRef.current = workoutData.exercises.map((ex: any) => ({
+        exerciseDataRef.current = workoutData.exercises.map((ex: { exerciseId: string; name: string }) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
         }))
 
-        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
+        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: WorkoutExerciseData) => ({
           ...ex,
-          sets: ex.sets.map((set: any) => {
+          sets: ex.sets.map((set) => {
             let previousDisplay = set.previous
             if (set.previous && set.previous !== '-' && set.previous.includes('x')) {
               const [prevWeight, prevReps] = set.previous.split('x')
-              const convertedWeight = Math.round(fromKg(parseFloat(prevWeight), userUnit))
+              const convertedWeight = formatWeight(parseFloat(prevWeight), userUnit)
               previousDisplay = `${convertedWeight}x${prevReps}`
             }
 
             return {
               ...set,
               weight: set.weight
-                ? Math.round(fromKg(parseFloat(set.weight), userUnit)).toString()
+                ? formatWeight(parseFloat(set.weight), userUnit)
                 : '',
               previous: previousDisplay,
             }
           }),
-        }))
+        })) as WorkoutExercise[]
 
         setExercises(exercisesWithConvertedWeights)
 
@@ -244,7 +235,7 @@ function WorkoutLoggingContent() {
     }
 
     loadWorkout()
-  }, [user?.id])
+  }, [user, searchParams, session, showSnackbar])
 
   const handleSetChange = (
     exerciseId: string,
@@ -288,9 +279,7 @@ function WorkoutLoggingContent() {
     // Trigger Rest Timer if completing
     if (isCompleting) {
       // Flash animation + haptic
-      setCompletedSetKey(`${exerciseId}-${setId}`)
       if ('vibrate' in navigator) navigator.vibrate(50)
-      setTimeout(() => setCompletedSetKey(null), 600)
 
       const exercise = exercises.find((e) => e.id === exerciseId)
       if (exercise) {
@@ -385,7 +374,6 @@ function WorkoutLoggingContent() {
     }
 
     try {
-      setIsSaving(true)
       const userUnit = preferredUnitRef.current
 
       // Build save payload — only include completed (ticked) sets, skip exercises with none
@@ -403,9 +391,7 @@ function WorkoutLoggingContent() {
                   ? 'warmup'
                   : set.type === 'D'
                     ? 'drop'
-                    : set.type === 'F'
-                      ? 'failure'
-                      : 'working',
+                    : 'working',
               completed: set.completed,
             })),
         }))
@@ -417,7 +403,6 @@ function WorkoutLoggingContent() {
           message: 'No sets completed — tick at least one set to save',
           severity: 'warning',
         })
-        setIsSaving(false)
         return
       }
 
@@ -439,8 +424,6 @@ function WorkoutLoggingContent() {
       showSnackbar({ message: 'Failed to save workout progress', severity: 'error' })
       // Fallback
       router.push('/routines')
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -721,7 +704,7 @@ function WorkoutLoggingContent() {
                         startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}
                         size="small"
                         variant="contained"
-                        onClick={(e) => setActiveRestTimeExerciseId(exercise.id)}
+                        onClick={() => setActiveRestTimeExerciseId(exercise.id)}
                         sx={{
                           borderRadius: 1.5,
                           fontWeight: 700,
@@ -1009,7 +992,7 @@ function WorkoutLoggingContent() {
         anchor="bottom"
         open={!!activeSet}
         onClose={() => setActiveSet(null)}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableSwipeToOpen={true}
         PaperProps={{
           sx: {

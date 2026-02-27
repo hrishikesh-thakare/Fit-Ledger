@@ -104,9 +104,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             ? 'W'
             : set.setLabel === 'drop'
               ? 'D'
-              : set.setLabel === 'failure'
-                ? 'F'
-                : 'N',
+              : 'N',
         weight: String(set.weight),
         reps: String(set.reps),
         setOrder: set.setOrder,
