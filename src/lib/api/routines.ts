@@ -1,9 +1,8 @@
 import apiFetch from './client'
-import type { Exercise } from '@/payload-types'
 
 interface RoutineSetData {
   id?: string
-  type: 'N' | 'W' | 'D' | 'F'
+  type: 'N' | 'W' | 'D'
   weight: string
   reps: string
   // internal temporary id for UI tracking, not sent to backend if new
@@ -79,7 +78,7 @@ export const saveRoutine = async (data: SaveRoutineParams) => {
  */
 export interface FetchedRoutineSet {
   id: string
-  type: 'N' | 'W' | 'D' | 'F'
+  type: 'N' | 'W' | 'D'
   weight: string
   reps: string
   setOrder: number

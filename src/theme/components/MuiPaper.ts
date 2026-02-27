@@ -5,7 +5,7 @@ import { Components, Theme } from '@mui/material/styles';
  */
 const MuiPaper: Components<Theme>['MuiPaper'] = {
   styleOverrides: {
-    root: ({ theme }) => ({
+    root: () => ({
       backgroundImage: 'none', // Remove gradient overlay
       transition: 'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     }),

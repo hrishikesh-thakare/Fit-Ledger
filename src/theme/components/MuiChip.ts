@@ -27,17 +27,17 @@ const MuiChip: Components<Theme>['MuiChip'] = {
         backgroundColor: alpha(theme.palette.primary.main, 0.08),
       },
     }),
-    clickable: ({ theme }) => ({
+    clickable: () => ({
       '&:active': {
         boxShadow: 'none',
         transform: 'scale(0.98)',
       },
     }),
-    icon: ({ theme }) => ({
+    icon: () => ({
       color: 'inherit',
       marginLeft: 8,
     }),
-    deleteIcon: ({ theme }) => ({
+    deleteIcon: () => ({
       color: 'inherit',
       '&:hover': {
         color: 'inherit',

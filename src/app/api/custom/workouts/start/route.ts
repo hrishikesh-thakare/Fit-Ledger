@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     // Ownership is already validated above via the routine fetch (line 52-62).
     // previousWeight/previousReps are left null here — they are only needed for
     // the live "add set" flow during active workouts, which still uses the hook.
-    const allSetPromises: Promise<any>[] = []
+    const allSetPromises: Promise<{ id: number }>[] = []
     const validSetLabels = ['warmup', 'working', 'drop']
 
     exercises.forEach((ex, exIndex) => {

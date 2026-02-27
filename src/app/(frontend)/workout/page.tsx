@@ -7,8 +7,6 @@ import {
   Container,
   Typography,
   Card,
-  AppBar,
-  Toolbar,
   Button,
   IconButton,
   TextField,
@@ -29,7 +27,6 @@ import {
   Fade,
 } from '@mui/material'
 import {
-  ArrowBack,
   CheckCircle,
   RadioButtonUnchecked,
   Close,
@@ -40,10 +37,9 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import RestTimePickerDrawer from '@/components/RestTimePickerDrawer'
-import { loadWorkoutFromRoutine, saveWorkout } from '@/lib/api/workout'
+import { loadWorkoutFromRoutine } from '@/lib/api/workout'
 import { useAuth } from '@/contexts/AuthContext'
-import apiFetch from '@/lib/api/client'
-import { toKg, fromKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
+import { toKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 
@@ -57,7 +53,7 @@ const SET_TYPE_LABELS: { [key in SetType]: string } = {
 }
 
 interface WorkoutSet {
-  id: string
+  id?: string
   type: SetType
   weight: string
   reps: string
@@ -115,14 +111,14 @@ function WorkoutLoggingContent() {
   const [activeSet, setActiveSet] = useState<{ exerciseId: string; setId: string } | null>(null)
 
   // Track last-completed set for animation
-  const [completedSetKey, setCompletedSetKey] = useState<string | null>(null)
+  const [_completedSetKey, setCompletedSetKey] = useState<string | null>(null)
 
   // Rest Time Configuration State
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
 
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [_isSaving, setIsSaving] = useState(false)
   const workoutInitializedRef = useRef(false)
   const routineIdRef = useRef<string | null>(null)
   const workoutDateRef = useRef<string>(new Date().toISOString())
@@ -139,7 +135,7 @@ function WorkoutLoggingContent() {
       setElapsedTime(session.getElapsedSeconds())
     }, 1000)
     return () => clearInterval(timer)
-  }, [session.isActive, exercises.length, session.getElapsedSeconds])
+  }, [session, exercises.length])
 
   // Sync exercises to context via useEffect (avoids setState-during-render)
   const exercisesSyncedRef = useRef(false)
@@ -184,7 +180,7 @@ function WorkoutLoggingContent() {
         routineIdRef.current = routineId
         preferredUnitRef.current = user?.preferredUnit || 'kg'
         // Restore exerciseDataRef from context exercises (exerciseId = real DB ID)
-        exerciseDataRef.current = session.exercises.map((ex: any) => ({
+        exerciseDataRef.current = session.exercises.map((ex: WorkoutExercise) => ({
           exerciseId: ex.exerciseId || ex.id,
           name: ex.name,
         }))
@@ -203,14 +199,14 @@ function WorkoutLoggingContent() {
         preferredUnitRef.current = userUnit
         workoutDateRef.current = workoutData.date
 
-        exerciseDataRef.current = workoutData.exercises.map((ex: any) => ({
+        exerciseDataRef.current = workoutData.exercises.map((ex) => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
         }))
 
-        const exercisesWithConvertedWeights = workoutData.exercises.map((ex: any) => ({
+        const exercisesWithConvertedWeights = workoutData.exercises.map((ex) => ({
           ...ex,
-          sets: ex.sets.map((set: any) => {
+          sets: ex.sets.map((set) => {
             let previousDisplay = set.previous
             if (set.previous && set.previous !== '-' && set.previous.includes('x')) {
               const [prevWeight, prevReps] = set.previous.split('x')
@@ -243,7 +239,7 @@ function WorkoutLoggingContent() {
     }
 
     loadWorkout()
-  }, [user?.id])
+  }, [user?.id, searchParams, session, showSnackbar, user])
 
   const handleSetChange = (
     exerciseId: string,
@@ -718,7 +714,7 @@ function WorkoutLoggingContent() {
                         startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}
                         size="small"
                         variant="contained"
-                        onClick={(e) => setActiveRestTimeExerciseId(exercise.id)}
+                        onClick={() => setActiveRestTimeExerciseId(exercise.id)}
                         sx={{
                           borderRadius: 1.5,
                           fontWeight: 700,
@@ -838,7 +834,7 @@ function WorkoutLoggingContent() {
                                 disableElevation
                                 size="small"
                                 onClick={() =>
-                                  setActiveSet({ exerciseId: exercise.id, setId: set.id })
+                                  setActiveSet({ exerciseId: exercise.id, setId: set.id! })
                                 }
                                 sx={{
                                   minWidth: 44,
@@ -889,7 +885,7 @@ function WorkoutLoggingContent() {
                                 placeholder="-"
                                 value={set.weight}
                                 onChange={(e) =>
-                                  handleSetChange(exercise.id, set.id, 'weight', e.target.value)
+                                  handleSetChange(exercise.id, set.id!, 'weight', e.target.value)
                                 }
                                 inputProps={{
                                   style: {
@@ -912,7 +908,7 @@ function WorkoutLoggingContent() {
                                 placeholder="-"
                                 value={set.reps}
                                 onChange={(e) =>
-                                  handleSetChange(exercise.id, set.id, 'reps', e.target.value)
+                                  handleSetChange(exercise.id, set.id!, 'reps', e.target.value)
                                 }
                                 inputProps={{
                                   style: {
@@ -932,7 +928,7 @@ function WorkoutLoggingContent() {
                             <TableCell align="center" sx={{ p: 0 }}>
                               <Checkbox
                                 checked={set.completed}
-                                onChange={() => handleToggleComplete(exercise.id, set.id)}
+                                onChange={() => handleToggleComplete(exercise.id, set.id!)}
                                 icon={<RadioButtonUnchecked />}
                                 checkedIcon={<CheckCircle color="primary" />}
                                 sx={{ p: 1.5 }}

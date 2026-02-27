@@ -1,5 +1,6 @@
 import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
+import type { Where } from 'payload'
 
 export const revalidate = 30
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     const payloadStart = performance.now()
     // 1. Fetch Workout Days
     // Optimized: Select denormalized fields directly. No related queries.
-    const where: any = {
+    const where: Where = {
       user: {
         equals: numericUserId,
       },

@@ -46,7 +46,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const data: SaveRoutinePayload = await req.json()
 
   // Access Drizzle ORM directly
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (payload.db as any).drizzle
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tables = (payload.db as any).tables
 
   const routinesTable = tables.routines
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let finalRoutineId: number
 
     // Execute everything in a single Drizzle transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.transaction(async (tx: any) => {
 
       if (id === 'new') {
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .from(reTable)
           .where(eq(reTable.routine, finalRoutineId))
 
-        const existingREIds = existingREs.map((re: any) => re.id)
+        const existingREIds = existingREs.map((re: { id: number }) => re.id)
 
         // 3. Bulk delete ALL existing sets for this routine's exercises
         if (existingREIds.length > 0) {
@@ -142,7 +145,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .returning({ id: reTable.id })
 
         // 6. Bulk create all new sets (single INSERT statement)
-        const setRows: any[] = []
+        const setRows: { routineExercise: number; setOrder: number; setLabel: string; reps: number; weight: number; updatedAt: Date; createdAt: Date }[] = []
 
         data.exercises.forEach((exInput, exIndex) => {
           const newREId = newExercises[exIndex].id
@@ -189,9 +192,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       },
     )
-  } catch (error: any) {
-    console.error('Error saving routine:', error)
-    if (error.message === 'NOT_FOUND_OR_UNAUTHORIZED') {
+  } catch (error: unknown) {
+    const errObj = error instanceof Error ? error : new Error('Internal Server Error')
+    console.error('Error saving routine:', errObj)
+    if (errObj.message === 'NOT_FOUND_OR_UNAUTHORIZED') {
       return NextResponse.json({ error: 'Routine not found or you do not have permission to edit it' }, { status: 403 })
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

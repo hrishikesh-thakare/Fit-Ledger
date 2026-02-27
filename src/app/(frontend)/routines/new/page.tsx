@@ -33,10 +33,12 @@ import { Add, Close, ChevronRight, DeleteOutline, FitnessCenter, Check } from '@
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
-import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
-import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
 
-type SetType = 'N' | 'W' | 'D' | 'F'
+import AddCustomExerciseDialog, {
+  type CreatedExercise,
+} from '@/components/routines/AddCustomExerciseDialog'
+
+type SetType = 'N' | 'W' | 'D'
 
 interface RoutineSet {
   id: string
@@ -66,7 +68,6 @@ const SET_TYPE_LABELS: { [key in SetType]: string } = {
   N: 'Normal',
   W: 'Warm Up',
   D: 'Drop Set',
-  F: 'Failure',
 }
 
 export default function NewRoutinePage() {
@@ -122,6 +123,21 @@ export default function NewRoutinePage() {
     fetchExercises()
   }, [user, showSnackbar])
 
+  // Protect against accidental refresh / tab close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // If there are unsaved changes
+      if (exercises.length > 0 || routineName.trim().length > 0) {
+        // Standard way to show a prompt
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [exercises, routineName])
+
   const handleAddExercise = (exercise: ExerciseOption) => {
     const newExercise: Exercise = {
       id: crypto.randomUUID(),
@@ -145,9 +161,7 @@ export default function NewRoutinePage() {
       { id: Number(exercise.id), name: exercise.name, bodyPart: exercise.bodyPart },
     ])
     // Add muscle group chip if new
-    setBodyParts((prev) =>
-      prev.includes(exercise.bodyPart) ? prev : [...prev, exercise.bodyPart],
-    )
+    setBodyParts((prev) => (prev.includes(exercise.bodyPart) ? prev : [...prev, exercise.bodyPart]))
     // Immediately add to the routine
     handleAddExercise({ id: Number(exercise.id), name: exercise.name, bodyPart: exercise.bodyPart })
   }
@@ -247,8 +261,7 @@ export default function NewRoutinePage() {
     return availableExercises.filter((ex) => {
       const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
       const matchesEquipment =
-        selectedEquipment === 'All' ||
-        (ex.equipment && ex.equipment.includes(selectedEquipment))
+        selectedEquipment === 'All' || (ex.equipment && ex.equipment.includes(selectedEquipment))
       return matchesBodyPart && matchesEquipment
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
@@ -309,7 +322,6 @@ export default function NewRoutinePage() {
             N: 'working',
             W: 'warmup',
             D: 'drop',
-            F: 'working',
           }
 
           await apiFetch('/routine-sets', {
@@ -319,15 +331,16 @@ export default function NewRoutinePage() {
               setOrder: j + 1,
               setLabel: setLabelMap[set.type],
               reps: parseInt(set.reps) || 0,
-              weight: set.weight ? Math.round(toKg(parseFloat(set.weight), preferredUnit)) : 0,
+              weight: set.weight ? toKg(parseFloat(set.weight), preferredUnit) : 0,
             }),
           })
         }
       }
 
       showSnackbar({ message: 'Routine saved successfully!', severity: 'success' })
-      router.push('/routines')
-    } catch (err: any) {
+      router.replace(`/routines?t=${Date.now()}`)
+      router.refresh()
+    } catch (err) {
       console.error('Error saving routine:', err)
       showSnackbar({ message: 'Failed to save routine', severity: 'error' })
     } finally {
@@ -357,7 +370,22 @@ export default function NewRoutinePage() {
       }}
     >
       {/* App Bar (Sticky) */}
-      <PageAppBar title="Create Routine" onBack={() => router.back()} />
+      <PageAppBar
+        title="Create Routine"
+        onBack={() => {
+          if (exercises.length > 0 || routineName.trim().length > 0) {
+            if (
+              window.confirm(
+                'You have unsaved changes in your routine. Are you sure you want to go back and lose them?',
+              )
+            ) {
+              router.back()
+            }
+          } else {
+            router.back()
+          }
+        }}
+      />
 
       {/* Content Area */}
       <Container maxWidth="sm" disableGutters sx={{ px: 2, pt: 3 }}>
@@ -793,7 +821,18 @@ export default function NewRoutinePage() {
                         onClick={(e) => {
                           e.stopPropagation()
                           const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
-                          router.push(`/exercises/${slug}`)
+                          // If there are unsaved changes, prompt first
+                          if (exercises.length > 0 || routineName.trim().length > 0) {
+                            if (
+                              window.confirm(
+                                'You have unsaved changes in your routine. Are you sure you want to leave and view exercise stats?',
+                              )
+                            ) {
+                              router.push(`/exercises/${slug}`)
+                            }
+                          } else {
+                            router.push(`/exercises/${slug}`)
+                          }
                         }}
                       >
                         <ChevronRight color="action" />

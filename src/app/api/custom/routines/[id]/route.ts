@@ -2,10 +2,12 @@ import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import { RoutineSet } from '@/payload-types'
 
+export const dynamic = 'force-dynamic'
+
 // Replicate the interfaces from src/lib/api/routines.ts
 interface FetchedRoutineSet {
   id: string
-  type: 'N' | 'W' | 'D' | 'F'
+  type: 'N' | 'W' | 'D'
   weight: string
   reps: string
   setOrder: number

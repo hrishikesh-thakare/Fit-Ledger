@@ -1,33 +1,25 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
-import type { Routine, RoutineExercise } from '@/payload-types'
 import {
   Box,
-  Container,
   Typography,
   Card,
   CardContent,
-  Toolbar,
   Button,
   Divider,
   Fab,
   Alert,
   Chip,
   Stack,
-  IconButton,
   Fade,
 } from '@mui/material'
 import {
   FitnessCenter,
   Add,
-  PlayArrow,
-  FormatListBulleted,
-  History,
-  Edit,
   ArrowForward,
 } from '@mui/icons-material'
 import AppScaffold from '@/components/layout/AppScaffold'
@@ -57,6 +49,8 @@ export default function RoutinesPage() {
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
   const { visible: fabVisible } = useExtendedFab(50)
+  const searchParams = useSearchParams()
+  const refreshKey = searchParams.get('t') || ''
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [routines, setRoutines] = useState<RoutineWithExerciseCount[]>([])
@@ -75,7 +69,7 @@ export default function RoutinesPage() {
         )
 
         setRoutines(result.docs)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching routines:', err)
         setError('Failed to load routines')
       } finally {
@@ -84,19 +78,23 @@ export default function RoutinesPage() {
     }
 
     fetchRoutines()
-  }, [user?.id])
 
-  const handleEdit = (routineId: number, routineName: string) => {
+    // Re-fetch when returning to this page (e.g. after creating/editing a routine)
+    const handleFocus = () => { fetchRoutines() }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user, refreshKey])
+
+  const handleEdit = (routineId: number, _routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
   }
 
   const handleDelete = async (routineId: number, routineName: string) => {
     try {
       // Deleting routine...
-      const response = await apiFetch(`/routines/${routineId}`, {
+      await apiFetch(`/routines/${routineId}`, {
         method: 'DELETE',
       })
-      // Delete response processed...
 
       // Remove from local state
       setRoutines((prev) => prev.filter((r) => r.id !== routineId))
@@ -106,10 +104,10 @@ export default function RoutinesPage() {
         severity: 'success',
         duration: 3000,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Delete error:', err)
       showSnackbar({
-        message: `Failed to delete routine: ${err.message || 'Unknown error'}`,
+        message: `Failed to delete routine: ${err instanceof Error ? err.message : 'Unknown error'}`,
         severity: 'error',
         duration: 3000,
       })

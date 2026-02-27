@@ -33,8 +33,8 @@ export default function LoginPage() {
     try {
       await login({ email, password })
       // AuthContext handles redirect to dashboard
-    } catch (err: any) {
-      setError(err.message || 'Invalid email or password')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid email or password')
     } finally {
       setLoading(false)
     }

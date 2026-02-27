@@ -14,7 +14,7 @@ import React, {
 type SetType = 'N' | 'W' | 'D'
 
 export interface SessionWorkoutSet {
-  id: string
+  id?: string
   type: SetType
   weight: string
   reps: string

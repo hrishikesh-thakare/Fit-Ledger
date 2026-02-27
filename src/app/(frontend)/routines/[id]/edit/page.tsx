@@ -5,12 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { toKg, formatWeight } from '@/lib/utils/weightConversion'
 import apiFetch from '@/lib/api/client'
+import type { User } from '@/payload-types'
 import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
   IconButton,
   Button,
   Card,
@@ -41,7 +40,6 @@ import {
   Fade,
 } from '@mui/material'
 import {
-  ArrowBack,
   Add,
   Close,
   ChevronRight,
@@ -82,7 +80,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type SetType = 'N' | 'W' | 'D' | 'F'
+type SetType = 'N' | 'W' | 'D'
 
 interface RoutineSet {
   id: string
@@ -160,7 +158,7 @@ export default function EditRoutinePage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
-  const { isActive: isWorkoutActive } = useWorkoutSession()
+  const { isActive: _isWorkoutActive } = useWorkoutSession()
 
   const [openExerciseDrawer, setOpenExerciseDrawer] = useState(false)
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
@@ -199,7 +197,7 @@ export default function EditRoutinePage() {
         const [routineData, exercisesData, userProfile] = await Promise.all([
           fetchRoutineDetails(routineId),
           fetchExercises(),
-          userId ? apiFetch(`/users/${userId}`) : null,
+          userId ? apiFetch<User>(`/users/${userId}`) : null,
         ])
 
         const userUnit: 'kg' | 'lb' = userProfile?.preferredUnit || 'kg'
@@ -224,9 +222,9 @@ export default function EditRoutinePage() {
 
         setExercises(mappedExercises)
         setAvailableExercises(exercisesData)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error loading routine:', err)
-        setError(err.message || 'Failed to load routine')
+        setError(err instanceof Error ? err.message : 'Failed to load routine')
       } finally {
         setLoading(false)
       }
@@ -369,7 +367,7 @@ export default function EditRoutinePage() {
         sets: ex.sets.map((set) => ({
           ...set,
           weight: set.weight
-            ? String(Math.round(toKg(parseFloat(set.weight), preferredUnit)))
+            ? String(toKg(parseFloat(set.weight), preferredUnit))
             : set.weight,
         })),
         order: index,
@@ -387,10 +385,11 @@ export default function EditRoutinePage() {
         severity: 'success',
       })
 
-      router.push(`/routines/${routineId}`)
-    } catch (err: any) {
+      router.replace(`/routines/${routineId}?t=${Date.now()}`)
+      router.refresh()
+    } catch (err: unknown) {
       console.error('Error saving routine:', err)
-      setError(err.message || 'Failed to save routine')
+      setError(err instanceof Error ? err.message : 'Failed to save routine')
       showSnackbar({
         message: 'Failed to save routine',
         severity: 'error',
@@ -442,7 +441,7 @@ export default function EditRoutinePage() {
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
 
-  const appBarHeight = 64
+  const _appBarHeight = 64
 
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {
@@ -480,7 +479,7 @@ export default function EditRoutinePage() {
       })
 
       router.push('/routines')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting routine:', err)
       showSnackbar({
         message: 'Failed to delete routine',
@@ -1106,11 +1105,6 @@ export default function EditRoutinePage() {
             <ListItemButton onClick={() => handleChangeSetType('D')} sx={{ px: 3, py: 2 }}>
               <ListItemText primary="Drop Set" primaryTypographyProps={{ fontWeight: 600 }} />
               {currentActiveSet?.type === 'D' && <Check color="primary" />}
-            </ListItemButton>
-            <Divider variant="middle" />
-            <ListItemButton onClick={() => handleChangeSetType('F')} sx={{ px: 3, py: 2 }}>
-              <ListItemText primary="Failure" primaryTypographyProps={{ fontWeight: 600 }} />
-              {currentActiveSet?.type === 'F' && <Check color="primary" />}
             </ListItemButton>
             <Divider variant="middle" />
             <ListItemButton onClick={handleRemoveSet} sx={{ px: 3, py: 2, color: 'error.main' }}>

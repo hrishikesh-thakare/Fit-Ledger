@@ -26,15 +26,15 @@ async function cacheExercises(): Promise<void> {
   if (!res.ok) return
 
   const data = await res.json()
-  const docs: any[] = data.docs ?? data
+  const docs: { id: string | number; name?: string; muscleGroup?: { id?: string | number; name?: string } | string | number; equipment?: string }[] = data.docs ?? data
 
   await offlineDb.exercises.clear()
   await offlineDb.exercises.bulkPut(
     docs.map((ex) => ({
       id: String(ex.id),
       name: ex.name ?? '',
-      muscleGroupId: String(ex.muscleGroup?.id ?? ex.muscleGroup ?? ''),
-      muscleGroupName: ex.muscleGroup?.name ?? '',
+      muscleGroupId: String(typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.id ?? '' : ex.muscleGroup ?? ''),
+      muscleGroupName: typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.name ?? '' : '',
       equipment: ex.equipment ?? '',
       cachedAt: new Date().toISOString(),
     })),
@@ -48,7 +48,7 @@ async function cacheRoutines(userId: string): Promise<void> {
   if (!res.ok) return
 
   const data = await res.json()
-  const docs: any[] = data.docs ?? data
+  const docs: { id: string | number; name?: string; description?: string; exercises?: { exercise?: { id?: string | number; name?: string } | string | number; name?: string; sets?: { type?: string; reps?: string | number; weight?: string | number }[]; order?: number }[] }[] = data.docs ?? data
 
   await offlineDb.routines.clear()
   await offlineDb.routines.bulkPut(
@@ -56,10 +56,10 @@ async function cacheRoutines(userId: string): Promise<void> {
       id: String(r.id),
       name: r.name ?? '',
       description: r.description ?? '',
-      exercises: (r.exercises ?? []).map((re: any) => ({
-        exerciseId: String(re.exercise?.id ?? re.exercise ?? ''),
-        exerciseName: re.exercise?.name ?? re.name ?? '',
-        sets: (re.sets ?? []).map((s: any) => ({
+      exercises: (r.exercises ?? []).map((re) => ({
+        exerciseId: String(typeof re.exercise === 'object' ? re.exercise?.id ?? '' : re.exercise ?? ''),
+        exerciseName: (typeof re.exercise === 'object' ? re.exercise?.name : undefined) ?? re.name ?? '',
+        sets: (re.sets ?? []).map((s) => ({
           type: s.type ?? 'N',
           reps: String(s.reps ?? ''),
           weight: String(s.weight ?? ''),

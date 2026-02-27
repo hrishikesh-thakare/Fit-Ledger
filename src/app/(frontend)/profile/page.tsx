@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Box,
   Typography,
@@ -68,7 +67,7 @@ export default function ProfilePage() {
 
       try {
         setLoading(true)
-        const response = await apiFetch(`/users/${authUser.id}`)
+        const response = await apiFetch<User>(`/users/${authUser.id}`)
 
         setUserData(response)
         setUnits(response.preferredUnit || 'kg')

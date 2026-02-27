@@ -1,8 +1,8 @@
 export class APIError extends Error {
   status: number
-  data: any
+  data: unknown
 
-  constructor(status: number, data: any, message?: string) {
+  constructor(status: number, data: unknown, message?: string) {
     super(message || `API Error: ${status}`)
     this.status = status
     this.data = data
@@ -14,7 +14,7 @@ interface FetchOptions extends RequestInit {
 }
 
 // Helper to handle relative API paths and default headers
-const apiFetch = async <T = any>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
+const apiFetch = async <T = unknown>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
   const { params, ...fetchOptions } = options
 
   // Build URL with query params
@@ -30,6 +30,7 @@ const apiFetch = async <T = any>(endpoint: string, options: FetchOptions = {}): 
   }
 
   const response = await fetch(url, {
+    cache: 'no-store', // Prevent aggressive browser GET caching
     ...fetchOptions,
     headers: {
       ...defaultHeaders,

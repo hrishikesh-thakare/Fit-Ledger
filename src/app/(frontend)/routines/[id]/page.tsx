@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import apiFetch from '@/lib/api/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
@@ -12,8 +12,6 @@ import {
   Container,
   Typography,
   Card,
-  AppBar,
-  Toolbar,
   Button,
   IconButton,
   Table,
@@ -34,7 +32,6 @@ import {
   DialogActions,
 } from '@mui/material'
 import {
-  ArrowBack,
   Edit,
   PlayArrow,
   AccessTime,
@@ -88,6 +85,8 @@ export default function RoutineDetailPage() {
   const { user } = useAuth()
   const { isActive, routineId: activeRoutineId, endSession } = useWorkoutSession()
   const routineId = params.id as string
+  const searchParams = useSearchParams()
+  const refreshKey = searchParams.get('t') || ''
 
   const [routineName, setRoutineName] = useState<string>('')
   const [routineNotes, setRoutineNotes] = useState<string | undefined>(undefined)
@@ -140,7 +139,7 @@ export default function RoutineDetailPage() {
         }))
 
         setExercises(mappedExercises)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching routine details:', err)
         setError('Failed to load routine details')
       } finally {
@@ -149,7 +148,12 @@ export default function RoutineDetailPage() {
     }
 
     fetchRoutineDetails()
-  }, [routineId, user?.id])
+
+    // Re-fetch when returning to this page (e.g. after editing)
+    const handleFocus = () => { fetchRoutineDetails() }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [routineId, user, preferredUnit, refreshKey])
 
   const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
 

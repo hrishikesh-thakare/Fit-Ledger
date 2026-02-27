@@ -115,8 +115,8 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
       })
       onSuccess(res.doc)
       reset()
-    } catch (err: any) {
-      setErrors({ submit: err.message || 'Failed to create exercise. Please try again.' })
+    } catch (err: unknown) {
+      setErrors({ submit: err instanceof Error ? err.message : 'Failed to create exercise. Please try again.' })
     } finally {
       setSubmitting(false)
     }

@@ -26,8 +26,6 @@ export default function FloatingWorkoutBar() {
     isActive,
     routineName,
     routineId,
-    exercises,
-    currentExerciseIndex,
     getElapsedSeconds,
     endSession,
   } = useWorkoutSession()

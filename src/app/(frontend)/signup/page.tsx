@@ -61,8 +61,8 @@ export default function SignUpPage() {
 
       // Auto-login after successful signup
       await login({ email, password })
-    } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }
