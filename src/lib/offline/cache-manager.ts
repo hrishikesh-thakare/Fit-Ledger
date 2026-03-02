@@ -38,7 +38,8 @@ const APP_PAGES = [
 async function cacheAppPages(): Promise<void> {
   if (typeof caches === 'undefined') return // SSR guard
 
-  const cache = await caches.open('app-pages')
+  // Use 'pages' cache — matches the SW's default Workbox cache name for page navigations
+  const cache = await caches.open('pages')
   const fetchPromises = APP_PAGES.map(async (page) => {
     try {
       const res = await fetch(page, { credentials: 'include' })

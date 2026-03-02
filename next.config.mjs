@@ -12,18 +12,6 @@ const withPWA = withPWAInit({
   },
   runtimeCaching: [
     {
-      // Cache page navigations — regex matches full URLs like https://domain.com/routines
-      urlPattern: /\/(dashboard|routines|bodyweight|history|profile|workout|login|signup)(\/|$|\?)/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'app-pages',
-        expiration: {
-          maxEntries: 30,
-          maxAgeSeconds: 86400,
-        },
-      },
-    },
-    {
       urlPattern: /\/api\/custom\/(routines|exercises)/,
       handler: 'NetworkFirst',
       options: {

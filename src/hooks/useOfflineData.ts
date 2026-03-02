@@ -6,17 +6,11 @@ import { offlineDb } from '@/lib/offline/db'
 type OfflineCollection = 'exercises' | 'routines'
 
 /**
- * IndexedDB-first data hook for read-only cached collections.
+ * Offline-first data hook for read-only cached collections.
  *
- * Flow:
- *  1. Read from IndexedDB immediately
- *  2. If cache has data → show it, loading=false
- *  3. Attempt API fetch in background
- *  4. On API success → update state + IndexedDB, loading=false
- *  5. On API failure → if cache was empty, loading=false with empty data
- *
- * This ensures cards don't render half-loaded —
- * loading stays true until we have COMPLETE data from either source.
+ * Behaviour:
+ *  - Online:  Show skeletons → fetch API → show full data (cache in background)
+ *  - Offline: Show cached data immediately (best-effort)
  */
 export function useOfflineData<T>(collection: OfflineCollection, fetchUrl: string) {
   const [data, setData] = useState<T[]>([])
@@ -39,39 +33,36 @@ export function useOfflineData<T>(collection: OfflineCollection, fetchUrl: strin
     let cancelled = false
 
     async function load() {
-      // Step 1: Read from IndexedDB
-      const cached = await readFromCache()
-      const hasCachedData = cached.length > 0
+      const isOnline = typeof navigator !== 'undefined' && navigator.onLine
 
-      if (hasCachedData && !cancelled) {
-        // Cache has data — show it immediately, stop loading
-        setData(cached)
-        setSource('cache')
-        setLoading(false)
-      }
-
-      // Step 2: Background refresh from API
-      try {
-        const res = await fetch(fetchUrl, { credentials: 'include' })
-        if (res.ok) {
-          const json = await res.json()
-          const docs = json.docs ?? json
-          if (!cancelled) {
+      if (isOnline) {
+        // Online: skip cache, wait for API to return complete data
+        try {
+          const res = await fetch(fetchUrl, { credentials: 'include' })
+          if (res.ok && !cancelled) {
+            const json = await res.json()
+            const docs = json.docs ?? json
             setData(docs)
             setSource('server')
-            setLoading(false)
           }
-        } else if (!hasCachedData && !cancelled) {
-          // API failed and no cache — stop loading with empty data
-          setLoading(false)
+        } catch {
+          // Network failed even though navigator.onLine was true — fall back to cache
+          const cached = await readFromCache()
+          if (!cancelled) {
+            setData(cached)
+            setSource('cache')
+          }
         }
-      } catch {
-        // Network error — if we had cached data it's already showing
-        // If not, stop loading with whatever we have
+      } else {
+        // Offline: show cached data immediately
+        const cached = await readFromCache()
         if (!cancelled) {
-          setLoading(false)
+          setData(cached)
+          setSource('cache')
         }
       }
+
+      if (!cancelled) setLoading(false)
     }
 
     load()
