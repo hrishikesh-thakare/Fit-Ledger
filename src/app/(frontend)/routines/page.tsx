@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
+import { useOfflineData } from '@/hooks/useOfflineData'
 import {
   Box,
   Typography,
@@ -49,41 +50,17 @@ export default function RoutinesPage() {
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
   const { visible: fabVisible } = useExtendedFab(50)
-  const searchParams = useSearchParams()
-  const refreshKey = searchParams.get('t') || ''
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [routines, setRoutines] = useState<RoutineWithExerciseCount[]>([])
+  const [error, _setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchRoutines = async () => {
-      if (!user) return
-      // Fetching routines for user...
+  // IndexedDB-first data loading with background API refresh
+  const { data: routines, loading } = useOfflineData<RoutineWithExerciseCount>(
+    'routines',
+    `/api/custom/routines?userId=${user?.id}`,
+  )
 
-      try {
-        setLoading(true)
-        setError(null)
-
-        const result = await apiFetch<{ docs: RoutineWithExerciseCount[] }>(
-          `/custom/routines?userId=${user.id}`,
-        )
-
-        setRoutines(result.docs)
-      } catch (err: unknown) {
-        console.error('Error fetching routines:', err)
-        setError('Failed to load routines')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRoutines()
-
-    // Re-fetch when returning to this page (e.g. after creating/editing a routine)
-    const handleFocus = () => { fetchRoutines() }
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [user, refreshKey])
+  // Local state for optimistic deletion
+  const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set())
+  const visibleRoutines = routines.filter((r) => !deletedIds.has(r.id))
 
   const handleEdit = (routineId: number, _routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
@@ -96,8 +73,8 @@ export default function RoutinesPage() {
         method: 'DELETE',
       })
 
-      // Remove from local state
-      setRoutines((prev) => prev.filter((r) => r.id !== routineId))
+      // Optimistic removal from UI
+      setDeletedIds((prev) => new Set(prev).add(routineId))
 
       showSnackbar({
         message: `"${routineName}" deleted`,
@@ -135,7 +112,7 @@ export default function RoutinesPage() {
           <Fade in timeout={400}>
             <Box>
               {/* Routines List */}
-              {routines.map((routine) => (
+              {visibleRoutines.map((routine) => (
                 <Card
                   key={routine.id}
                   elevation={1}
@@ -273,7 +250,7 @@ export default function RoutinesPage() {
               ))}
 
               {/* Empty state */}
-              {routines.length === 0 && (
+              {visibleRoutines.length === 0 && (
                 <Box
                   sx={{
                     textAlign: 'center',

@@ -142,5 +142,15 @@ export const WorkoutDays: CollectionConfig = {
       name: 'notes',
       type: 'textarea',
     },
+    {
+      name: 'clientId',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        description: 'Client-generated UUID for offline sync idempotency',
+        readOnly: true,
+      },
+    },
   ],
 }

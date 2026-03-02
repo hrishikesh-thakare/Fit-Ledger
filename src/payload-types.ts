@@ -263,6 +263,10 @@ export interface WorkoutDay {
   volumeKg?: number | null;
   exerciseCount?: number | null;
   notes?: string | null;
+  /**
+   * Client-generated UUID for offline sync idempotency
+   */
+  clientId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -535,6 +539,7 @@ export interface WorkoutDaysSelect<T extends boolean = true> {
   volumeKg?: T;
   exerciseCount?: T;
   notes?: T;
+  clientId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

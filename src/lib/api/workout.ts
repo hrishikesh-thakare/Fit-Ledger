@@ -1,8 +1,9 @@
 import apiFetch from './client'
-import { syncManager } from '@/lib/offline/sync-manager'
+import { offlineDb } from '@/lib/offline/db'
 
 /**
- * Load workout data from a routine (read-only, no DB writes)
+ * Load workout data from a routine (read-only, no DB writes).
+ * Tries API first, falls back to cached routine data from IndexedDB.
  */
 interface LoadWorkoutParams {
   routineId: string
@@ -38,8 +39,10 @@ export interface LoadedWorkoutData {
 export const loadWorkoutFromRoutine = async (
   params: LoadWorkoutParams,
 ): Promise<LoadedWorkoutData> => {
+  const { routineId, userId } = params
+
+  // Try API first
   try {
-    const { routineId, userId } = params
     const queryParams = new URLSearchParams({ routineId })
     if (userId) queryParams.set('userId', userId)
 
@@ -49,86 +52,51 @@ export const loadWorkoutFromRoutine = async (
     )
     return response
   } catch (error) {
-    console.error('Error loading workout data:', error)
-    throw error
+    console.warn('[Workout] API load failed, attempting offline fallback:', error)
+  }
+
+  // Fallback: build workout template from cached routine in IndexedDB
+  const cachedRoutine = await offlineDb.routines.get(routineId)
+  if (!cachedRoutine) {
+    throw new Error('Cannot load workout — routine not available offline')
+  }
+
+  return {
+    title: cachedRoutine.name,
+    date: new Date().toISOString(),
+    exercises: cachedRoutine.exercises.map((re, i) => ({
+      id: crypto.randomUUID(),
+      exerciseId: re.exerciseId,
+      name: re.exerciseName,
+      restTime: 90, // Default rest time
+      sets: re.sets.length > 0
+        ? re.sets.map((s, j) => ({
+          id: crypto.randomUUID(),
+          type: (s.type === 'W' ? 'W' : s.type === 'D' ? 'D' : 'N') as 'N' | 'W' | 'D',
+          weight: s.weight || '',
+          reps: s.reps || '',
+          completed: false,
+          previous: '-',
+          setOrder: j,
+        }))
+        : [
+          {
+            id: crypto.randomUUID(),
+            type: 'N' as const,
+            weight: '',
+            reps: '',
+            completed: false,
+            previous: '-',
+            setOrder: 0,
+          },
+        ],
+      order: re.order ?? i,
+    })),
   }
 }
 
 /**
- * Save workout (called when user finishes workout)
- * Creates all DB records: workout-day, workout-exercises, workout-sets
- */
-interface SaveWorkoutParams {
-  routineId: string
-  date: string
-  durationSeconds: number
-  exercises: Array<{
-    exerciseId: string
-    name: string
-    sets: Array<{
-      weight: string
-      reps: string
-      setLabel: string
-      completed: boolean
-    }>
-  }>
-}
-
-export const saveWorkout = async (params: SaveWorkoutParams): Promise<{ workoutDayId: string }> => {
-  // ── Offline path: save locally, queue for sync later ──────────
-  if (!navigator.onLine) {
-    const offlineId = crypto.randomUUID()
-    await syncManager.saveWorkoutOffline({
-      id: offlineId,
-      routineId: params.routineId,
-      date: params.date,
-      durationSeconds: params.durationSeconds,
-      exercises: params.exercises,
-      createdAt: new Date().toISOString(),
-    })
-    console.log('[Workout] Saved offline, will sync when online:', offlineId)
-    return { workoutDayId: offlineId }
-  }
-
-  // ── Online path: try server, fallback to IndexedDB on network error ──
-  try {
-    const response = await apiFetch<{ workoutDayId: string; saved: boolean }>(
-      '/custom/workouts/start',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      },
-    )
-    return { workoutDayId: response.workoutDayId }
-  } catch (error) {
-    // Network error (Failed to fetch, ERR_INTERNET_DISCONNECTED, etc.) → save offline
-    const isNetworkError =
-      error instanceof TypeError &&
-      (error.message.includes('fetch') || error.message.includes('network'))
-
-    if (isNetworkError) {
-      const offlineId = crypto.randomUUID()
-      await syncManager.saveWorkoutOffline({
-        id: offlineId,
-        routineId: params.routineId,
-        date: params.date,
-        durationSeconds: params.durationSeconds,
-        exercises: params.exercises,
-        createdAt: new Date().toISOString(),
-      })
-      console.log('[Workout] Network error — saved offline, will sync when online:', offlineId)
-      return { workoutDayId: offlineId }
-    }
-
-    // Server error (4xx/5xx) — re-throw so BackgroundSyncContext can retry
-    console.error('Error saving workout:', error)
-    throw error
-  }
-}
-
-/**
- * Update a workout set
+ * Update a workout set (online-only, for post-save editing)
  */
 export const updateWorkoutSet = async (setId: string, data: { weight?: number; reps?: number }) => {
   try {
@@ -144,7 +112,7 @@ export const updateWorkoutSet = async (setId: string, data: { weight?: number; r
 }
 
 /**
- * Complete a workout
+ * Complete a workout (online-only, for post-save editing)
  */
 export const completeWorkout = async (workoutDayId: string, durationSeconds: number) => {
   try {
@@ -162,7 +130,7 @@ export const completeWorkout = async (workoutDayId: string, durationSeconds: num
 }
 
 /**
- * Add a set to a workout exercise
+ * Add a set to a workout exercise (online-only, for post-save editing)
  */
 export const addWorkoutSet = async (
   workoutDayId: string,
@@ -171,7 +139,16 @@ export const addWorkoutSet = async (
   templateSet?: { weight: number; reps: number; setLabel: string },
 ) => {
   try {
-    const response = await apiFetch<{ doc: { id: number; weight: number; reps: number; setOrder: number; previousWeight?: number; previousReps?: number } }>('/workout-sets', {
+    const response = await apiFetch<{
+      doc: {
+        id: number
+        weight: number
+        reps: number
+        setOrder: number
+        previousWeight?: number
+        previousReps?: number
+      }
+    }>('/workout-sets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -207,7 +184,7 @@ export const addWorkoutSet = async (
 }
 
 /**
- * Delete a workout set
+ * Delete a workout set (online-only, for post-save editing)
  */
 export const deleteWorkoutSet = async (setId: string) => {
   try {

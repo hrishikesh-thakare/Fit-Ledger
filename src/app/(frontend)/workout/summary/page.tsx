@@ -45,7 +45,7 @@ function WorkoutSummaryContent() {
   const [preferredUnit, setPreferredUnit] = useState<'kg' | 'lb'>('kg')
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
   const { showSnackbar } = useSnackbar()
-  const { isSaving, startBackgroundSave } = useBackgroundSync()
+  const { isSaving, saveWorkoutLocally } = useBackgroundSync()
   const { endSession } = useWorkoutSession()
 
   useEffect(() => {
@@ -214,20 +214,20 @@ function WorkoutSummaryContent() {
     const isTemp = searchParams.get('temp') === 'true'
 
     if (isTemp) {
-      // TEMP MODE: Fire-and-forget background save
+      // TEMP MODE: Save to IndexedDB first, sync in background
       const pendingDataStr = sessionStorage.getItem('pendingWorkoutSave')
       if (!pendingDataStr) {
         return
       }
 
-      // Take snapshot, then clear sessionStorage (draft lives in BackgroundSyncContext now)
+      // Take snapshot, then clear sessionStorage
       const snapshot = JSON.parse(pendingDataStr)
       sessionStorage.removeItem('pendingWorkoutSave')
 
-      // Fire background save — does NOT await, returns immediately
-      startBackgroundSave(snapshot)
+      // Save locally (IndexedDB + sync queue) — non-blocking
+      void saveWorkoutLocally(snapshot)
 
-      // End the workout session (background save is queued)
+      // End the workout session
       endSession()
 
       // Immediate redirect — app stays fully usable

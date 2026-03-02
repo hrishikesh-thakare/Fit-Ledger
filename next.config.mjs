@@ -9,6 +9,20 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: '/~offline',
   },
+  runtimeCaching: [
+    {
+      urlPattern: /\/api\/custom\/(routines|exercises)/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-data',
+        networkTimeoutSeconds: 5,
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 86400, // 24 hours
+        },
+      },
+    },
+  ],
 })
 
 /** @type {import('next').NextConfig} */

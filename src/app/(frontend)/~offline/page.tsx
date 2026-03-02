@@ -47,7 +47,7 @@ export default function OfflinePage() {
                     mb: 2,
                 }}
             >
-                You are Offline
+                You&apos;re Offline
             </Typography>
 
             <Typography
@@ -55,11 +55,23 @@ export default function OfflinePage() {
                 sx={{
                     color: 'text.secondary',
                     textAlign: 'center',
+                    mb: 2,
+                    maxWidth: 400,
+                }}
+            >
+                Don&apos;t worry — FitLedger still works offline! You can view your routines, log workouts, and track bodyweight.
+            </Typography>
+
+            <Typography
+                variant="body2"
+                sx={{
+                    color: 'text.disabled',
+                    textAlign: 'center',
                     mb: 6,
                     maxWidth: 400,
                 }}
             >
-                You have lost your internet connection. Please check your network settings and try again to sync your progress.
+                Your data will sync automatically when you&apos;re back online.
             </Typography>
 
             <Button

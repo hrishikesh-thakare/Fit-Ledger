@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react'
 
 export interface SnackbarMessage {
   message: string
@@ -58,8 +58,10 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
     setMessageInfo(undefined)
   }
 
+  const contextValue = useMemo(() => ({ showSnackbar }), [showSnackbar])
+
   return (
-    <SnackbarContext.Provider value={{ showSnackbar }}>
+    <SnackbarContext.Provider value={contextValue}>
       {children}
       <GlobalSnackbar
         snackbar={{

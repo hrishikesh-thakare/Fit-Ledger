@@ -425,6 +425,9 @@ function WorkoutLoggingContent() {
       // Save to session storage
       sessionStorage.setItem('pendingWorkoutSave', JSON.stringify(workoutDataToSave))
 
+      // End the active session so the beforeunload guard doesn't block navigation
+      session.endSession()
+
       // Navigate to summary page with temp flag
       router.push(`/workout/summary?temp=true&duration=${elapsedTime}`)
     } catch (err) {

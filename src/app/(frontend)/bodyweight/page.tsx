@@ -47,6 +47,7 @@ import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
 import { useExtendedFab } from '@/hooks/useExtendedFab'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import PullToRefreshIndicator from '@/components/PullToRefreshIndicator'
+import { useBackgroundSync } from '@/contexts/BackgroundSyncContext'
 
 interface ProcessedLog {
   id: number
@@ -62,6 +63,7 @@ export default function BodyweightLogPage() {
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
   const { visible: fabVisible } = useExtendedFab(50)
+  const { saveBodyweightLocally } = useBackgroundSync()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [weightLogs, setWeightLogs] = useState<ProcessedLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -144,7 +146,7 @@ export default function BodyweightLogPage() {
     }
 
     fetchWeightLogs()
-  }, [user, fetchData, showSnackbar])
+  }, [user, fetchData])
 
   const currentWeight = weightLogs.length > 0 ? weightLogs[0].weight : 0
 
@@ -152,38 +154,35 @@ export default function BodyweightLogPage() {
     if (!user) return
 
     try {
-      // Optimistic Update can be tricky with "change" calculation dependent on sort.
-      // But we can insert at top and recalc.
       const weightInKg = toKg(weight, preferredUnit)
 
-      // API call
-      const response = await apiFetch<{ doc: BodyWeightLog }>('/body-weight-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user: user.id,
-          weight: weightInKg,
-          loggedAt: date.toISOString(),
-        }),
+      // Save locally first (IndexedDB + sync queue), sync in background
+      const offlineId = await saveBodyweightLocally({
+        weight: weightInKg,
+        unit: preferredUnit === 'lb' ? 'lbs' : 'kg',
+        date: date.toISOString(),
       })
 
-      showSnackbar({ message: 'Weight logged successfully', severity: 'success' })
+      showSnackbar({ message: 'Weight logged', severity: 'success' })
       setIsPickerOpen(false)
 
-      // Add new log to state without re-fetching
-      const newLog = response.doc
-      // We need to re-process the list because "change" values might shift if we insert in middle,
-      // but usually logs are today, so top of list.
-      // Let's verify date sorting. If new log is older than top, we need to sort.
-      // Easiest is to reconstruct the "docs" array and re-run processAndSetLogs.
+      // Optimistic UI update — add new log to state
+      const newLog: BodyWeightLog = {
+        id: Number(offlineId) || 0,
+        weight: weightInKg,
+        loggedAt: date.toISOString(),
+        user: Number(user.id),
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      }
 
       const currentDocs: BodyWeightLog[] = weightLogs.map((l) => ({
         id: l.id,
         weight: l.rawWeight,
         loggedAt: l.rawDate,
-        user: Number(user.id), // Cast to number to match BodyWeightLog type
-        updatedAt: new Date().toISOString(), // Valid ISO string
-        createdAt: new Date().toISOString(), // Valid ISO string
+        user: Number(user.id),
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
       }))
 
       const updatedDocs = [newLog, ...currentDocs].sort(

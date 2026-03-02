@@ -15,6 +15,7 @@ interface WorkoutExerciseData {
 }
 
 interface SaveWorkoutRequest {
+  clientId?: string
   routineId: string | number
   date?: string
   durationSeconds?: number
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   try {
     const payloadStart = performance.now()
     const body: SaveWorkoutRequest = await req.json()
-    const { routineId, date = new Date().toISOString(), durationSeconds = 0, exercises } = body
+    const { clientId, routineId, date = new Date().toISOString(), durationSeconds = 0, exercises } = body
 
     if (!routineId || !exercises) {
       if (t) await payload.db.rollbackTransaction(t)
@@ -72,6 +73,25 @@ export async function POST(req: NextRequest) {
 
     const userId = typeof routine.user === 'object' ? routine.user.id : routine.user
 
+    // ── Idempotency check: if clientId exists, reject duplicates ──
+    if (clientId) {
+      const existing = await payload.find({
+        collection: 'workout-days',
+        where: { clientId: { equals: clientId } },
+        limit: 1,
+        depth: 0,
+      })
+      if (existing.docs.length > 0) {
+        // Already saved — return existing ID (idempotent response)
+        if (t) await payload.db.commitTransaction(t)
+        return NextResponse.json({
+          workoutDayId: String(existing.docs[0].id),
+          saved: true,
+          deduplicated: true,
+        })
+      }
+    }
+
     // 1. Create workout day
     const workoutDay = await payload.create({
       collection: 'workout-days',
@@ -83,6 +103,7 @@ export async function POST(req: NextRequest) {
         durationSeconds,
         volumeKg: totalVolumeKg,
         exerciseCount,
+        ...(clientId ? { clientId } : {}),
       },
       req: t ? { transactionID: t } : undefined,
     })

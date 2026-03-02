@@ -472,6 +472,89 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.exercises_equipment": {
+      "name": "exercises_equipment",
+      "schema": "",
+      "columns": {
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "enum_exercises_equipment",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "exercises_equipment_order_idx": {
+          "name": "exercises_equipment_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "exercises_equipment_parent_idx": {
+          "name": "exercises_equipment_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exercises_equipment_parent_fk": {
+          "name": "exercises_equipment_parent_fk",
+          "tableFrom": "exercises_equipment",
+          "tableTo": "exercises",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.exercises": {
       "name": "exercises",
       "schema": "",
@@ -1091,6 +1174,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "client_id": {
+          "name": "client_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -1148,6 +1237,21 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "workout_days_client_id_idx": {
+          "name": "workout_days_client_id_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2648,6 +2752,18 @@
         "inactive"
       ]
     },
+    "public.enum_exercises_equipment": {
+      "name": "enum_exercises_equipment",
+      "schema": "public",
+      "values": [
+        "barbell",
+        "dumbbell",
+        "machine",
+        "cable",
+        "smith_machine",
+        "bodyweight"
+      ]
+    },
     "public.enum_routines_is_active": {
       "name": "enum_routines_is_active",
       "schema": "public",
@@ -2662,8 +2778,7 @@
       "values": [
         "warmup",
         "working",
-        "drop",
-        "failure"
+        "drop"
       ]
     },
     "public.enum_workout_sets_set_label": {
@@ -2672,8 +2787,7 @@
       "values": [
         "warmup",
         "working",
-        "drop",
-        "failure"
+        "drop"
       ]
     }
   },
@@ -2687,6 +2801,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "f0e93f4e-9c04-4ddb-9d1a-2c8cedb11c88",
+  "id": "cb0f7d74-3e1a-43d8-bf40-7c21ae46be17",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }
