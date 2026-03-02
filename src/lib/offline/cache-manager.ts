@@ -8,7 +8,7 @@ import { offlineDb } from './db'
  * Failures are logged with context — never silently swallowed.
  */
 export async function preCacheData(userId?: string | number): Promise<void> {
-  const tasks: Promise<void>[] = [cacheExercises()]
+  const tasks: Promise<void>[] = [cacheExercises(), cacheAppPages()]
   if (userId) tasks.push(cacheRoutines(String(userId)))
 
   const results = await Promise.allSettled(tasks)
@@ -22,6 +22,34 @@ export async function preCacheData(userId?: string | number): Promise<void> {
   } else {
     console.log('[Cache] Pre-cache complete')
   }
+}
+
+// ── App Pages (HTML shell caching for offline navigation) ────────
+
+const APP_PAGES = [
+  '/dashboard',
+  '/routines',
+  '/bodyweight',
+  '/history',
+  '/profile',
+  '/workout/summary',
+]
+
+async function cacheAppPages(): Promise<void> {
+  if (typeof caches === 'undefined') return // SSR guard
+
+  const cache = await caches.open('app-pages')
+  const fetchPromises = APP_PAGES.map(async (page) => {
+    try {
+      const res = await fetch(page, { credentials: 'include' })
+      if (res.ok) {
+        await cache.put(page, res)
+      }
+    } catch {
+      // Non-critical — page will use fallback offline page if not cached
+    }
+  })
+  await Promise.all(fetchPromises)
 }
 
 // ── Exercises ────────────────────────────────────────────────────

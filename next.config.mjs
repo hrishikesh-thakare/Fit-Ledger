@@ -12,15 +12,14 @@ const withPWA = withPWAInit({
   },
   runtimeCaching: [
     {
-      // Cache frontend page navigations so they work offline
-      urlPattern: /^\/(workout|routines|bodyweight|dashboard|history|profile)/,
-      handler: 'NetworkFirst',
+      // Cache page navigations — regex matches full URLs like https://domain.com/routines
+      urlPattern: /\/(dashboard|routines|bodyweight|history|profile|workout|login|signup)(\/|$|\?)/,
+      handler: 'StaleWhileRevalidate',
       options: {
-        cacheName: 'page-navigations',
-        networkTimeoutSeconds: 3,
+        cacheName: 'app-pages',
         expiration: {
           maxEntries: 30,
-          maxAgeSeconds: 86400, // 24 hours
+          maxAgeSeconds: 86400,
         },
       },
     },
@@ -32,7 +31,7 @@ const withPWA = withPWAInit({
         networkTimeoutSeconds: 5,
         expiration: {
           maxEntries: 50,
-          maxAgeSeconds: 86400, // 24 hours
+          maxAgeSeconds: 86400,
         },
       },
     },
