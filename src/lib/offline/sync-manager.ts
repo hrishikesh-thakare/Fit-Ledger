@@ -155,7 +155,8 @@ export class SyncManager {
             exercises: workout.exercises,
           }),
         })
-        if (!res.ok) throw new Error(`POST /workouts/start failed: ${res.status}`)
+        // 409 = already synced (idempotency), treat as success
+        if (!res.ok && res.status !== 409) throw new Error(`POST /workouts/start failed: ${res.status}`)
         break
       }
 
@@ -168,11 +169,13 @@ export class SyncManager {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
+            clientId: log.id, // UUID for idempotency
             weight: log.weight,
             loggedAt: log.date, // Payload field is `loggedAt`, not `date`
           }),
         })
-        if (!res.ok) throw new Error(`POST /body-weight-logs failed: ${res.status}`)
+        // 409 = already synced (idempotency), treat as success
+        if (!res.ok && res.status !== 409) throw new Error(`POST /body-weight-logs failed: ${res.status}`)
         break
       }
     }

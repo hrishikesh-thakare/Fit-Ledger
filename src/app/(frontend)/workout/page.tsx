@@ -163,6 +163,11 @@ function WorkoutLoggingContent() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [session.isActive])
 
+  // Prefetch summary page so it's cached by SW for offline use
+  useEffect(() => {
+    router.prefetch('/workout/summary')
+  }, [router])
+
   // Load workout — either resume from context or fetch from API
   useEffect(() => {
     const loadWorkout = async () => {
@@ -414,7 +419,7 @@ function WorkoutLoggingContent() {
         return
       }
 
-      // Prepare workout data for session storage
+      // Prepare workout data
       const workoutDataToSave = {
         routineId: routineIdRef.current,
         date: workoutDateRef.current,
@@ -422,18 +427,17 @@ function WorkoutLoggingContent() {
         exercises: exercisesToSave,
       }
 
-      // Save to session storage
+      // Save to session storage for summary page to read
       sessionStorage.setItem('pendingWorkoutSave', JSON.stringify(workoutDataToSave))
 
       // End the active session so the beforeunload guard doesn't block navigation
       session.endSession()
 
-      // Navigate to summary page with temp flag
+      // Navigate to summary page (cached by SW via prefetch on mount)
       router.push(`/workout/summary?temp=true&duration=${elapsedTime}`)
     } catch (err) {
       console.error('Error preparing workout summary:', err)
       showSnackbar({ message: 'Failed to save workout progress', severity: 'error' })
-      // Fallback
       router.push('/routines')
     } finally {
       setIsSaving(false)

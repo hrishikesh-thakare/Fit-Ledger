@@ -6,10 +6,24 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  cacheOnFrontEndNav: true,
   fallbacks: {
     document: '/~offline',
   },
   runtimeCaching: [
+    {
+      // Cache frontend page navigations so they work offline
+      urlPattern: /^\/(workout|routines|bodyweight|dashboard|history|profile)/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'page-navigations',
+        networkTimeoutSeconds: 3,
+        expiration: {
+          maxEntries: 30,
+          maxAgeSeconds: 86400, // 24 hours
+        },
+      },
+    },
     {
       urlPattern: /\/api\/custom\/(routines|exercises)/,
       handler: 'NetworkFirst',
