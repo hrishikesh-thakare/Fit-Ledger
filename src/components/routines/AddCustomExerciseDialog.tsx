@@ -15,8 +15,9 @@ import {
   CircularProgress,
   FormHelperText,
   Box,
-  Chip,
-  OutlinedInput,
+  FormControlLabel,
+  Switch,
+  Typography,
 } from '@mui/material'
 import apiFetch from '@/lib/api/client'
 
@@ -49,7 +50,8 @@ interface Props {
 export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Props) {
   const [name, setName] = useState('')
   const [muscleGroupId, setMuscleGroupId] = useState('')
-  const [equipment, setEquipment] = useState<string[]>([])
+  const [equipment, setEquipment] = useState<string>('')
+  const [isPrivate, setIsPrivate] = useState(true)
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>([])
   const [loadingGroups, setLoadingGroups] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -82,7 +84,8 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
   const reset = () => {
     setName('')
     setMuscleGroupId('')
-    setEquipment([])
+    setEquipment('')
+    setIsPrivate(true)
     setErrors({})
   }
 
@@ -111,12 +114,19 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
     try {
       const res = await apiFetch<{ doc: CreatedExercise }>('/custom/exercises', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), muscleGroupId, equipment }),
+        body: JSON.stringify({
+          name: name.trim(),
+          muscleGroupId,
+          equipment: equipment || undefined,
+          isCustom: isPrivate,
+        }),
       })
       onSuccess(res.doc)
       reset()
     } catch (err: unknown) {
-      setErrors({ submit: err instanceof Error ? err.message : 'Failed to create exercise. Please try again.' })
+      setErrors({
+        submit: err instanceof Error ? err.message : 'Failed to create exercise. Please try again.',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -171,27 +181,14 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
 
           <FormControl fullWidth>
             <InputLabel>Equipment</InputLabel>
-            <Select<string[]>
-              multiple
+            <Select
               value={equipment}
               label="Equipment"
-              onChange={(e) => {
-                const val = e.target.value
-                setEquipment(typeof val === 'string' ? val.split(',') : val)
-              }}
-              input={<OutlinedInput label="Equipment" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map((value: string) => (
-                    <Chip
-                      key={value}
-                      label={EQUIPMENT_OPTIONS.find((o) => o.value === value)?.label ?? value}
-                      size="small"
-                    />
-                  ))}
-                </Box>
-              )}
+              onChange={(e) => setEquipment(e.target.value)}
             >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -201,6 +198,18 @@ export default function AddCustomExerciseDialog({ open, onClose, onSuccess }: Pr
           </FormControl>
 
           {errors.submit && <FormHelperText error>{errors.submit}</FormHelperText>}
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <FormControlLabel
+              control={
+                <Switch checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+              }
+              label="Custom exercise (only visible to me)"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
+              {isPrivate ? 'Only you can see and use this exercise' : 'Shared with all users'}
+            </Typography>
+          </Box>
         </Box>
       </DialogContent>
 

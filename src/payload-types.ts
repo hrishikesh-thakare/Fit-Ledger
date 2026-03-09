@@ -203,8 +203,9 @@ export interface Exercise {
   id: number;
   name: string;
   muscleGroup: number | MuscleGroup;
-  equipment?: ('barbell' | 'dumbbell' | 'machine' | 'cable' | 'smith_machine' | 'bodyweight')[] | null;
+  equipment?: ('barbell' | 'dumbbell' | 'machine' | 'cable' | 'smith_machine' | 'bodyweight') | null;
   isCustom?: boolean | null;
+  createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -309,6 +310,7 @@ export interface BodyWeightLog {
   user: number | User;
   weight: number;
   loggedAt: string;
+  clientId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -485,6 +487,7 @@ export interface ExercisesSelect<T extends boolean = true> {
   muscleGroup?: T;
   equipment?: T;
   isCustom?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -579,6 +582,7 @@ export interface BodyWeightLogsSelect<T extends boolean = true> {
   user?: T;
   weight?: T;
   loggedAt?: T;
+  clientId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

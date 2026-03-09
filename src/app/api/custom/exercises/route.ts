@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { name, muscleGroupId, equipment } = body
+    const { name, muscleGroupId, equipment, isCustom } = body
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Exercise name is required' }, { status: 400 })
@@ -25,14 +25,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Muscle group is required' }, { status: 400 })
     }
 
-    // Create exercise bypassing admin-only access control; mark as custom
+    // Create exercise bypassing admin-only access control
     const exercise = await payload.create({
       collection: 'exercises',
       data: {
         name: name.trim(),
         muscleGroup: Number(muscleGroupId),
-        equipment: Array.isArray(equipment) && equipment.length > 0 ? equipment : undefined,
-        isCustom: true,
+        equipment: typeof equipment === 'string' && equipment.length > 0 ? equipment : undefined,
+        isCustom: isCustom !== false, // default true
+        createdBy: user.id,
       },
       overrideAccess: true,
     })
@@ -52,17 +53,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const routeStart = performance.now()
   const payload = await getPayloadClient()
 
+  // Authenticate – needed to filter private exercises
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const payloadStart = performance.now()
-    // Fetch exercises with minimal fields and depth 0 for performance
     const exercisesResponse = await payload.find({
       collection: 'exercises',
       limit: 1000,
-      depth: 1, // Need depth 1 to get muscle group name
+      depth: 1,
       select: {
         id: true,
         name: true,
@@ -70,6 +76,15 @@ export async function GET(_req: NextRequest) {
         equipment: true,
       },
       sort: 'name',
+      where: {
+        or: [
+          { isCustom: { equals: false } },
+          {
+            and: [{ isCustom: { equals: true } }, { createdBy: { equals: user.id } }],
+          },
+        ],
+      },
+      overrideAccess: true,
     })
     const payloadDuration = performance.now() - payloadStart
 
@@ -78,7 +93,7 @@ export async function GET(_req: NextRequest) {
       id: ex.id,
       name: ex.name,
       bodyPart: typeof ex.muscleGroup === 'object' ? ex.muscleGroup.name : 'Other',
-      equipment: Array.isArray(ex.equipment) ? ex.equipment : [],
+      equipment: typeof ex.equipment === 'string' ? ex.equipment : undefined,
     }))
 
     const totalDuration = performance.now() - routeStart
@@ -91,7 +106,7 @@ export async function GET(_req: NextRequest) {
       { docs: exercises },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'Cache-Control': 'private, no-store',
           'Server-Timing': formatServerTimingHeader({
             total: totalDuration,
             payload: payloadDuration,

@@ -59,7 +59,7 @@ interface ExerciseOption {
   id: number
   name: string
   bodyPart: string
-  equipment?: string[]
+  equipment?: string
 }
 
 // Derive body parts from exercises later
@@ -77,6 +77,7 @@ export default function NewRoutinePage() {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [selectedBodyPart, setSelectedBodyPart] = useState('All')
   const [selectedEquipment, setSelectedEquipment] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [routineName, setRoutineName] = useState('')
   const [routineNotes, setRoutineNotes] = useState('')
 
@@ -252,7 +253,7 @@ export default function NewRoutinePage() {
   const equipmentOptions = useMemo(() => {
     const eqs = new Set<string>()
     availableExercises.forEach((ex) => {
-      if (ex.equipment) ex.equipment.forEach((e) => eqs.add(e))
+      if (ex.equipment) eqs.add(ex.equipment)
     })
     return ['All', ...Array.from(eqs).sort()]
   }, [availableExercises])
@@ -260,8 +261,7 @@ export default function NewRoutinePage() {
   const filteredExercises = useMemo(() => {
     return availableExercises.filter((ex) => {
       const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
-      const matchesEquipment =
-        selectedEquipment === 'All' || (ex.equipment && ex.equipment.includes(selectedEquipment))
+      const matchesEquipment = selectedEquipment === 'All' || ex.equipment === selectedEquipment
       return matchesBodyPart && matchesEquipment
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
@@ -704,7 +704,12 @@ export default function NewRoutinePage() {
         anchor="bottom"
         open={openExerciseDrawer}
         onClose={() => setOpenExerciseDrawer(false)}
-        onOpen={() => setOpenExerciseDrawer(true)}
+        onOpen={() => {
+          setOpenExerciseDrawer(true)
+          setSelectedBodyPart('All')
+          setSelectedEquipment('All')
+          setSearchQuery('')
+        }}
         disableSwipeToOpen={false}
         PaperProps={{
           sx: {
@@ -731,6 +736,23 @@ export default function NewRoutinePage() {
                 <Close />
               </IconButton>
             </Box>
+          </Box>
+
+          {/* Search Box */}
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search exercises..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.default',
+                  borderRadius: 2,
+                },
+              }}
+            />
           </Box>
 
           {/* Horizontal Body Part Filter */}
@@ -789,32 +811,49 @@ export default function NewRoutinePage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
+          ) : filteredExercises.length === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 8,
+                px: 3,
+                gap: 1,
+              }}
+            >
+              <FitnessCenter sx={{ fontSize: 48, color: 'text.disabled' }} />
+              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+                No exercises found
+              </Typography>
+              <Typography variant="caption" color="text.disabled" align="center">
+                Try a different search or filter
+              </Typography>
+            </Box>
           ) : (
             <List>
               {filteredExercises.map((exercise) => (
-                <React.Fragment key={exercise.name}>
+                <React.Fragment key={exercise.id}>
                   <ListItem disablePadding>
                     <ListItemButton onClick={() => handleAddExercise(exercise)}>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          {exercise.name}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {exercise.name}
+                          </Typography>
+                          {exercise.equipment && (
+                            <Chip
+                              label={exercise.equipment.replace('_', ' ')}
+                              size="small"
+                              variant="outlined"
+                              sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
                           {exercise.bodyPart}
                         </Typography>
-                        {exercise.equipment && exercise.equipment.length > 0 && (
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                            {exercise.equipment.map((eq) => (
-                              <Chip
-                                key={eq}
-                                label={eq.replace('_', ' ')}
-                                size="small"
-                                variant="outlined"
-                                sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
-                              />
-                            ))}
-                          </Box>
-                        )}
                       </Box>
                       <IconButton
                         edge="end"
