@@ -59,6 +59,10 @@ export interface CachedRoutine {
   id: string
   name: string
   description?: string
+  exerciseCount?: number
+  duration?: string
+  previewExercises?: string[]
+  muscleGroups?: string[]
   exercises: Array<{
     exerciseId: string
     exerciseName: string

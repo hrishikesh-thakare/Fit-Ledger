@@ -7,18 +7,47 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   cacheOnFrontEndNav: true,
+  importScripts: ['/custom-sw.js'],
   fallbacks: {
     document: '/~offline',
   },
   runtimeCaching: [
+    // API data
     {
       urlPattern: /\/api\/custom\/(routines|exercises)/,
       handler: 'NetworkFirst',
       options: {
         cacheName: 'api-data',
-        networkTimeoutSeconds: 5,
+        networkTimeoutSeconds: 3,
         expiration: {
-          maxEntries: 50,
+          maxEntries: 100,
+          maxAgeSeconds: 172800, // 2 days
+        },
+      },
+    },
+    // Pages (non-API, same-origin)
+    {
+      urlPattern: ({ url, sameOrigin }) => sameOrigin && !url.pathname.startsWith('/api/'),
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages',
+        networkTimeoutSeconds: 3,
+        expiration: {
+          maxEntries: 32,
+          maxAgeSeconds: 86400,
+        },
+      },
+    },
+    // RSC responses
+    {
+      urlPattern: ({ request, sameOrigin }) =>
+        request.headers.get('RSC') === '1' && sameOrigin,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages-rsc',
+        networkTimeoutSeconds: 3,
+        expiration: {
+          maxEntries: 32,
           maxAgeSeconds: 86400,
         },
       },

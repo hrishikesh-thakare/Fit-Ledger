@@ -45,7 +45,9 @@ import {
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
 import { useSnackbar } from '@/hooks/useSnackbar'
-import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
+import AddCustomExerciseDialog, {
+  type CreatedExercise,
+} from '@/components/routines/AddCustomExerciseDialog'
 
 // dnd-kit imports
 import {
@@ -108,7 +110,9 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   const [customExerciseDialogOpen, setCustomExerciseDialogOpen] = useState(false)
 
   // Fetch Data State
-  const [availableExercises, setAvailableExercises] = useState<{ id: string | number; name: string; muscleGroup?: { name: string }; equipment?: string[] }[]>([])
+  const [availableExercises, setAvailableExercises] = useState<
+    { id: string | number; name: string; muscleGroup?: { name: string }; equipment?: string }[]
+  >([])
   const [muscleGroups, setMuscleGroups] = useState<string[]>(['All'])
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -120,7 +124,14 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   const fetchOptions = React.useCallback(async () => {
     try {
       const [exercisesRes, muscleGroupsRes] = await Promise.all([
-        apiFetch<{ docs: { id: string | number; name: string; muscleGroup?: { name: string }; equipment?: string[] }[] }>('/exercises?limit=500&depth=1'), // Fetch all exercises
+        apiFetch<{
+          docs: {
+            id: string | number
+            name: string
+            muscleGroup?: { name: string }
+            equipment?: string
+          }[]
+        }>('/exercises?limit=500&depth=1'), // Fetch all exercises
         apiFetch<{ docs: { id: string | number; name: string }[] }>('/muscle-groups?limit=100'),
       ])
 
@@ -148,13 +159,23 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       setRoutineName(routineData.name)
 
       // 2. Fetch Routine Exercises
-      const exercisesData = await apiFetch<{ docs: { id: string; exercise: { id: string; name: string; muscleGroup?: { name: string } } | string }[] }>(
-        `/routine-exercises?where[routine][equals]=${routineId}&depth=1&sort=exerciseOrder`,
-      )
+      const exercisesData = await apiFetch<{
+        docs: {
+          id: string
+          exercise: { id: string; name: string; muscleGroup?: { name: string } } | string
+        }[]
+      }>(`/routine-exercises?where[routine][equals]=${routineId}&depth=1&sort=exerciseOrder`)
 
       // 3. Fetch Routine Sets (for all exercises)
       const routineExerciseIds = exercisesData.docs.map((re: { id: string }) => re.id)
-      let setsData: { id: string; routineExercise: string | { id: string }; setOrder: number; setLabel?: string; weight?: number; reps?: number }[] = []
+      let setsData: {
+        id: string
+        routineExercise: string | { id: string }
+        setOrder: number
+        setLabel?: string
+        weight?: number
+        reps?: number
+      }[] = []
 
       if (routineExerciseIds.length > 0) {
         const setsParams = new URLSearchParams()
@@ -164,40 +185,44 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
         setsParams.append('limit', '300')
         setsParams.append('sort', 'setOrder')
 
-        const setsRes = await apiFetch<{ docs: typeof setsData }>(`/routine-sets?${setsParams.toString()}`)
+        const setsRes = await apiFetch<{ docs: typeof setsData }>(
+          `/routine-sets?${setsParams.toString()}`,
+        )
         setsData = setsRes.docs
       }
 
       // 4. Map to State
-      const formattedExercises = exercisesData.docs.map((re: { id: string; exercise: { id: string; name: string; muscleGroup?: { name: string } } | string }) => {
-        const exerciseSets = setsData
-          .filter(
-            (s) =>
-              (typeof s.routineExercise === 'string' ? s.routineExercise : s.routineExercise.id) ===
-              re.id,
-          )
-          .sort((a, b) => a.setOrder - b.setOrder)
+      const formattedExercises = exercisesData.docs.map(
+        (re: {
+          id: string
+          exercise: { id: string; name: string; muscleGroup?: { name: string } } | string
+        }) => {
+          const exerciseSets = setsData
+            .filter(
+              (s) =>
+                (typeof s.routineExercise === 'string'
+                  ? s.routineExercise
+                  : s.routineExercise.id) === re.id,
+            )
+            .sort((a, b) => a.setOrder - b.setOrder)
 
-        return {
-          id: re.id,
-          exerciseDefId: typeof re.exercise === 'object' ? re.exercise.id : re.exercise,
-          name: typeof re.exercise === 'object' ? re.exercise.name : 'Unknown Exercise',
-          bodyPart:
-            typeof re.exercise === 'object' && re.exercise.muscleGroup
-              ? re.exercise.muscleGroup.name
-              : '',
-          sets: exerciseSets.map((s) => ({
-            id: s.id,
-            type: (s.setLabel === 'warmup'
-              ? 'W'
-              : s.setLabel === 'drop'
-                ? 'D'
-                : 'N') as SetType,
-            weight: s.weight?.toString() || '',
-            reps: s.reps?.toString() || '',
-          })),
-        }
-      })
+          return {
+            id: re.id,
+            exerciseDefId: typeof re.exercise === 'object' ? re.exercise.id : re.exercise,
+            name: typeof re.exercise === 'object' ? re.exercise.name : 'Unknown Exercise',
+            bodyPart:
+              typeof re.exercise === 'object' && re.exercise.muscleGroup
+                ? re.exercise.muscleGroup.name
+                : '',
+            sets: exerciseSets.map((s) => ({
+              id: s.id,
+              type: (s.setLabel === 'warmup' ? 'W' : s.setLabel === 'drop' ? 'D' : 'N') as SetType,
+              weight: s.weight?.toString() || '',
+              reps: s.reps?.toString() || '',
+            })),
+          }
+        },
+      )
 
       setExercises(formattedExercises)
     } catch (_error) {
@@ -230,7 +255,11 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
     }
   }
 
-  const handleAddExercise = (exercise: { id: string | number; name: string; muscleGroup?: { name: string } }) => {
+  const handleAddExercise = (exercise: {
+    id: string | number
+    name: string
+    muscleGroup?: { name: string }
+  }) => {
     const newExercise: Exercise = {
       id: crypto.randomUUID(),
       exerciseDefId: String(exercise.id),
@@ -257,7 +286,11 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       prev.includes(exercise.bodyPart) ? prev : [...prev, exercise.bodyPart],
     )
     // Immediately add the exercise to the routine and close the drawer
-    handleAddExercise({ id: exercise.id, name: exercise.name, muscleGroup: { name: exercise.bodyPart } })
+    handleAddExercise({
+      id: exercise.id,
+      name: exercise.name,
+      muscleGroup: { name: exercise.bodyPart },
+    })
   }
 
   const handleRemoveExercise = (id: string) => {
@@ -383,7 +416,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
   const equipmentOptions = useMemo(() => {
     const eqs = new Set<string>()
     availableExercises.forEach((ex) => {
-      if (Array.isArray(ex.equipment)) ex.equipment.forEach((e: string) => eqs.add(e))
+      if (ex.equipment) eqs.add(ex.equipment)
     })
     return ['All', ...Array.from(eqs).sort()]
   }, [availableExercises])
@@ -393,9 +426,7 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
       const matchesBodyPart =
         selectedBodyPart === 'All' || ex.muscleGroup?.name === selectedBodyPart
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesEquipment =
-        selectedEquipment === 'All' ||
-        (Array.isArray(ex.equipment) && ex.equipment.includes(selectedEquipment))
+      const matchesEquipment = selectedEquipment === 'All' || ex.equipment === selectedEquipment
       return matchesBodyPart && matchesSearch && matchesEquipment
     })
   }, [selectedBodyPart, availableExercises, searchQuery, selectedEquipment])
@@ -773,7 +804,12 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
         anchor="bottom"
         open={openExerciseDrawer}
         onClose={() => setOpenExerciseDrawer(false)}
-        onOpen={() => setOpenExerciseDrawer(true)}
+        onOpen={() => {
+          setOpenExerciseDrawer(true)
+          setSelectedBodyPart('All')
+          setSelectedEquipment('All')
+          setSearchQuery('')
+        }}
         disableSwipeToOpen={false}
         PaperProps={{
           sx: {
@@ -871,48 +907,67 @@ export default function RoutineEditor({ routineId }: RoutineEditorProps) {
 
         {/* Exercises List */}
         <Box sx={{ overflowY: 'auto', flex: 1 }}>
-          <List>
-            {filteredExercises.map((exercise) => (
-              <React.Fragment key={exercise.id}>
-                <ListItem disablePadding>
-                  <ListItemButton onClick={() => handleAddExercise(exercise)}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {exercise.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {exercise.muscleGroup?.name}
-                      </Typography>
-                      {Array.isArray(exercise.equipment) && exercise.equipment.length > 0 && (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                          {exercise.equipment.map((eq: string) => (
+          {filteredExercises.length === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 8,
+                px: 3,
+                gap: 1,
+              }}
+            >
+              <FitnessCenter sx={{ fontSize: 48, color: 'text.disabled' }} />
+              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+                No exercises found
+              </Typography>
+              <Typography variant="caption" color="text.disabled" align="center">
+                Try a different search or filter
+              </Typography>
+            </Box>
+          ) : (
+            <List>
+              {filteredExercises.map((exercise) => (
+                <React.Fragment key={exercise.id}>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => handleAddExercise(exercise)}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {exercise.name}
+                          </Typography>
+                          {exercise.equipment && (
                             <Chip
-                              key={eq}
-                              label={eq.replace('_', ' ')}
+                              label={exercise.equipment.replace('_', ' ')}
                               size="small"
                               variant="outlined"
-                              sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                              sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
                             />
-                          ))}
+                          )}
                         </Box>
-                      )}
-                    </Box>
-                    <IconButton
-                      edge="end"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
-                        // router.push(`/exercises/${slug}`)
-                      }}
-                    >
-                      <ChevronRight color="action" />
-                    </IconButton>
-                  </ListItemButton>
-                </ListItem>
-                <Divider component="li" />
-              </React.Fragment>
-            ))}
-          </List>
+                        <Typography variant="caption" color="text.secondary">
+                          {exercise.muscleGroup?.name}
+                        </Typography>
+                      </Box>
+                      <IconButton
+                        edge="end"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // const slug = exercise.name.toLowerCase().replace(/\s+/g, '-')
+                          // router.push(`/exercises/${slug}`)
+                        }}
+                      >
+                        <ChevronRight color="action" />
+                      </IconButton>
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
         </Box>
       </SwipeableDrawer>
 

@@ -56,3 +56,10 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/fallback-*.js
 public/swe-worker-*.js
+
+# user-local / irrelevant
+irrelevant
+
+# markdown files
+*.md
+!README.md
