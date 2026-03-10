@@ -17,6 +17,11 @@ import {
   Chip,
   Stack,
   Fade,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   FitnessCenter,
@@ -65,6 +70,9 @@ export default function RoutinesPage() {
   // Local state for optimistic deletion
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set())
   const visibleRoutines = routines.filter((r) => !deletedIds.has(r.id))
+
+  // Confirmation dialog state
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
 
   const handleEdit = (routineId: number, _routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
@@ -187,7 +195,7 @@ export default function RoutinesPage() {
                           title={routine.name}
                           actions={[
                             commonActions.edit(() => handleEdit(routine.id, routine.name)),
-                            commonActions.delete(() => handleDelete(routine.id, routine.name)),
+                            commonActions.delete(() => setDeleteTarget({ id: routine.id, name: routine.name })),
                           ]}
                         />
                       </Box>
@@ -293,6 +301,34 @@ export default function RoutinesPage() {
       >
         <Add />
       </Fab>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete Routine?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete &ldquo;{deleteTarget?.name}&rdquo;? This action cannot
+            be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              if (deleteTarget) handleDelete(deleteTarget.id, deleteTarget.name)
+              setDeleteTarget(null)
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppScaffold>
   )
 }
