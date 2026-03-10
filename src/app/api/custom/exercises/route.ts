@@ -5,6 +5,24 @@ export const dynamic = 'force-dynamic'
 
 import { formatServerTimingHeader } from '@/lib/timing'
 
+const EQUIPMENT_VALUES = [
+  'barbell',
+  'dumbbell',
+  'machine',
+  'cable',
+  'smith_machine',
+  'bodyweight',
+] as const
+
+type EquipmentValue = (typeof EQUIPMENT_VALUES)[number]
+
+const toEquipmentValue = (value: unknown): EquipmentValue | undefined => {
+  if (typeof value !== 'string' || value.length === 0) return undefined
+  return (EQUIPMENT_VALUES as readonly string[]).includes(value)
+    ? (value as EquipmentValue)
+    : undefined
+}
+
 export async function POST(req: NextRequest) {
   const payload = await getPayloadClient()
 
@@ -31,7 +49,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: name.trim(),
         muscleGroup: Number(muscleGroupId),
-        equipment: typeof equipment === 'string' && equipment.length > 0 ? equipment : undefined,
+        equipment: toEquipmentValue(equipment),
         isCustom: isCustom !== false, // default true
         createdBy: user.id,
       },

@@ -73,9 +73,9 @@ async function cacheExercises(): Promise<void> {
       id: String(ex.id),
       name: ex.name ?? '',
       muscleGroupId: String(
-        typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.id ?? '' : ex.muscleGroup ?? '',
+        typeof ex.muscleGroup === 'object' ? (ex.muscleGroup?.id ?? '') : (ex.muscleGroup ?? ''),
       ),
-      muscleGroupName: typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.name ?? '' : '',
+      muscleGroupName: typeof ex.muscleGroup === 'object' ? (ex.muscleGroup?.name ?? '') : '',
       equipment: ex.equipment ?? '',
       cachedAt: new Date().toISOString(),
     })),
@@ -93,6 +93,10 @@ async function cacheRoutines(userId: string): Promise<void> {
     id: string | number
     name?: string
     description?: string
+    exerciseCount?: number
+    duration?: string
+    previewExercises?: string[]
+    muscleGroups?: string[]
     exercises?: {
       exercise?: { id?: string | number; name?: string } | string | number
       name?: string
@@ -107,9 +111,21 @@ async function cacheRoutines(userId: string): Promise<void> {
       id: String(r.id),
       name: r.name ?? '',
       description: r.description ?? '',
+      exerciseCount: r.exerciseCount ?? r.exercises?.length ?? 0,
+      duration: r.duration ?? '~0m',
+      previewExercises:
+        r.previewExercises ??
+        (r.exercises ?? [])
+          .map(
+            (re) =>
+              (typeof re.exercise === 'object' ? re.exercise?.name : undefined) ?? re.name ?? '',
+          )
+          .filter((name) => name.length > 0)
+          .slice(0, 3),
+      muscleGroups: r.muscleGroups ?? [],
       exercises: (r.exercises ?? []).map((re) => ({
         exerciseId: String(
-          typeof re.exercise === 'object' ? re.exercise?.id ?? '' : re.exercise ?? '',
+          typeof re.exercise === 'object' ? (re.exercise?.id ?? '') : (re.exercise ?? ''),
         ),
         exerciseName:
           (typeof re.exercise === 'object' ? re.exercise?.name : undefined) ?? re.name ?? '',

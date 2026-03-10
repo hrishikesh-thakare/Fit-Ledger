@@ -1,6 +1,6 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`ALTER TABLE "exercises" ADD COLUMN IF NOT EXISTS "created_by_id" integer`)
   await db.execute(sql`
     DO $$ BEGIN
@@ -18,7 +18,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   )
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db, payload: _payload, req: _req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "exercises" DROP CONSTRAINT "exercises_created_by_id_users_id_fk";
   

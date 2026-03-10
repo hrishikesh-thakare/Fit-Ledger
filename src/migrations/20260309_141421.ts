@@ -1,6 +1,6 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    DROP TABLE IF EXISTS "exercises_equipment" CASCADE;
   ALTER TABLE "exercises" ADD COLUMN IF NOT EXISTS "equipment" "enum_exercises_equipment";
@@ -8,7 +8,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE UNIQUE INDEX IF NOT EXISTS "body_weight_logs_client_id_idx" ON "body_weight_logs" USING btree ("client_id");`)
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db, payload: _payload, req: _req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    CREATE TABLE "exercises_equipment" (
   	"order" integer NOT NULL,
