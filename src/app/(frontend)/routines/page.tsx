@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { useOfflineData } from '@/hooks/useOfflineData'
@@ -46,16 +46,20 @@ interface RoutineWithExerciseCount {
 
 export default function RoutinesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
   const { visible: fabVisible } = useExtendedFab(50)
   const [error, _setError] = useState<string | null>(null)
 
+  // Cache-bust param from redirects after create/edit
+  const cacheBuster = searchParams.get('t') || ''
+
   // IndexedDB-first data loading with background API refresh
   const { data: routines, loading } = useOfflineData<RoutineWithExerciseCount>(
     'routines',
-    `/api/custom/routines?userId=${user?.id}`,
+    `/api/custom/routines?userId=${user?.id}&t=${cacheBuster}`,
   )
 
   // Local state for optimistic deletion

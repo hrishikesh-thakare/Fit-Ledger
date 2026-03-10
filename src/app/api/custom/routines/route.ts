@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
       { docs: results },
       {
         headers: {
-          'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'no-store',
           'Server-Timing': formatServerTimingHeader({
             total: totalDuration,
           }),
