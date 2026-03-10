@@ -292,54 +292,23 @@ export default function NewRoutinePage() {
     try {
       setSaving(true)
 
-      // 1. Create the routine
-      const routineRes = await apiFetch<{ doc: { id: number } }>('/routines', {
+      // Use the optimized bulk save endpoint (single Drizzle transaction)
+      await apiFetch<{ success: boolean; id: number }>('/custom/routines/new/save', {
         method: 'POST',
         body: JSON.stringify({
           name: routineName,
-          notes: routineNotes || null,
-          isActive: 'active',
+          description: routineNotes || '',
+          exercises: exercises.map((exercise, i) => ({
+            exerciseId: String(exercise.dbId),
+            order: i,
+            sets: exercise.sets.map((set) => ({
+              type: set.type,
+              weight: set.weight ? String(toKg(parseFloat(set.weight), preferredUnit)) : '0',
+              reps: set.reps || '0',
+            })),
+          })),
         }),
       })
-
-      const routineId = routineRes.doc.id
-
-      // 2. For each exercise, create routine-exercise entries
-      for (let i = 0; i < exercises.length; i++) {
-        const exercise = exercises[i]
-
-        const routineExerciseRes = await apiFetch<{ doc: { id: number } }>('/routine-exercises', {
-          method: 'POST',
-          body: JSON.stringify({
-            routine: routineId,
-            exercise: exercise.dbId,
-            exerciseOrder: i + 1,
-          }),
-        })
-
-        const routineExerciseId = routineExerciseRes.doc.id
-
-        // 3. For each set in the exercise, create routine-set entries
-        for (let j = 0; j < exercise.sets.length; j++) {
-          const set = exercise.sets[j]
-          const setLabelMap: { [key in SetType]: 'warmup' | 'working' | 'drop' } = {
-            N: 'working',
-            W: 'warmup',
-            D: 'drop',
-          }
-
-          await apiFetch('/routine-sets', {
-            method: 'POST',
-            body: JSON.stringify({
-              routineExercise: routineExerciseId,
-              setOrder: j + 1,
-              setLabel: setLabelMap[set.type],
-              reps: parseInt(set.reps) || 0,
-              weight: set.weight ? toKg(parseFloat(set.weight), preferredUnit) : 0,
-            }),
-          })
-        }
-      }
 
       showSnackbar({ message: 'Routine saved successfully!', severity: 'success' })
       router.replace(`/routines?t=${Date.now()}`)

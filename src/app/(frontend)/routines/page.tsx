@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import apiFetch from '@/lib/api/client'
 import { useOfflineData } from '@/hooks/useOfflineData'
@@ -17,6 +17,11 @@ import {
   Chip,
   Stack,
   Fade,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   FitnessCenter,
@@ -46,21 +51,28 @@ interface RoutineWithExerciseCount {
 
 export default function RoutinesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const { showSnackbar } = useSnackbar()
   const { isActive: isWorkoutActive } = useWorkoutSession()
   const { visible: fabVisible } = useExtendedFab(50)
   const [error, _setError] = useState<string | null>(null)
 
+  // Cache-bust param from redirects after create/edit
+  const cacheBuster = searchParams.get('t') || ''
+
   // IndexedDB-first data loading with background API refresh
   const { data: routines, loading } = useOfflineData<RoutineWithExerciseCount>(
     'routines',
-    `/api/custom/routines?userId=${user?.id}`,
+    `/api/custom/routines?userId=${user?.id}&t=${cacheBuster}`,
   )
 
   // Local state for optimistic deletion
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set())
   const visibleRoutines = routines.filter((r) => !deletedIds.has(r.id))
+
+  // Confirmation dialog state
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
 
   const handleEdit = (routineId: number, _routineName: string) => {
     router.push(`/routines/${routineId}/edit`)
@@ -183,7 +195,7 @@ export default function RoutinesPage() {
                           title={routine.name}
                           actions={[
                             commonActions.edit(() => handleEdit(routine.id, routine.name)),
-                            commonActions.delete(() => handleDelete(routine.id, routine.name)),
+                            commonActions.delete(() => setDeleteTarget({ id: routine.id, name: routine.name })),
                           ]}
                         />
                       </Box>
@@ -289,6 +301,34 @@ export default function RoutinesPage() {
       >
         <Add />
       </Fab>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete Routine?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete &ldquo;{deleteTarget?.name}&rdquo;? This action cannot
+            be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              if (deleteTarget) handleDelete(deleteTarget.id, deleteTarget.name)
+              setDeleteTarget(null)
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppScaffold>
   )
 }
