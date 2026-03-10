@@ -426,7 +426,7 @@ export default function EditRoutinePage() {
   const equipmentOptions = useMemo(() => {
     const eqs = new Set<string>()
     availableExercises.forEach((ex) => {
-      if (ex.equipment) ex.equipment.forEach((e) => eqs.add(e))
+      if (ex.equipment) eqs.add(ex.equipment)
     })
     return ['All', ...Array.from(eqs).sort()]
   }, [availableExercises])
@@ -436,7 +436,7 @@ export default function EditRoutinePage() {
       const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
       const matchesEquipment =
         selectedEquipment === 'All' ||
-        (ex.equipment && ex.equipment.includes(selectedEquipment))
+        ex.equipment === selectedEquipment
       return matchesBodyPart && matchesEquipment
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
@@ -1012,7 +1012,7 @@ export default function EditRoutinePage() {
         <Box sx={{ overflowY: 'auto', flex: 1 }}>
           <List>
             {filteredExercises.map((exercise) => (
-              <React.Fragment key={exercise.name}>
+              <React.Fragment key={exercise.id}>
                 <ListItem disablePadding>
                   <ListItemButton onClick={() => handleAddExercise(exercise)}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -1022,17 +1022,14 @@ export default function EditRoutinePage() {
                       <Typography variant="caption" color="text.secondary">
                         {exercise.bodyPart}
                       </Typography>
-                      {exercise.equipment && exercise.equipment.length > 0 && (
+                      {exercise.equipment && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                          {exercise.equipment.map((eq) => (
-                            <Chip
-                              key={eq}
-                              label={eq.replace('_', ' ')}
-                              size="small"
-                              variant="outlined"
-                              sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
-                            />
-                          ))}
+                          <Chip
+                            label={exercise.equipment!.replace('_', ' ')}
+                            size="small"
+                            variant="outlined"
+                            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                          />
                         </Box>
                       )}
                     </Box>
