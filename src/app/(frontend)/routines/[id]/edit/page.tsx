@@ -435,7 +435,9 @@ export default function EditRoutinePage() {
   const filteredExercises = useMemo(() => {
     return availableExercises.filter((ex) => {
       const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
-      const matchesEquipment = selectedEquipment === 'All' || ex.equipment === selectedEquipment
+      const matchesEquipment =
+        selectedEquipment === 'All' ||
+        ex.equipment === selectedEquipment
       return matchesBodyPart && matchesEquipment
     })
   }, [selectedBodyPart, selectedEquipment, availableExercises])
@@ -1028,7 +1030,7 @@ export default function EditRoutinePage() {
                       {exercise.equipment && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
                           <Chip
-                            label={exercise.equipment.replace('_', ' ')}
+                            label={exercise.equipment!.replace('_', ' ')}
                             size="small"
                             variant="outlined"
                             sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
