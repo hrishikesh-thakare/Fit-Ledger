@@ -10,10 +10,7 @@ export const Exercises: CollectionConfig = {
         or: [
           { isCustom: { equals: false } },
           {
-            and: [
-              { isCustom: { equals: true } },
-              { createdBy: { equals: req.user.id } },
-            ],
+            and: [{ isCustom: { equals: true } }, { createdBy: { equals: req.user.id } }],
           },
         ],
       }
@@ -21,7 +18,14 @@ export const Exercises: CollectionConfig = {
     },
     create: ({ req }) => req.user?.role === 'admin',
     update: ({ req }) => req.user?.role === 'admin',
-    delete: ({ req }) => req.user?.role === 'admin',
+    delete: ({ req }) => {
+      if (!req.user) return false
+      if (req.user.role === 'admin') return true
+      const query: Where = {
+        and: [{ isCustom: { equals: true } }, { createdBy: { equals: req.user.id } }],
+      }
+      return query
+    },
   },
 
   admin: {

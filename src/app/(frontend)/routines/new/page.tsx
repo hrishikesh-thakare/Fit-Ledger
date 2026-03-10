@@ -156,6 +156,7 @@ export default function NewRoutinePage() {
   }
 
   const handleCustomExerciseAdded = (exercise: CreatedExercise) => {
+    showSnackbar({ message: 'Exercise created', severity: 'success' })
     // Add to the available exercises list so it appears in the drawer
     setAvailableExercises((prev) => [
       ...prev,
@@ -262,9 +263,12 @@ export default function NewRoutinePage() {
     return availableExercises.filter((ex) => {
       const matchesBodyPart = selectedBodyPart === 'All' || ex.bodyPart === selectedBodyPart
       const matchesEquipment = selectedEquipment === 'All' || ex.equipment === selectedEquipment
-      return matchesBodyPart && matchesEquipment
+      const matchesSearch =
+        searchQuery.trim() === '' ||
+        ex.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      return matchesBodyPart && matchesEquipment && matchesSearch
     })
-  }, [selectedBodyPart, selectedEquipment, availableExercises])
+  }, [selectedBodyPart, selectedEquipment, searchQuery, availableExercises])
 
   // Helper to find current active set details
   const currentActiveSet = useMemo(() => {
@@ -739,7 +743,7 @@ export default function NewRoutinePage() {
           </Box>
 
           {/* Search Box */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2, mt: -1.5 }}>
             <TextField
               fullWidth
               size="small"
@@ -846,12 +850,22 @@ export default function NewRoutinePage() {
                             <Chip
                               label={exercise.equipment.replace('_', ' ')}
                               size="small"
-                              variant="outlined"
-                              sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
+                              variant="filled"
+                              color="secondary"
+                              sx={{
+                                textTransform: 'capitalize',
+                                fontSize: '0.65rem',
+                                height: 18,
+                                lineHeight: 1,
+                              }}
                             />
                           )}
                         </Box>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ mt: 0.4, display: 'block' }}
+                        >
                           {exercise.bodyPart}
                         </Typography>
                       </Box>
