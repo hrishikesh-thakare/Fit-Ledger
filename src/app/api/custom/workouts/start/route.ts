@@ -19,6 +19,7 @@ interface SaveWorkoutRequest {
   routineId: string | number
   date?: string
   durationSeconds?: number
+  updateRoutineWeights?: boolean
   exercises: WorkoutExerciseData[]
 }
 
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   try {
     const payloadStart = performance.now()
     const body: SaveWorkoutRequest = await req.json()
-    const { clientId, routineId, date = new Date().toISOString(), durationSeconds = 0, exercises } = body
+    const { clientId, routineId, date = new Date().toISOString(), durationSeconds = 0, updateRoutineWeights = true, exercises } = body
 
     if (!routineId || !exercises) {
       if (t) await payload.db.rollbackTransaction(t)
@@ -167,6 +168,70 @@ export async function POST(req: NextRequest) {
     })
 
     await Promise.all(allSetPromises)
+
+    // 4. Update routine-sets with performed weights/reps (if toggled on)
+    if (updateRoutineWeights) {
+      try {
+        // Find routine-exercises for this routine
+        const routineExercisesRes = await payload.find({
+          collection: 'routine-exercises',
+          where: { routine: { equals: Number(routineId) } },
+          limit: 100,
+          depth: 0,
+          req: t ? { transactionID: t } : undefined,
+        })
+
+        // Build a map: exerciseId → routineExerciseId
+        const exerciseToREMap = new Map<string, number>()
+        for (const re of routineExercisesRes.docs) {
+          const exId = typeof re.exercise === 'object' ? re.exercise.id : re.exercise
+          exerciseToREMap.set(String(exId), re.id)
+        }
+
+        // For each workout exercise, update the matching routine-sets
+        for (const ex of exercises) {
+          const routineExerciseId = exerciseToREMap.get(String(ex.exerciseId))
+          if (!routineExerciseId) continue
+
+          // Find routine-sets for this routine-exercise
+          const routineSetsRes = await payload.find({
+            collection: 'routine-sets',
+            where: { routineExercise: { equals: routineExerciseId } },
+            sort: 'setOrder',
+            limit: 50,
+            depth: 0,
+            req: t ? { transactionID: t } : undefined,
+          })
+
+          // Update each routine-set with the corresponding workout set values
+          const updatePromises: Promise<unknown>[] = []
+          const workoutSets = ex.sets || []
+
+          for (let i = 0; i < routineSetsRes.docs.length && i < workoutSets.length; i++) {
+            const routineSet = routineSetsRes.docs[i]
+            const workoutSet = workoutSets[i]
+
+            updatePromises.push(
+              payload.update({
+                collection: 'routine-sets',
+                id: routineSet.id,
+                data: {
+                  weight: Number(workoutSet.weight) || 0,
+                  reps: Number(workoutSet.reps) || 0,
+                },
+                depth: 0,
+                req: t ? { transactionID: t } : undefined,
+              }),
+            )
+          }
+
+          await Promise.all(updatePromises)
+        }
+      } catch (routineUpdateErr) {
+        // Log but don't fail the workout save — routine update is best-effort
+        console.error('[API] Failed to update routine-sets:', routineUpdateErr)
+      }
+    }
 
     // Commit transaction
     if (t) await payload.db.commitTransaction(t)
