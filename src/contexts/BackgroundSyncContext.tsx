@@ -1,6 +1,14 @@
 'use client'
 
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from 'react'
 import { syncManager } from '@/lib/offline/sync-manager'
 import { preCacheData } from '@/lib/offline/cache-manager'
 import { useSnackbar } from '@/contexts/SnackbarContext'
@@ -59,8 +67,12 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
   // ── Refs to avoid stale closures in long-lived effects ─────────
   const showSnackbarRef = useRef(showSnackbar)
   const userIdRef = useRef(user?.id)
-  useEffect(() => { showSnackbarRef.current = showSnackbar }, [showSnackbar])
-  useEffect(() => { userIdRef.current = user?.id }, [user?.id])
+  useEffect(() => {
+    showSnackbarRef.current = showSnackbar
+  }, [showSnackbar])
+  useEffect(() => {
+    userIdRef.current = user?.id
+  }, [user?.id])
 
   // ── Refresh counts from IndexedDB ──────────────────────────────
   const refreshCounts = useCallback(async () => {
@@ -117,6 +129,9 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
 
   // ── Sync triggers: mount, online, focus, interval ──────────────
   useEffect(() => {
+    // Don't run until the user is authenticated
+    if (!user) return
+
     // 1. On mount: pre-cache + initial sync
     void (async () => {
       await preCacheData(userIdRef.current)
@@ -159,7 +174,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('fitledger:back-online', handleBackOnline)
     }
-  }, [doSync])
+  }, [doSync, user])
 
   // ── Save workout locally ───────────────────────────────────────
   const saveWorkoutLocally = useCallback(
@@ -251,7 +266,11 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
   // ── Retry failed items ─────────────────────────────────────────
   const retryFailed = useCallback(async () => {
     await syncManager.retryFailed()
-    showSnackbarRef.current({ message: 'Retrying failed items...', severity: 'info', duration: 3000 })
+    showSnackbarRef.current({
+      message: 'Retrying failed items...',
+      severity: 'info',
+      duration: 3000,
+    })
     void doSync()
   }, [doSync])
 

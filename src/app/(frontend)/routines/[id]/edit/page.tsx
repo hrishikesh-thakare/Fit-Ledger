@@ -33,6 +33,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   CircularProgress,
   Alert,
@@ -59,7 +60,9 @@ import {
   saveRoutine,
   type AvailableExercise,
 } from '@/lib/api/routines'
-import AddCustomExerciseDialog, { type CreatedExercise } from '@/components/routines/AddCustomExerciseDialog'
+import AddCustomExerciseDialog, {
+  type CreatedExercise,
+} from '@/components/routines/AddCustomExerciseDialog'
 
 // dnd-kit imports
 import {
@@ -366,9 +369,7 @@ export default function EditRoutinePage() {
         exerciseId: ex.exerciseId!,
         sets: ex.sets.map((set) => ({
           ...set,
-          weight: set.weight
-            ? String(toKg(parseFloat(set.weight), preferredUnit))
-            : set.weight,
+          weight: set.weight ? String(toKg(parseFloat(set.weight), preferredUnit)) : set.weight,
         })),
         order: index,
       }))
@@ -463,12 +464,16 @@ export default function EditRoutinePage() {
     return normalCount
   }
 
-  const handleDeleteRoutine = async () => {
-    if (!window.confirm('Are you sure you want to delete this routine?')) return
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
+  const handleDeleteRoutine = () => {
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteRoutine = async () => {
+    setDeleteConfirmOpen(false)
     try {
       const routineId = params.id as string
-      // Assuming apiFetch handles the base URL
       await apiFetch(`/routines/${routineId}`, {
         method: 'DELETE',
       })
@@ -1149,6 +1154,27 @@ export default function EditRoutinePage() {
         onClose={() => setCustomExerciseDialogOpen(false)}
         onSuccess={handleCustomExerciseAdded}
       />
+
+      {/* Delete Routine Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete Routine?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this routine? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={confirmDeleteRoutine}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
