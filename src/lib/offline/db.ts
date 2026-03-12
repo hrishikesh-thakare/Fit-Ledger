@@ -21,6 +21,7 @@ export interface OfflineWorkout {
       setOrder?: number
     }>
   }>
+  updateRoutineWeights?: boolean
   createdAt: string
   syncStatus: SyncStatus
 }
