@@ -36,6 +36,7 @@ interface BackgroundSyncContextType extends BackgroundSyncState {
         reps: string
         setLabel: string
         completed: boolean
+        setOrder?: number
       }>
     }>
   }) => Promise<string>
@@ -191,6 +192,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
           reps: string
           setLabel: string
           completed: boolean
+          setOrder?: number
         }>
       }>
     }): Promise<string> => {

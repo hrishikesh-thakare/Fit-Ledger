@@ -18,6 +18,7 @@ export interface OfflineWorkout {
       reps: string
       setLabel: string
       completed: boolean
+      setOrder?: number
     }>
   }>
   createdAt: string

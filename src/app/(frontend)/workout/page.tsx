@@ -59,6 +59,7 @@ interface WorkoutSet {
   reps: string
   completed: boolean
   previous?: string
+  setOrder?: number
 }
 
 interface WorkoutExercise {
@@ -394,8 +395,7 @@ function WorkoutLoggingContent() {
           exerciseId: exerciseDataRef.current[i]?.exerciseId || ex.exerciseId || ex.id,
           name: ex.name,
           sets: ex.sets
-            .filter((set) => set.completed)
-            .map((set) => ({
+            .map((set, setIndex) => ({
               weight: String(toKg(parseFloat(set.weight) || 0, userUnit)),
               reps: set.reps,
               setLabel:
@@ -405,9 +405,10 @@ function WorkoutLoggingContent() {
                     ? 'drop'
                     : 'working',
               completed: set.completed,
+              setOrder: set.setOrder !== undefined ? set.setOrder : setIndex,
             })),
         }))
-        .filter((ex) => ex.sets.length > 0)
+        .filter((ex) => ex.sets.some((s) => s.completed))
 
       // Guard: prevent saving an empty workout
       if (exercisesToSave.length === 0) {

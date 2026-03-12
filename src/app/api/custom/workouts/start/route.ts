@@ -6,6 +6,7 @@ interface WorkoutSetData {
   reps: string | number
   setLabel?: string
   completed?: boolean
+  setOrder?: number
 }
 
 interface WorkoutExerciseData {
@@ -143,6 +144,8 @@ export async function POST(req: NextRequest) {
     exercises.forEach((ex, exIndex) => {
       const workoutExercise = workoutExercises[exIndex]
         ; (ex.sets || []).forEach((set, setIndex) => {
+          if (!set.completed) return // skip uncompleted sets for workout history
+
           let setLabel: 'warmup' | 'working' | 'drop' = 'working'
           if (set.setLabel && validSetLabels.includes(set.setLabel)) {
             setLabel = set.setLabel as 'warmup' | 'working' | 'drop'
@@ -154,7 +157,7 @@ export async function POST(req: NextRequest) {
               data: {
                 workoutDay: workoutDay.id,
                 workoutExercise: workoutExercise.id,
-                setOrder: setIndex,
+                setOrder: set.setOrder !== undefined ? Number(set.setOrder) : setIndex,
                 setLabel: setLabel,
                 reps: Number(set.reps) || 0,
                 weight: Number(set.weight) || 0,
@@ -183,8 +186,8 @@ export async function POST(req: NextRequest) {
       })
 
       const routineExercises = routineExercisesResult.docs
-      const deletePromises: Promise<any>[] = []
-      const createPromises: Promise<any>[] = []
+      const deletePromises: Promise<unknown>[] = []
+      const createPromises: Promise<unknown>[] = []
 
       // 1. First, prepare and execute deletions
       for (const ex of exercises) {
@@ -227,7 +230,7 @@ export async function POST(req: NextRequest) {
                 collection: 'routine-sets',
                 data: {
                   routineExercise: routineExercise.id as number,
-                  setOrder: setIndex,
+                  setOrder: set.setOrder !== undefined ? Number(set.setOrder) : setIndex,
                   setLabel,
                   reps: Number(set.reps) || 0,
                   weight: Number(set.weight) || 0,
