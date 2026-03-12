@@ -169,10 +169,16 @@ export async function GET(req: NextRequest) {
         }
       })
 
+      const equipment =
+        typeof re.exercise === 'object' && 'equipment' in re.exercise
+          ? re.exercise.equipment ?? undefined
+          : undefined
+
       return {
         id: `temp-ex-${i}`,
         exerciseId: String(exerciseId),
         name: typeof re.exercise === 'object' ? re.exercise.name : 'Unknown Exercise',
+        equipment,
         restTime: 60,
         sets: setsData,
         order: i,

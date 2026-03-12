@@ -24,6 +24,7 @@ import {
   Paper,
   Skeleton,
   Fade,
+  Chip,
 } from '@mui/material'
 import { ArrowBack, AccessTime, FitnessCenter, CalendarToday } from '@mui/icons-material'
 
@@ -51,6 +52,7 @@ const getSetLabel = (sets: SetDetail[], currentIndex: number) => {
 interface ExerciseDetail {
   id: number
   name: string
+  equipment?: string
   sets: SetDetail[]
 }
 
@@ -134,6 +136,7 @@ export default function HistoryDetailPage() {
           return {
             id: workoutExercise.id,
             name: exercise?.name || 'Unknown Exercise',
+            equipment: exercise?.equipment || undefined,
             sets: sets.map((set) => ({
               id: set.id,
               type: setLabelMap[set.setLabel] || 'Working',
@@ -360,9 +363,23 @@ export default function HistoryDetailPage() {
                     <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                       <Typography
                         variant="subtitle1"
-                        sx={{ fontWeight: 700, color: 'text.primary' }}
+                        sx={{ fontWeight: 700, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1 }}
                       >
                         {exercise.name}
+                        {exercise.equipment && (
+                          <Chip
+                            label={exercise.equipment.replace('_', ' ')}
+                            size="small"
+                            variant="filled"
+                            color="secondary"
+                            sx={{
+                              textTransform: 'capitalize',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              lineHeight: 1,
+                            }}
+                          />
+                        )}
                       </Typography>
                     </Box>
 

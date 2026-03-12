@@ -152,7 +152,7 @@ export class SyncManager {
             routineId: workout.routineId,
             date: workout.date,
             durationSeconds: workout.durationSeconds,
-            updateRoutineWeights: workout.updateRoutineWeights ?? true,
+            updatePrevWeights: workout.updatePrevWeights,
             exercises: workout.exercises,
           }),
         })

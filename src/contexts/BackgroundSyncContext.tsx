@@ -27,7 +27,7 @@ interface BackgroundSyncContextType extends BackgroundSyncState {
     routineId: string
     date: string
     durationSeconds: number
-    updateRoutineWeights?: boolean
+    updatePrevWeights?: boolean
     exercises: Array<{
       exerciseId: string
       name: string
@@ -36,6 +36,7 @@ interface BackgroundSyncContextType extends BackgroundSyncState {
         reps: string
         setLabel: string
         completed: boolean
+        setOrder?: number
       }>
     }>
   }) => Promise<string>
@@ -182,7 +183,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
       routineId: string
       date: string
       durationSeconds: number
-      updateRoutineWeights?: boolean
+      updatePrevWeights?: boolean
       exercises: Array<{
         exerciseId: string
         name: string
@@ -191,6 +192,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
           reps: string
           setLabel: string
           completed: boolean
+          setOrder?: number
         }>
       }>
     }): Promise<string> => {
@@ -209,7 +211,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
           routineId: draft.routineId,
           date: draft.date,
           durationSeconds: draft.durationSeconds,
-          updateRoutineWeights: draft.updateRoutineWeights ?? true,
+          updatePrevWeights: draft.updatePrevWeights,
           exercises: draft.exercises,
           createdAt: new Date().toISOString(),
           syncStatus: 'pending',

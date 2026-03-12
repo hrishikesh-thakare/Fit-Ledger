@@ -6,6 +6,7 @@ interface WorkoutSetData {
   reps: string | number
   setLabel?: string
   completed?: boolean
+  setOrder?: number
 }
 
 interface WorkoutExerciseData {
@@ -19,7 +20,7 @@ interface SaveWorkoutRequest {
   routineId: string | number
   date?: string
   durationSeconds?: number
-  updateRoutineWeights?: boolean
+  updatePrevWeights?: boolean
   exercises: WorkoutExerciseData[]
 }
 
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     const payloadStart = performance.now()
     const body: SaveWorkoutRequest = await req.json()
-    const { clientId, routineId, date = new Date().toISOString(), durationSeconds = 0, updateRoutineWeights = true, exercises } = body
+    const { clientId, routineId, date = new Date().toISOString(), durationSeconds = 0, updatePrevWeights = false, exercises } = body
 
     if (!routineId || !exercises) {
       if (t) await payload.db.rollbackTransaction(t)
@@ -143,6 +144,8 @@ export async function POST(req: NextRequest) {
     exercises.forEach((ex, exIndex) => {
       const workoutExercise = workoutExercises[exIndex]
         ; (ex.sets || []).forEach((set, setIndex) => {
+          if (!set.completed) return // skip uncompleted sets for workout history
+
           let setLabel: 'warmup' | 'working' | 'drop' = 'working'
           if (set.setLabel && validSetLabels.includes(set.setLabel)) {
             setLabel = set.setLabel as 'warmup' | 'working' | 'drop'
@@ -154,7 +157,7 @@ export async function POST(req: NextRequest) {
               data: {
                 workoutDay: workoutDay.id,
                 workoutExercise: workoutExercise.id,
-                setOrder: setIndex,
+                setOrder: set.setOrder !== undefined ? Number(set.setOrder) : setIndex,
                 setLabel: setLabel,
                 reps: Number(set.reps) || 0,
                 weight: Number(set.weight) || 0,
@@ -169,68 +172,77 @@ export async function POST(req: NextRequest) {
 
     await Promise.all(allSetPromises)
 
-    // 4. Update routine-sets with performed weights/reps (if toggled on)
-    if (updateRoutineWeights) {
-      try {
-        // Find routine-exercises for this routine
-        const routineExercisesRes = await payload.find({
-          collection: 'routine-exercises',
-          where: { routine: { equals: Number(routineId) } },
-          limit: 100,
-          depth: 0,
-          req: t ? { transactionID: t } : undefined,
-        })
+    // 4. Update Routine Sets if requested
+    if (updatePrevWeights) {
+      // Fetch existing routine-exercises to map them by exercise ID
+      const routineExercisesResult = await payload.find({
+        collection: 'routine-exercises',
+        where: {
+          routine: { equals: Number(routineId) },
+        },
+        limit: 100,
+        depth: 0,
+        req: t ? { transactionID: t } : undefined,
+      })
 
-        // Build a map: exerciseId → routineExerciseId
-        const exerciseToREMap = new Map<string, number>()
-        for (const re of routineExercisesRes.docs) {
-          const exId = typeof re.exercise === 'object' ? re.exercise.id : re.exercise
-          exerciseToREMap.set(String(exId), re.id)
+      const routineExercises = routineExercisesResult.docs
+      const deletePromises: Promise<unknown>[] = []
+      const createPromises: Promise<unknown>[] = []
+
+      // 1. First, prepare and execute deletions
+      for (const ex of exercises) {
+        const routineExercise = routineExercises.find(
+          (re) =>
+            (typeof re.exercise === 'object' ? re.exercise.id : re.exercise) ===
+            Number(ex.exerciseId)
+        )
+        if (routineExercise) {
+          // Delete old sets for this routine-exercise
+          deletePromises.push(
+            payload.delete({
+              collection: 'routine-sets',
+              where: {
+                routineExercise: { equals: routineExercise.id },
+              },
+              overrideAccess: true,
+              req: t ? { transactionID: t } : undefined,
+            })
+          )
         }
-
-        // For each workout exercise, update the matching routine-sets
-        for (const ex of exercises) {
-          const routineExerciseId = exerciseToREMap.get(String(ex.exerciseId))
-          if (!routineExerciseId) continue
-
-          // Find routine-sets for this routine-exercise
-          const routineSetsRes = await payload.find({
-            collection: 'routine-sets',
-            where: { routineExercise: { equals: routineExerciseId } },
-            sort: 'setOrder',
-            limit: 50,
-            depth: 0,
-            req: t ? { transactionID: t } : undefined,
-          })
-
-          // Update each routine-set with the corresponding workout set values
-          const updatePromises: Promise<unknown>[] = []
-          const workoutSets = ex.sets || []
-
-          for (let i = 0; i < routineSetsRes.docs.length && i < workoutSets.length; i++) {
-            const routineSet = routineSetsRes.docs[i]
-            const workoutSet = workoutSets[i]
-
-            updatePromises.push(
-              payload.update({
-                collection: 'routine-sets',
-                id: routineSet.id,
-                data: {
-                  weight: Number(workoutSet.weight) || 0,
-                  reps: Number(workoutSet.reps) || 0,
-                },
-                depth: 0,
-                req: t ? { transactionID: t } : undefined,
-              }),
-            )
-          }
-
-          await Promise.all(updatePromises)
-        }
-      } catch (routineUpdateErr) {
-        // Log but don't fail the workout save — routine update is best-effort
-        console.error('[API] Failed to update routine-sets:', routineUpdateErr)
       }
+      await Promise.all(deletePromises)
+
+      // 2. Then, create the new sets
+      for (const ex of exercises) {
+        const routineExercise = routineExercises.find(
+          (re) =>
+            (typeof re.exercise === 'object' ? re.exercise.id : re.exercise) ===
+            Number(ex.exerciseId)
+        )
+        if (routineExercise) {
+          ;(ex.sets || []).forEach((set, setIndex) => {
+            let setLabel: 'warmup' | 'working' | 'drop' = 'working'
+            if (set.setLabel && validSetLabels.includes(set.setLabel)) {
+              setLabel = set.setLabel as 'warmup' | 'working' | 'drop'
+            }
+            createPromises.push(
+              payload.create({
+                collection: 'routine-sets',
+                data: {
+                  routineExercise: routineExercise.id as number,
+                  setOrder: set.setOrder !== undefined ? Number(set.setOrder) : setIndex,
+                  setLabel,
+                  reps: Number(set.reps) || 0,
+                  weight: Number(set.weight) || 0,
+                },
+                overrideAccess: true,
+                req: t ? { transactionID: t } : undefined,
+              })
+            )
+          })
+        }
+      }
+      await Promise.all(createPromises)
     }
 
     // Commit transaction

@@ -220,9 +220,9 @@ function WorkoutSummaryContent() {
         return
       }
 
-      // Take snapshot, then clear sessionStorage
+      // Take snapshot, append toggle state, then clear sessionStorage
       const snapshot = JSON.parse(pendingDataStr)
-      snapshot.updateRoutineWeights = updatePrevWeights
+      snapshot.updatePrevWeights = updatePrevWeights
       sessionStorage.removeItem('pendingWorkoutSave')
 
       // Save locally (IndexedDB + sync queue) — non-blocking

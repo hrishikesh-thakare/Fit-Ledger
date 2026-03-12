@@ -9,6 +9,7 @@ export interface OfflineWorkout {
   routineId: string
   date: string
   durationSeconds: number
+  updatePrevWeights?: boolean
   exercises: Array<{
     exerciseId: string
     name: string
@@ -17,6 +18,7 @@ export interface OfflineWorkout {
       reps: string
       setLabel: string
       completed: boolean
+      setOrder?: number
     }>
   }>
   updateRoutineWeights?: boolean
