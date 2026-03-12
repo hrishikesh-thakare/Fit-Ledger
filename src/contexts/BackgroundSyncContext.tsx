@@ -27,6 +27,7 @@ interface BackgroundSyncContextType extends BackgroundSyncState {
     routineId: string
     date: string
     durationSeconds: number
+    updatePrevWeights?: boolean
     exercises: Array<{
       exerciseId: string
       name: string
@@ -181,6 +182,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
       routineId: string
       date: string
       durationSeconds: number
+      updatePrevWeights?: boolean
       exercises: Array<{
         exerciseId: string
         name: string
@@ -207,6 +209,7 @@ export function BackgroundSyncProvider({ children }: { children: ReactNode }) {
           routineId: draft.routineId,
           date: draft.date,
           durationSeconds: draft.durationSeconds,
+          updatePrevWeights: draft.updatePrevWeights,
           exercises: draft.exercises,
           createdAt: new Date().toISOString(),
           syncStatus: 'pending',
