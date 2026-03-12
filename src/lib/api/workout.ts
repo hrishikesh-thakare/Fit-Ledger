@@ -25,6 +25,7 @@ export interface WorkoutExerciseData {
   id: string // Temp client-side ID
   exerciseId: string // Actual Exercise ID
   name: string
+  equipment?: string
   restTime: number
   sets: WorkoutSetData[]
   order: number

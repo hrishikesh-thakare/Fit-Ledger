@@ -25,6 +25,7 @@ import {
   Alert,
   Skeleton,
   Fade,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -51,6 +52,7 @@ interface RoutineSet {
 interface Exercise {
   id: string
   name: string
+  equipment?: string
   sets: RoutineSet[]
 }
 
@@ -68,6 +70,7 @@ interface FetchedExercise {
   exerciseId: string
   name: string
   bodyPart?: string
+  equipment?: string
   sets: FetchedRoutineSet[]
   order: number
 }
@@ -119,6 +122,7 @@ export default function RoutineDetailPage() {
         const mappedExercises: Exercise[] = data.exercises.map((ex) => ({
           id: ex.id,
           name: ex.name,
+          equipment: ex.equipment,
           sets: ex.sets.map((s) => {
             // Format weight based on user preference
             let displayWeight = '-'
@@ -383,8 +387,22 @@ export default function RoutineDetailPage() {
                         borderColor: 'divider',
                       }}
                     >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
                         {exercise.name}
+                        {exercise.equipment && (
+                          <Chip
+                            label={exercise.equipment.replace('_', ' ')}
+                            size="small"
+                            variant="filled"
+                            color="secondary"
+                            sx={{
+                              textTransform: 'capitalize',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              lineHeight: 1,
+                            }}
+                          />
+                        )}
                       </Typography>
                     </Box>
 

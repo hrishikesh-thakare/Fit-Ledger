@@ -51,6 +51,7 @@ interface Exercise {
   id: string
   name: string
   bodyPart?: string
+  equipment?: string
   sets: RoutineSet[]
   dbId?: number
 }
@@ -144,6 +145,7 @@ export default function NewRoutinePage() {
       id: crypto.randomUUID(),
       name: exercise.name,
       bodyPart: exercise.bodyPart,
+      equipment: exercise.equipment,
       dbId: exercise.id,
       sets: [{ id: crypto.randomUUID(), type: 'N', weight: '', reps: '' }],
     }
@@ -476,9 +478,25 @@ export default function NewRoutinePage() {
                         borderColor: 'divider',
                       }}
                     >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                        {exercise.name}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          {exercise.name}
+                        </Typography>
+                        {exercise.equipment && (
+                          <Chip
+                            label={exercise.equipment.replace('_', ' ')}
+                            size="small"
+                            variant="filled"
+                            color="secondary"
+                            sx={{
+                              textTransform: 'capitalize',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              lineHeight: 1,
+                            }}
+                          />
+                        )}
+                      </Box>
                       <IconButton
                         size="small"
                         color="error"

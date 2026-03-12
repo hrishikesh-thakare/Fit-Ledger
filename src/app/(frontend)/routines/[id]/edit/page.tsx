@@ -97,7 +97,9 @@ interface Exercise {
   exerciseId?: string // The actual Exercise ID from the database
   name: string
   bodyPart?: string
+  equipment?: string
   sets: RoutineSet[]
+  dbId?: number
 }
 
 // Body parts will be derived from exercises
@@ -214,7 +216,9 @@ export default function EditRoutinePage() {
           id: ex.id,
           name: ex.name,
           bodyPart: ex.bodyPart,
+          equipment: ex.equipment,
           exerciseId: ex.exerciseId,
+          dbId: ex.exerciseId ? Number(ex.exerciseId) : undefined,
           sets: ex.sets.map((set) => ({
             id: set.id,
             type: set.type,
@@ -264,6 +268,8 @@ export default function EditRoutinePage() {
       exerciseId: exercise.id,
       name: exercise.name,
       bodyPart: exercise.bodyPart,
+      equipment: exercise.equipment,
+      dbId: Number(exercise.id),
       sets: [{ id: crypto.randomUUID(), type: 'N', weight: '', reps: '' }],
     }
     setExercises((prev) => [...prev, newExercise])
@@ -715,6 +721,20 @@ export default function EditRoutinePage() {
                               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                                 {exercise.name}
                               </Typography>
+                              {exercise.equipment && (
+                                <Chip
+                                  label={exercise.equipment.replace('_', ' ')}
+                                  size="small"
+                                  variant="filled"
+                                  color="secondary"
+                                  sx={{
+                                    textTransform: 'capitalize',
+                                    fontSize: '0.65rem',
+                                    height: 18,
+                                    lineHeight: 1,
+                                  }}
+                                />
+                              )}
                             </Box>
                             <IconButton
                               size="small"
@@ -1032,8 +1052,14 @@ export default function EditRoutinePage() {
                           <Chip
                             label={exercise.equipment!.replace('_', ' ')}
                             size="small"
-                            variant="outlined"
-                            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
+                            variant="filled"
+                            color="secondary"
+                            sx={{
+                              textTransform: 'capitalize',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              lineHeight: 1,
+                            }}
                           />
                         </Box>
                       )}

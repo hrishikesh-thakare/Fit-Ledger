@@ -18,6 +18,7 @@ interface FetchedExercise {
   exerciseId: string // Actual Exercise ID
   name: string
   bodyPart?: string
+  equipment?: string
   sets: FetchedRoutineSet[]
   order: number
 }
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         exerciseId: exId,
         name: exercise?.name || 'Unknown Exercise',
         bodyPart: muscleGroup?.name || undefined,
+        equipment: exercise?.equipment || undefined,
         sets: formattedSets,
         order: re.exerciseOrder,
       }

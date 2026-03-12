@@ -25,6 +25,7 @@ import {
   Divider,
   Skeleton,
   Fade,
+  Chip,
 } from '@mui/material'
 import {
   CheckCircle,
@@ -66,6 +67,7 @@ interface WorkoutExercise {
   id: string
   exerciseId?: string // Actual DB exercise ID (for saving)
   name: string
+  equipment?: string
   restTime: number // seconds
   sets: WorkoutSet[]
 }
@@ -715,8 +717,22 @@ function WorkoutLoggingContent() {
                         alignItems: 'center',
                       }}
                     >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
                         {exercise.name}
+                        {exercise.equipment && (
+                          <Chip
+                            label={exercise.equipment.replace('_', ' ')}
+                            size="small"
+                            variant="filled"
+                            color="secondary"
+                            sx={{
+                              textTransform: 'capitalize',
+                              fontSize: '0.65rem',
+                              height: 18,
+                              lineHeight: 1,
+                            }}
+                          />
+                        )}
                       </Typography>
                       <Button
                         startIcon={<TimerIcon sx={{ fontSize: '0.875rem !important' }} />}

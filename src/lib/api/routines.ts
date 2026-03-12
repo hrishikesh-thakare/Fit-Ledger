@@ -63,6 +63,7 @@ export interface FetchedExercise {
   exerciseId: string // Actual Exercise ID
   name: string
   bodyPart?: string
+  equipment?: string
   sets: FetchedRoutineSet[]
   order: number
 }
