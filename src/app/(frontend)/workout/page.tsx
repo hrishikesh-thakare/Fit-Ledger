@@ -20,12 +20,18 @@ import {
   TableRow,
   SwipeableDrawer,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
   Divider,
   Skeleton,
   Fade,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   CheckCircle,
@@ -34,6 +40,9 @@ import {
   Check,
   DeleteOutline,
   Timer as TimerIcon,
+  FitnessCenter,
+  Add,
+  ChevronRight,
 } from '@mui/icons-material'
 import DrawerHandle from '@/components/ui/DrawerHandle'
 import PageAppBar from '@/components/PageAppBar'
@@ -43,6 +52,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { toKg, formatWeight, type WeightUnit } from '@/lib/utils/weightConversion'
 import { useSnackbar } from '@/hooks/useSnackbar'
 import { useWorkoutSession } from '@/contexts/WorkoutSessionContext'
+import apiFetch from '@/lib/api/client'
 
 // Types
 type SetType = 'N' | 'W' | 'D'
@@ -118,6 +128,17 @@ function WorkoutLoggingContent() {
 
   // Rest Time Configuration State
   const [activeRestTimeExerciseId, setActiveRestTimeExerciseId] = useState<string | null>(null)
+
+  // Exercise Picker Drawer State (same pattern as RoutineEditor)
+  const [exercisePickerOpen, setExercisePickerOpen] = useState(false)
+  const [availableExercises, setAvailableExercises] = useState<
+    { id: string | number; name: string; muscleGroup?: { name: string }; equipment?: string }[]
+  >([])
+  const [pickerMuscleGroups, setPickerMuscleGroups] = useState<string[]>(['All'])
+  const [selectedBodyPart, setSelectedBodyPart] = useState('All')
+  const [selectedEquipment, setSelectedEquipment] = useState('All')
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('')
+  const [finishDialogOpen, setFinishDialogOpen] = useState(false)
 
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false)
@@ -381,6 +402,84 @@ function WorkoutLoggingContent() {
     })
   }
 
+  // ── Exercise Picker: fetch all exercises + muscle groups upfront ──
+  const fetchExerciseOptions = React.useCallback(async () => {
+    try {
+      const [exercisesRes, muscleGroupsRes] = await Promise.all([
+        apiFetch<{
+          docs: {
+            id: string | number
+            name: string
+            muscleGroup?: { name: string }
+            equipment?: string
+          }[]
+        }>('/exercises?limit=500&depth=1'),
+        apiFetch<{ docs: { id: string | number; name: string }[] }>('/muscle-groups?limit=100'),
+      ])
+      setAvailableExercises(exercisesRes.docs || [])
+      const groups = muscleGroupsRes.docs.map((g: { name: string }) => g.name)
+      setPickerMuscleGroups(['All', ...groups])
+    } catch (error) {
+      console.error('Failed to fetch exercise options', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchExerciseOptions()
+  }, [fetchExerciseOptions])
+
+  const equipmentOptions = useMemo(() => {
+    const eqs = new Set<string>()
+    availableExercises.forEach((ex) => {
+      if (ex.equipment) eqs.add(ex.equipment)
+    })
+    return ['All', ...Array.from(eqs).sort()]
+  }, [availableExercises])
+
+  const filteredPickerExercises = useMemo(() => {
+    return availableExercises.filter((ex) => {
+      const matchesBodyPart =
+        selectedBodyPart === 'All' || ex.muscleGroup?.name === selectedBodyPart
+      const matchesSearch = ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase())
+      const matchesEquipment = selectedEquipment === 'All' || ex.equipment === selectedEquipment
+      return matchesBodyPart && matchesSearch && matchesEquipment
+    })
+  }, [selectedBodyPart, availableExercises, exerciseSearchQuery, selectedEquipment])
+
+  // ── Add exercise from picker ───────────────────────────────────
+  const handleAddExercise = (exercise: {
+    id: string | number
+    name: string
+    muscleGroup?: { name: string }
+    equipment?: string
+  }) => {
+    const newId = crypto.randomUUID()
+    const newExercise: WorkoutExercise = {
+      id: newId,
+      exerciseId: String(exercise.id),
+      name: exercise.name,
+      equipment: exercise.equipment || undefined,
+      restTime: 60,
+      sets: [
+        {
+          id: crypto.randomUUID(),
+          type: 'N',
+          weight: '',
+          reps: '',
+          completed: false,
+          previous: '-',
+        },
+      ],
+    }
+    exerciseDataRef.current = [
+      ...exerciseDataRef.current,
+      { exerciseId: String(exercise.id), name: exercise.name },
+    ]
+    setExercises((prev) => [...prev, newExercise])
+    setExercisePickerOpen(false)
+    showSnackbar({ message: `${exercise.name} added`, severity: 'success' })
+  }
+
   const handleFinishWorkout = async () => {
     if (!routineIdRef.current) {
       router.push('/routines')
@@ -393,8 +492,8 @@ function WorkoutLoggingContent() {
 
       // Build save payload — only include completed (ticked) sets, skip exercises with none
       const exercisesToSave = exercises
-        .map((ex, i) => ({
-          exerciseId: exerciseDataRef.current[i]?.exerciseId || ex.exerciseId || ex.id,
+        .map((ex) => ({
+          exerciseId: ex.exerciseId || ex.id,
           name: ex.name,
           sets: ex.sets
             .map((set, setIndex) => ({
@@ -986,6 +1085,30 @@ function WorkoutLoggingContent() {
                   </Button>
                 </Card>
               ))}
+
+              {/* Add Exercise Button */}
+              <Button
+                fullWidth
+                startIcon={<Add />}
+                onClick={() => setExercisePickerOpen(true)}
+                sx={{
+                  mt: 1,
+                  py: 1.5,
+                  borderRadius: 2,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  color: 'primary.main',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  bgcolor: 'transparent',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                Add Exercise
+              </Button>
             </Stack>
           </Fade>
         )}
@@ -1010,7 +1133,7 @@ function WorkoutLoggingContent() {
           fullWidth
           variant="contained"
           size="large"
-          onClick={handleFinishWorkout}
+          onClick={() => setFinishDialogOpen(true)}
           sx={{
             py: 1.5,
             fontWeight: 700,
@@ -1091,6 +1214,204 @@ function WorkoutLoggingContent() {
             : 60
         }
       />
+
+      {/* Add Exercise Drawer (same as RoutineEditor) */}
+      <SwipeableDrawer
+        anchor="bottom"
+        open={exercisePickerOpen}
+        onClose={() => setExercisePickerOpen(false)}
+        onOpen={() => {
+          setExercisePickerOpen(true)
+          setSelectedBodyPart('All')
+          setSelectedEquipment('All')
+          setExerciseSearchQuery('')
+        }}
+        disableSwipeToOpen={false}
+        PaperProps={{
+          sx: {
+            height: '85vh',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+          },
+        }}
+      >
+        <DrawerHandle />
+        {/* Drawer Header */}
+        <Box sx={{ px: 2, py: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Select Exercise
+            </Typography>
+            <IconButton onClick={() => setExercisePickerOpen(false)} size="small">
+              <Close />
+            </IconButton>
+          </Box>
+
+          {/* Search Box */}
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search exercises..."
+              value={exerciseSearchQuery}
+              onChange={(e) => setExerciseSearchQuery(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.default',
+                  borderRadius: 2,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Horizontal Body Part Filter */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {pickerMuscleGroups.map((part) => (
+              <Chip
+                key={part}
+                label={part}
+                onClick={() => setSelectedBodyPart(part)}
+                color={selectedBodyPart === part ? 'primary' : 'default'}
+                variant={selectedBodyPart === part ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600 }}
+              />
+            ))}
+          </Box>
+
+          {/* Horizontal Equipment Filter */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              mt: 1,
+              '&::-webkit-scrollbar': { display: 'none' },
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {equipmentOptions.map((eq) => (
+              <Chip
+                key={eq}
+                label={eq === 'All' ? 'All' : eq.replace('_', ' ')}
+                onClick={() => setSelectedEquipment(eq)}
+                color={selectedEquipment === eq ? 'secondary' : 'default'}
+                variant={selectedEquipment === eq ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+              />
+            ))}
+          </Box>
+        </Box>
+
+        {/* Exercises List */}
+        <Box sx={{ overflowY: 'auto', flex: 1 }}>
+          {filteredPickerExercises.length === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 8,
+                px: 3,
+                gap: 1,
+              }}
+            >
+              <FitnessCenter sx={{ fontSize: 48, color: 'text.disabled' }} />
+              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
+                No exercises found
+              </Typography>
+              <Typography variant="caption" color="text.disabled" align="center">
+                Try a different search or filter
+              </Typography>
+            </Box>
+          ) : (
+            <List>
+              {filteredPickerExercises.map((exercise) => (
+                <React.Fragment key={exercise.id}>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => handleAddExercise(exercise)}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {exercise.name}
+                          </Typography>
+                          {exercise.equipment && (
+                            <Chip
+                              label={exercise.equipment.replace('_', ' ')}
+                              size="small"
+                              variant="outlined"
+                              sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {exercise.muscleGroup?.name}
+                        </Typography>
+                      </Box>
+                      <IconButton edge="end" onClick={(e) => e.stopPropagation()}>
+                        <ChevronRight color="action" />
+                      </IconButton>
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider component="li" />
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </Box>
+      </SwipeableDrawer>
+
+      {/* Finish Workout Confirmation Dialog */}
+      <Dialog
+        open={finishDialogOpen}
+        onClose={() => setFinishDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Finish Workout?</DialogTitle>
+        <DialogContent>
+          <DialogContentText color="text.secondary">
+            Are you sure you want to finish this workout? Uncompleted sets will not be saved.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button
+            onClick={() => setFinishDialogOpen(false)}
+            sx={{ fontWeight: 600, color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setFinishDialogOpen(false)
+              handleFinishWorkout()
+            }}
+            variant="contained"
+            sx={{ fontWeight: 700, borderRadius: 2 }}
+          >
+            Finish
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
