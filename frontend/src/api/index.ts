@@ -1,0 +1,79 @@
+import { getToken } from '../auth'
+
+const API_URL = 'http://192.168.0.108:3000/api' // Host LAN IP for physical device
+
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = await getToken()
+  const headers = new Headers(options.headers || {})
+  headers.set('Content-Type', 'application/json')
+  if (token) {
+    headers.set('Authorization', `JWT ${token}`)
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  })
+
+  if (!response.ok) {
+    let message = 'An error occurred'
+    try {
+      const err = await response.json()
+      message = err?.message || message
+    } catch (_) {}
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+export default {
+  fetchRoutines: async () => {
+    const res = await fetchWithAuth('/routines')
+    return res.docs || res || []
+  },
+  fetchExercises: async () => {
+    const res = await fetchWithAuth('/exercises')
+    return res.docs || res || []
+  },
+  fetchHistory: async () => {
+    const res = await fetchWithAuth('/workout-days')
+    return res.docs || res || []
+  },
+  startWorkout: async (data: { startedAt: number }) => {
+    const res = await fetchWithAuth('/workout-days', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    return res.doc || res
+  },
+  fetchWeightLogs: async () => {
+    const res = await fetchWithAuth('/body-weight-logs?sort=-loggedAt&limit=50')
+    return res.docs || res || []
+  },
+  createWeightLog: async (data: { weight: number; loggedAt?: string }) => {
+    const res = await fetchWithAuth('/body-weight-logs', { method: 'POST', body: JSON.stringify(data) })
+    return res.doc || res
+  },
+  deleteWeightLog: async (id: number | string) => {
+    await fetchWithAuth(`/body-weight-logs/${id}`, { method: 'DELETE' })
+  },
+  updateWeightLog: async (id: number | string, data: { weight: number; loggedAt?: string }) => {
+    const res = await fetchWithAuth(`/body-weight-logs/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+    return res.doc || res
+  },
+  createExercise: async (data: { name: string; muscleGroup: string; isBodyweight?: boolean }) => {
+    const res = await fetchWithAuth('/exercises', { method: 'POST', body: JSON.stringify(data) })
+    return res.doc || res
+  },
+  deleteExercise: async (id: number | string) => {
+    await fetchWithAuth(`/exercises/${id}`, { method: 'DELETE' })
+  },
+  createRoutine: async (data: { name: string; notes?: string }) => {
+    const res = await fetchWithAuth('/routines', { method: 'POST', body: JSON.stringify(data) })
+    return res.doc || res
+  },
+  deleteRoutine: async (id: number | string) => {
+    await fetchWithAuth(`/routines/${id}`, { method: 'DELETE' })
+  },
+}

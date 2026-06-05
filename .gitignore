@@ -63,3 +63,4 @@ irrelevant
 # markdown files
 *.md
 !README.md
+backend/.next/
