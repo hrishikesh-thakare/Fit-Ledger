@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable, Modal, TextInput, ActivityIndicator, Animated } from 'react-native'
-import { CustomAlert as Alert } from '../components/CustomAlert'
+import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useAuth } from '../contexts/AuthContext'
-import { getToken } from '../auth'
+import { useAuth } from '../../contexts/AuthContext'
+import { getToken } from '../../auth'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { theme } from '../theme'
+import { theme } from '../../theme'
 
 // Weight conversion helper functions
 const toKg = (val: number, unit: string) => {
@@ -162,7 +162,7 @@ export default function Profile() {
 
   const getInitials = () => {
     if (user.displayName) {
-      return user.displayName.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2)
+      return user.displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
     }
     return user.email[0].toUpperCase()
   }
@@ -394,10 +394,10 @@ const styles = StyleSheet.create({
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   headerTitle: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
   
-  scrollArea: { paddingHorizontal: 16, paddingBottom: 40 },
+  scrollArea: { paddingHorizontal: 16, paddingBottom: 0 },
 
   userCard: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, padding: 24, alignItems: 'center', marginTop: 16 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.surfaceVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.surfaceVariant, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: theme.colors.primary },
   avatarText: { fontSize: 28, fontWeight: '700', color: theme.colors.textMuted },
   userName: { fontSize: 22, fontWeight: '700', color: theme.colors.text },
   userEmail: { fontSize: 14, color: theme.colors.textMuted, marginTop: 4 },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   dropdown: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dropdownText: { color: theme.colors.text, fontSize: 14, marginRight: 4, fontWeight: '600' },
 
-  logoutButton: { backgroundColor: theme.colors.destructive, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32, marginBottom: 24 },
+  logoutButton: { backgroundColor: theme.colors.error, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32, marginBottom: 24 },
   logoutButtonText: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
 
   // Modals

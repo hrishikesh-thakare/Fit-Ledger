@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import api from '../api'
-import { theme } from '../theme'
+import api from '../../api'
+import { theme } from '../../theme'
 
 export default function Workout() {
   const [running, setRunning] = useState(false)

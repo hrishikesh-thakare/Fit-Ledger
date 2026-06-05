@@ -33,7 +33,7 @@ export const CustomAlertRenderer = () => {
     : [{ text: 'OK' }];
 
   return (
-    <Modal visible={true} transparent animationType="fade">
+    <Modal visible={true} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent>
       <View style={styles.modalBg}>
         <View style={styles.modalCard}>
           <Text style={styles.modalTitle}>{config.title}</Text>

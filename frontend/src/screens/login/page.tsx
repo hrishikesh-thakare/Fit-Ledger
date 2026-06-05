@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
-import { CustomAlert as Alert } from '../components/CustomAlert'
-import { useAuth } from '../contexts/AuthContext'
+import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { theme } from '../theme'
+import { theme } from '../../theme'
 
 export default function Login() {
   const navigation = useNavigation<any>()

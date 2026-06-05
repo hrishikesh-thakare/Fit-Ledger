@@ -88,6 +88,15 @@ export async function getRoutineDetailsFromPayload(
       setOrder: set.setOrder,
     }))
 
+    const EQUIPMENT_LABELS: Record<string, string> = {
+      barbell: 'Barbell',
+      dumbbell: 'Dumbbell',
+      machine: 'Machine',
+      cable: 'Cable',
+      smith_machine: 'Smith Machine',
+      bodyweight: 'Bodyweight',
+    }
+
     const exercise = typeof re.exercise === 'object' ? re.exercise : null
     const muscleGroup = exercise && typeof exercise.muscleGroup === 'object' ? exercise.muscleGroup : null
 
@@ -96,7 +105,7 @@ export async function getRoutineDetailsFromPayload(
       exerciseId: exId,
       name: exercise?.name || 'Unknown Exercise',
       bodyPart: muscleGroup?.name || undefined,
-      equipment: exercise?.equipment || undefined,
+      equipment: exercise?.equipment && typeof exercise.equipment === 'string' ? (EQUIPMENT_LABELS[exercise.equipment] || exercise.equipment) : undefined,
       sets: formattedSets,
       order: re.exerciseOrder,
     }

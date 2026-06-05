@@ -78,11 +78,20 @@ export async function listCustomExercises(
     overrideAccess: true,
   })
 
+  const EQUIPMENT_LABELS: Record<string, string> = {
+    barbell: 'Barbell',
+    dumbbell: 'Dumbbell',
+    machine: 'Machine',
+    cable: 'Cable',
+    smith_machine: 'Smith Machine',
+    bodyweight: 'Bodyweight',
+  }
+
   const exercises = exercisesResponse.docs.map((ex) => ({
     id: ex.id,
     name: ex.name,
     bodyPart: typeof ex.muscleGroup === 'object' ? ex.muscleGroup.name : 'Other',
-    equipment: typeof ex.equipment === 'string' ? ex.equipment : undefined,
+    equipment: typeof ex.equipment === 'string' ? (EQUIPMENT_LABELS[ex.equipment] || ex.equipment) : undefined,
   }))
 
   return { status: 200, body: { docs: exercises } }

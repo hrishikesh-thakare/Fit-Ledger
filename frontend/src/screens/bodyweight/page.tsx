@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal, Animated, Dimensions } from 'react-native'
-import { CustomAlert as Alert } from '../components/CustomAlert'
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal, Animated, Dimensions, FlatList, PanResponder } from 'react-native'
+import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import api from '../api'
-import { theme } from '../theme'
+import api from '../../api'
+import { theme } from '../../theme'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContext'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -33,10 +33,14 @@ export default function Weight() {
   const lastOffsetY = useRef(0)
   const fabAnim = useRef(new Animated.Value(1)).current
   const sheetAnim = useRef(new Animated.Value(300)).current
+  const intScrollY = useRef(new Animated.Value(0)).current
+  const decScrollY = useRef(new Animated.Value(0)).current
 
   // Date selection for modal
   const [loggedAt, setLoggedAt] = useState<Date>(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
+
+
 
   useEffect(() => {
     Animated.timing(fabAnim, { toValue: fabVisible ? 1 : 0, duration: 250, useNativeDriver: true }).start()
@@ -145,21 +149,27 @@ export default function Weight() {
   const targetWeight = user?.targetWeight || 0
   const diff = targetWeight > 0 ? Math.abs(targetWeight - currentWeight) : 0
 
-  const integers = Array.from({length: 200}, (_, i) => i + 20) // 20 to 219
+  const integers = Array.from({length: 101}, (_, i) => i + 20) // 20 to 120
   const decimals = Array.from({length: 10}, (_, i) => i) // 0 to 9
 
   // Helper for initial scroll
-  const intScrollRef = useRef<ScrollView>(null)
-  const decScrollRef = useRef<ScrollView>(null)
+  const intScrollRef = useRef<any>(null)
+  const decScrollRef = useRef<any>(null)
 
   useEffect(() => {
     if (isPickerOpen) {
       setTimeout(() => {
         const intIdx = integers.indexOf(selectedInt)
-        if (intIdx >= 0) intScrollRef.current?.scrollTo({ y: intIdx * ITEM_HEIGHT, animated: false })
+        if (intIdx >= 0) {
+          intScrollY.setValue(intIdx * ITEM_HEIGHT)
+          intScrollRef.current?.scrollToOffset({ offset: intIdx * ITEM_HEIGHT, animated: false })
+        }
         
         const decIdx = decimals.indexOf(selectedDec)
-        if (decIdx >= 0) decScrollRef.current?.scrollTo({ y: decIdx * ITEM_HEIGHT, animated: false })
+        if (decIdx >= 0) {
+          decScrollY.setValue(decIdx * ITEM_HEIGHT)
+          decScrollRef.current?.scrollToOffset({ offset: decIdx * ITEM_HEIGHT, animated: false })
+        }
       }, 50)
     }
   }, [isPickerOpen])
@@ -272,7 +282,7 @@ export default function Weight() {
               <View style={styles.optionsDivider} />
               <Pressable style={styles.optionRow} onPress={handleDelete}>
                 <Feather name="trash-2" size={20} color={theme.colors.error} />
-                <Text style={[styles.optionText, { color: theme.colors.error }]}>Delete</Text>
+                <Text style={[styles.optionText, { color: theme.colors.error }]}>Delete Entry</Text>
               </Pressable>
             </View>
           </Animated.View>
@@ -282,8 +292,11 @@ export default function Weight() {
       {/* Weight Carousel Modal */}
       <Modal visible={isPickerOpen} transparent animationType="fade" onRequestClose={() => !saving && setIsPickerOpen(false)}>
         <View style={styles.modalBgCenter}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => !saving && setIsPickerOpen(false)} />
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{editLogId ? 'Edit Weight' : 'Log Weight'}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={styles.modalTitle}>{editLogId ? 'Edit Weight' : 'Log Weight'}</Text>
+            </View>
             
             {/* Outlined Date Picker Field */}
             <Pressable style={styles.dateInputContainer} onPress={() => setShowDatePicker(true)}>
@@ -310,53 +323,119 @@ export default function Weight() {
             )}
 
             <View style={styles.verticalCarouselsWrapper}>
-              <View style={styles.verticalCarouselContainer}>
-                <Text style={styles.verticalCarouselLabel}>KG</Text>
-                <ScrollView 
+              <View style={[styles.verticalCarouselContainer, { width: 60 }]}>
+                <Animated.FlatList 
                   ref={intScrollRef}
+                  data={integers}
+                  keyExtractor={(item: number) => item.toString()}
                   showsVerticalScrollIndicator={false}
-                  snapToInterval={ITEM_HEIGHT}
+                  snapToOffsets={integers.map((_, i) => i * ITEM_HEIGHT)}
                   decelerationRate="fast"
+                  scrollEventThrottle={16}
                   contentContainerStyle={{ paddingVertical: VERTICAL_PADDING }}
-                  onMomentumScrollEnd={(e) => {
+                  getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: intScrollY } } }],
+                    { useNativeDriver: true }
+                  )}
+                  onMomentumScrollEnd={(e: any) => {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT)
                     if(integers[idx] !== undefined) setSelectedInt(integers[idx])
                   }}
-                >
-                  {integers.map(num => (
-                    <View key={num} style={styles.verticalCarouselItem}>
-                      <Text style={[styles.carouselText, selectedInt === num && styles.carouselTextActive]}>{num}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
-                <View style={[styles.verticalCarouselSelector, { top: VERTICAL_PADDING }]} pointerEvents="none" />
+                  renderItem={({ item: num, index: idx }: { item: number, index: number }) => {
+                    const inputRange = [
+                      (idx - 1) * ITEM_HEIGHT,
+                      idx * ITEM_HEIGHT,
+                      (idx + 1) * ITEM_HEIGHT
+                    ]
+                    const scale = intScrollY.interpolate({
+                      inputRange,
+                      outputRange: [0.75, 1.1, 0.75],
+                      extrapolate: 'clamp'
+                    })
+                    const activeOpacity = intScrollY.interpolate({
+                      inputRange,
+                      outputRange: [0, 1, 0],
+                      extrapolate: 'clamp'
+                    })
+                    const inactiveOpacity = intScrollY.interpolate({
+                      inputRange,
+                      outputRange: [1, 0, 1],
+                      extrapolate: 'clamp'
+                    })
+                    return (
+                      <View style={styles.verticalCarouselItem}>
+                        <Animated.View style={{ opacity: inactiveOpacity, transform: [{ scale }] }}>
+                          <Text style={[styles.carouselTextAnimated, { color: '#3A3A3C' }]}>{num}</Text>
+                        </Animated.View>
+                        <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', opacity: activeOpacity, transform: [{ scale }] }]}>
+                          <Text style={[styles.carouselTextAnimated, { color: theme.colors.primary }]}>{num}</Text>
+                        </Animated.View>
+                      </View>
+                    )
+                  }}
+                />
               </View>
 
               <Text style={styles.decimalDot}>.</Text>
 
-              <View style={styles.verticalCarouselContainer}>
-                <Text style={styles.verticalCarouselLabel}>Decimal</Text>
-                <ScrollView 
+              <View style={[styles.verticalCarouselContainer, { width: 60 }]}>
+                <Animated.FlatList 
                   ref={decScrollRef}
+                  data={decimals}
+                  keyExtractor={(item: number) => item.toString()}
                   showsVerticalScrollIndicator={false}
-                  snapToInterval={ITEM_HEIGHT}
+                  snapToOffsets={decimals.map((_, i) => i * ITEM_HEIGHT)}
                   decelerationRate="fast"
+                  scrollEventThrottle={16}
                   contentContainerStyle={{ paddingVertical: VERTICAL_PADDING }}
-                  onMomentumScrollEnd={(e) => {
+                  getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
+                  onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: decScrollY } } }],
+                    { useNativeDriver: true }
+                  )}
+                  onMomentumScrollEnd={(e: any) => {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT)
                     if(decimals[idx] !== undefined) setSelectedDec(decimals[idx])
                   }}
-                >
-                  {decimals.map(num => (
-                    <View key={num} style={styles.verticalCarouselItem}>
-                      <Text style={[styles.carouselText, selectedDec === num && styles.carouselTextActive]}>{num}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
-                <View style={[styles.verticalCarouselSelector, { top: VERTICAL_PADDING }]} pointerEvents="none" />
+                  renderItem={({ item: num, index: idx }: { item: number, index: number }) => {
+                    const inputRange = [
+                      (idx - 1) * ITEM_HEIGHT,
+                      idx * ITEM_HEIGHT,
+                      (idx + 1) * ITEM_HEIGHT
+                    ]
+                    const scale = decScrollY.interpolate({
+                      inputRange,
+                      outputRange: [0.75, 1.1, 0.75],
+                      extrapolate: 'clamp'
+                    })
+                    const activeOpacity = decScrollY.interpolate({
+                      inputRange,
+                      outputRange: [0, 1, 0],
+                      extrapolate: 'clamp'
+                    })
+                    const inactiveOpacity = decScrollY.interpolate({
+                      inputRange,
+                      outputRange: [1, 0, 1],
+                      extrapolate: 'clamp'
+                    })
+                    return (
+                      <View style={styles.verticalCarouselItem}>
+                        <Animated.View style={{ opacity: inactiveOpacity, transform: [{ scale }] }}>
+                          <Text style={[styles.carouselTextAnimated, { color: '#3A3A3C' }]}>{num}</Text>
+                        </Animated.View>
+                        <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', opacity: activeOpacity, transform: [{ scale }] }]}>
+                          <Text style={[styles.carouselTextAnimated, { color: theme.colors.primary }]}>{num}</Text>
+                        </Animated.View>
+                      </View>
+                    )
+                  }}
+                />
               </View>
 
               <Text style={styles.carouselUnit}>kg</Text>
+              
+              <View style={[styles.verticalCarouselSelector, { top: VERTICAL_PADDING }]} pointerEvents="none" />
             </View>
 
             <View style={styles.modalButtons}>
@@ -378,7 +457,7 @@ const styles = StyleSheet.create({
   container: { padding: 0, flex: 1, backgroundColor: theme.colors.background },
   headerBar: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   title: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
-  scrollContent: { padding: 16, paddingBottom: 100, flexGrow: 1 },
+  scrollContent: { padding: 16, paddingBottom: 0, flexGrow: 1 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 12, marginTop: 8 },
   card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.borderLight },
   cardTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
@@ -398,36 +477,36 @@ const styles = StyleSheet.create({
   fabText: { color: theme.colors.background, fontSize: 32, fontWeight: '400', marginTop: -2 },
   
   modalBgCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalCard: { backgroundColor: theme.colors.surface, borderRadius: 24, padding: 24, width: '100%', borderWidth: 1, borderColor: theme.colors.borderLight },
-  modalTitle: { fontSize: 24, fontWeight: '700', color: theme.colors.text, marginBottom: 12, textAlign: 'center' },
+  modalCard: { backgroundColor: '#1A1A1A', borderRadius: 28, padding: 24, width: '100%', borderWidth: 1, borderColor: theme.colors.borderLight },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 24, textAlign: 'center' },
   
-  dateInputContainer: { borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginTop: 12, marginBottom: 24 },
-  dateInputLabel: { position: 'absolute', top: -10, left: 12, backgroundColor: '#000', paddingHorizontal: 6, fontSize: 12, color: theme.colors.textMuted, fontWeight: '600' },
-  dateInputText: { fontSize: 18, color: theme.colors.text, fontWeight: '500' },
+  dateInputContainer: { borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginTop: 8, marginBottom: 24 },
+  dateInputLabel: { position: 'absolute', top: -10, left: 12, backgroundColor: '#1A1A1A', paddingHorizontal: 6, fontSize: 12, color: theme.colors.textMuted, fontWeight: '600' },
+  dateInputText: { fontSize: 16, color: theme.colors.text, fontWeight: '500' },
 
-  verticalCarouselsWrapper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: CAROUSEL_HEIGHT, backgroundColor: '#0A0A0C', borderRadius: 12, marginBottom: 24, position: 'relative' },
-  verticalCarouselContainer: { flex: 1, height: CAROUSEL_HEIGHT, position: 'relative', overflow: 'hidden' },
-  verticalCarouselLabel: { position: 'absolute', top: 8, left: 0, right: 0, textAlign: 'center', fontSize: 12, color: theme.colors.textMuted, fontWeight: '700', zIndex: 10 },
+  verticalCarouselsWrapper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: CAROUSEL_HEIGHT, backgroundColor: 'transparent', marginBottom: 24, position: 'relative' },
+  verticalCarouselContainer: { height: CAROUSEL_HEIGHT, position: 'relative', overflow: 'hidden' },
   verticalCarouselItem: { height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' },
-  decimalDot: { fontSize: 32, fontWeight: '700', color: theme.colors.text, marginHorizontal: 8 },
-  carouselText: { fontSize: 24, fontWeight: '400', color: theme.colors.textMuted },
+  decimalDot: { fontSize: 28, fontWeight: '700', color: theme.colors.primary, marginHorizontal: 2 },
+  carouselTextAnimated: { fontWeight: '700', fontSize: 28 },
+  carouselText: { fontSize: 22, fontWeight: '700', color: '#3A3A3C' },
   carouselTextActive: { fontSize: 32, fontWeight: '700', color: theme.colors.primary },
-  verticalCarouselSelector: { position: 'absolute', left: 16, right: 16, height: ITEM_HEIGHT, borderTopWidth: 2, borderBottomWidth: 2, borderColor: theme.colors.primary, borderRadius: 4 },
-  carouselUnit: { position: 'absolute', right: 40, fontSize: 20, fontWeight: '700', color: theme.colors.textMuted },
+  verticalCarouselSelector: { position: 'absolute', left: 16, right: 16, height: ITEM_HEIGHT, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.borderInput },
+  carouselUnit: { position: 'absolute', right: 32, fontSize: 16, fontWeight: '600', color: theme.colors.textSecondary },
 
-  modalButtons: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  btnCancel: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
-  btnCancelText: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '700' },
-  btnConfirm: { flex: 1.2, padding: 16, backgroundColor: theme.colors.primary, borderRadius: 30, alignItems: 'center' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  btnCancel: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center' },
+  btnCancelText: { color: theme.colors.textSecondary, fontSize: 16, fontWeight: '600' },
+  btnConfirm: { paddingVertical: 16, paddingHorizontal: 36, backgroundColor: theme.colors.primary, borderRadius: 24, alignItems: 'center' },
   btnConfirmText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: theme.colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.border, borderBottomWidth: 0 },
+  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   bottomSheetHeader: { alignItems: 'center', marginBottom: 20 },
   bottomSheetSub: { fontSize: 16, color: theme.colors.textMuted, fontWeight: '500' },
   bottomSheetVal: { fontSize: 22, color: theme.colors.text, fontWeight: '700', marginTop: 4 },
-  optionsCard: { backgroundColor: '#0A0A0C', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderLight },
+  optionsCard: { backgroundColor: '#2C2C2E', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderLight },
   optionRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
   optionText: { fontSize: 18, fontWeight: '600', color: theme.colors.text },
   optionsDivider: { height: 1, backgroundColor: theme.colors.border },

@@ -28,12 +28,15 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 }
 
 export default {
-  fetchRoutines: async () => {
-    const res = await fetchWithAuth('/routines')
+  customFetch: async (endpoint: string) => {
+    return fetchWithAuth(endpoint)
+  },
+  fetchRoutines: async (userId: string | number) => {
+    const res = await fetchWithAuth(`/custom/routines?userId=${userId}`)
     return res.docs || res || []
   },
   fetchExercises: async () => {
-    const res = await fetchWithAuth('/exercises')
+    const res = await fetchWithAuth('/custom/exercises')
     return res.docs || res || []
   },
   fetchHistory: async () => {
@@ -75,5 +78,13 @@ export default {
   },
   deleteRoutine: async (id: number | string) => {
     await fetchWithAuth(`/routines/${id}`, { method: 'DELETE' })
+  },
+  fetchRoutine: async (id: number | string) => {
+    const res = await fetchWithAuth(`/custom/routines/${id}`)
+    return res.routine || res
+  },
+  updateRoutine: async (id: number | string, data: any) => {
+    const res = await fetchWithAuth(`/custom/routines/${id}/save`, { method: 'POST', body: JSON.stringify(data) })
+    return res.doc || res
   },
 }

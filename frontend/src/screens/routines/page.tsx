@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable, ActivityIndicator, Modal, TextInput, Animated } from 'react-native'
-import { CustomAlert as Alert } from '../components/CustomAlert'
+import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import api from '../api'
-import { theme } from '../theme'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { Feather } from '@expo/vector-icons'
+import api from '../../api'
+import { theme } from '../../theme'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function Routines() {
+  const navigation = useNavigation<any>()
+  const { user } = useAuth()
   const [routines, setRoutines] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -13,6 +18,35 @@ export default function Routines() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [optionsRoutine, setOptionsRoutine] = useState<any>(null)
+  const sheetAnim = useRef(new Animated.Value(300)).current
+
+  useEffect(() => {
+    if (optionsRoutine) {
+      sheetAnim.setValue(300)
+      Animated.spring(sheetAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 60,
+        friction: 10
+      }).start()
+    }
+  }, [optionsRoutine])
+
+  const handleEditPress = () => {
+    if (!optionsRoutine) return
+    const id = optionsRoutine.id
+    setOptionsRoutine(null)
+    navigation.navigate('EditRoutine', { id })
+  }
+
+  const handleDeletePress = () => {
+    if (!optionsRoutine) return
+    const id = optionsRoutine.id
+    setOptionsRoutine(null)
+    handleDelete(id)
+  }
 
   // Scroll logic for FAB
   const [fabVisible, setFabVisible] = useState(true)
@@ -31,16 +65,19 @@ export default function Routines() {
   }
 
   const fetchRoutines = () => {
+    if (!user?.id) return
     api
-      .fetchRoutines()
-      .then((data) => setRoutines(data || []))
-      .catch((err) => setError(err.message))
+      .fetchRoutines(user.id)
+      .then((data: any) => setRoutines(data || []))
+      .catch((err: any) => setError(err.message))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    fetchRoutines()
-  }, [])
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchRoutines()
+    }, [user?.id])
+  )
 
   const handleAdd = async () => {
     if (!newName.trim()) {
@@ -104,7 +141,7 @@ export default function Routines() {
         
         {routines.map((r) => {
           const mg = r.muscleGroups || []
-          const numExercises = r.exercises?.length || 0
+          const numExercises = r.exerciseCount || 0
           // Mock preview text if not available
           const previewText = r.previewExercises?.join(' · ') || 'Decline Chest Press · Incline Chest Press · Bench Press · ...'
           
@@ -112,8 +149,8 @@ export default function Routines() {
             <View key={r.id || r._id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{r.name || r.title}</Text>
-                <Pressable hitSlop={10} onPress={() => handleDelete(r.id || r._id)}>
-                  <Text style={styles.menuIcon}>⋮</Text>
+                <Pressable hitSlop={15} onPress={() => setOptionsRoutine(r)} style={styles.menuButton}>
+                  <Feather name="more-vertical" size={20} color={theme.colors.textMuted} />
                 </Pressable>
               </View>
 
@@ -125,17 +162,19 @@ export default function Routines() {
                 ))}
               </View>
 
+              <View style={styles.divider} />
+
               <Text style={styles.previewText} numberOfLines={2}>
                 {previewText}
               </Text>
 
               <View style={styles.footerRow}>
                 <Text style={styles.footerText}>
-                  {numExercises} Exercises • ~{r.duration || '1h 39m'}
+                  {numExercises} Exercises • {r.duration || '~1h 39m'}
                 </Text>
-                <Pressable style={styles.startButton} onPress={() => {}}>
+                <Pressable style={styles.startButton} onPress={() => navigation.navigate('RoutineDetails', { id: r.id || r._id })}>
                   <Text style={styles.startButtonText}>Start</Text>
-                  <Text style={styles.startArrow}>→</Text>
+                  <Feather name="arrow-right" size={18} color={theme.colors.background} />
                 </Pressable>
               </View>
             </View>
@@ -172,6 +211,33 @@ export default function Routines() {
           </View>
         </View>
       </Modal>
+
+      {/* Options Bottom Sheet */}
+      <Modal visible={!!optionsRoutine} transparent animationType="fade" onRequestClose={() => setOptionsRoutine(null)}>
+        <Pressable style={styles.modalBgTransparent} onPress={() => setOptionsRoutine(null)}>
+          <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetAnim }] }]} onStartShouldSetResponder={() => true}>
+            <View style={styles.bottomSheetDragHandle} />
+            
+            {optionsRoutine && (
+              <View style={styles.bottomSheetHeader}>
+                <Text style={styles.bottomSheetVal}>{optionsRoutine.name || optionsRoutine.title}</Text>
+              </View>
+            )}
+
+            <View style={styles.optionsCard}>
+              <Pressable style={styles.optionRow} onPress={handleEditPress}>
+                <Feather name="edit-2" size={20} color={theme.colors.text} />
+                <Text style={styles.optionText}>Edit</Text>
+              </Pressable>
+              <View style={styles.optionsDivider} />
+              <Pressable style={styles.optionRow} onPress={handleDeletePress}>
+                <Feather name="trash-2" size={20} color={theme.colors.error} />
+                <Text style={[styles.optionText, { color: theme.colors.error }]}>Delete Routine</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -184,16 +250,16 @@ const styles = StyleSheet.create({
   card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.background, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   cardTitle: { fontSize: 22, fontWeight: '400', lineHeight: 28, color: theme.colors.text, textTransform: 'capitalize' },
-  menuIcon: { color: theme.colors.textMuted, fontSize: 20, fontWeight: '700' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  chip: { backgroundColor: theme.colors.surfaceElevated, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  chipText: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: theme.colors.textSecondary },
+  menuButton: { padding: 4, marginRight: -4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  chip: { backgroundColor: theme.colors.primary + '20', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  chipText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: theme.colors.primary },
+  divider: { height: 1, backgroundColor: theme.colors.border, marginTop: 4, marginBottom: 12 },
   previewText: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400', marginBottom: 20 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
   startButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
   startButtonText: { color: theme.colors.background, fontWeight: '500', fontSize: 14, lineHeight: 20, marginRight: 6 },
-  startArrow: { color: theme.colors.background, fontWeight: '800', fontSize: 16 },
   
   emptyState: { alignItems: 'center', marginTop: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 16 },
@@ -213,4 +279,14 @@ const styles = StyleSheet.create({
   btnCancelText: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
   btnConfirm: { flex: 1, padding: 16, backgroundColor: theme.colors.primary, borderRadius: 12, alignItems: 'center' },
   btnConfirmText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
+  modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.border, borderBottomWidth: 0 },
+  bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: '#444446', borderRadius: 2, alignSelf: 'center', marginBottom: 10 },
+  bottomSheetHeader: { alignItems: 'center', marginBottom: 16 },
+  bottomSheetSub: { fontSize: 16, color: theme.colors.textMuted, fontWeight: '500' },
+  bottomSheetVal: { fontSize: 22, color: theme.colors.text, fontWeight: '700' },
+  optionsCard: { backgroundColor: '#2C2C2E', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border },
+  optionRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
+  optionText: { fontSize: 18, fontWeight: '600', color: theme.colors.text },
+  optionsDivider: { height: 1, backgroundColor: theme.colors.border },
 })

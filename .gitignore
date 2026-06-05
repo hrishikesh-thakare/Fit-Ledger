@@ -64,3 +64,4 @@ irrelevant
 *.md
 !README.md
 backend/.next/
+.next/

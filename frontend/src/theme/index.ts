@@ -27,7 +27,7 @@ export const colors = {
   // Status Colors
   success: '#4ADE80',
   successBackground: '#1A2F24',
-  error: '#EF4444',
+  error: '#FF3B30',
   errorBackground: '#3F2222',
   destructive: '#7F1D1D',
   
