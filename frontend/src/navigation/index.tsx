@@ -70,6 +70,7 @@ const Stack = createNativeStackNavigator()
 
 import RoutineDetails from '../screens/routines/[id]/page'
 import EditRoutine from '../screens/routines/[id]/edit/page'
+import CreateRoutine from '../screens/routines/new/page'
 import Workout from '../screens/workout/page'
 
 function RootStack() {
@@ -85,6 +86,7 @@ function RootStack() {
       <Stack.Screen name="WorkoutDetails" component={WorkoutDetails} />
       <Stack.Screen name="RoutineDetails" component={RoutineDetails} />
       <Stack.Screen name="EditRoutine" component={EditRoutine} />
+      <Stack.Screen name="CreateRoutine" component={CreateRoutine} />
       <Stack.Screen name="Workout" component={Workout} />
     </Stack.Navigator>
   )

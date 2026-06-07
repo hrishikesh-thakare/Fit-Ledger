@@ -43,7 +43,7 @@ export default {
     const res = await fetchWithAuth('/workout-days')
     return res.docs || res || []
   },
-  startWorkout: async (data: { startedAt: number }) => {
+  startWorkout: async (data: any) => {
     const res = await fetchWithAuth('/workout-days', {
       method: 'POST',
       body: JSON.stringify(data),

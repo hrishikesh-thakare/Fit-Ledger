@@ -3,14 +3,13 @@ import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animat
 import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
-import { CustomAlert as Alert } from '../../../../components/CustomAlert'
-import { theme } from '../../../../theme'
-import api from '../../../../api'
+import { CustomAlert as Alert } from '../../../components/CustomAlert'
+import { theme } from '../../../theme'
+import api from '../../../api'
 
-export default function EditRoutine({ route }: any) {
+export default function CreateRoutine() {
   const navigation = useNavigation<any>()
   const insets = useSafeAreaInsets()
-  const { id } = route.params || {}
   
   const [keyboardVisible, setKeyboardVisible] = useState(false)
 
@@ -27,7 +26,7 @@ export default function EditRoutine({ route }: any) {
     }
   }, [])
   
-  const [routine, setRoutine] = useState<any>(null)
+  const [routine, setRoutine] = useState<any>({ name: '', exercises: [] })
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const hasUnsavedChanges = useRef(false)
@@ -169,16 +168,6 @@ export default function EditRoutine({ route }: any) {
     }
   }, [selectedSet])
 
-  useEffect(() => {
-    if (id) {
-      api.fetchRoutine(id).then((data: any) => {
-        setRoutine(data)
-        setName(data.name || data.title || '')
-        hasUnsavedChanges.current = false
-      }).catch((err: any) => console.error(err))
-    }
-  }, [id])
-
   // Intercept the back button action if there are unsaved changes
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
@@ -187,8 +176,8 @@ export default function EditRoutine({ route }: any) {
       e.preventDefault();
       
       Alert.alert(
-        'Discard changes?',
-        'You have unsaved changes. Are you sure you want to discard them?',
+        'Discard routine?',
+        'You have an unsaved routine. Are you sure you want to discard it?',
         [
           { text: 'Cancel', style: 'cancel', onPress: () => {} },
           { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
@@ -215,7 +204,7 @@ export default function EditRoutine({ route }: any) {
         order: index,
       }))
 
-      await api.updateRoutine(id, { name, exercises: exercisesToSave })
+      await api.updateRoutine('new', { name, exercises: exercisesToSave })
       hasUnsavedChanges.current = false // Disable unsaved changes blocker
       setTimeout(() => navigation.goBack(), 0)
     } catch (err: any) {
@@ -225,22 +214,8 @@ export default function EditRoutine({ route }: any) {
     }
   }
 
-  const handleDeleteRoutine = () => {
-    Alert.alert('Delete Routine', 'Are you sure you want to delete this routine entirely?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try {
-          await api.deleteRoutine(id)
-          hasUnsavedChanges.current = false // Bypass beforeRemove lock
-          setTimeout(() => navigation.navigate('MainTabs', { screen: 'Routines' }), 0)
-        } catch (err) {
-          Alert.alert('Error', 'Failed to delete routine')
-        }
-      }}
-    ])
-  }
-
   const handleMoreOptions = () => {
+    if (routine.exercises.length === 0) return;
     setShowReorderModal(true)
   }
 
@@ -333,14 +308,6 @@ export default function EditRoutine({ route }: any) {
     hasUnsavedChanges.current = true;
   }
 
-  if (!routine) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={{ color: theme.colors.textMuted, textAlign: 'center', marginTop: 50 }}>Loading...</Text>
-      </SafeAreaView>
-    )
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -349,16 +316,15 @@ export default function EditRoutine({ route }: any) {
           <Pressable hitSlop={15} onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
             <Feather name="arrow-left" size={24} color={theme.colors.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>Edit Routine</Text>
+          <Text style={styles.headerTitle}>Create Routine</Text>
         </View>
         
         <View style={styles.headerRight}>
-          <Pressable hitSlop={10} onPress={handleDeleteRoutine} style={{ marginLeft: 16 }}>
-            <Feather name="trash-2" size={20} color={theme.colors.textMuted} />
-          </Pressable>
-          <Pressable hitSlop={10} onPress={handleMoreOptions} style={{ marginLeft: 16 }}>
-            <Feather name="more-vertical" size={20} color={theme.colors.textMuted} />
-          </Pressable>
+          {routine.exercises.length > 0 && (
+            <Pressable hitSlop={10} onPress={handleMoreOptions} style={{ marginLeft: 16 }}>
+              <Feather name="more-vertical" size={20} color={theme.colors.textMuted} />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -391,6 +357,13 @@ export default function EditRoutine({ route }: any) {
             <Text style={styles.addExerciseText}>Add Exercise</Text>
           </Pressable>
         </View>
+
+        {routine.exercises.length === 0 && (
+            <View style={styles.emptyState}>
+                <Feather name="anchor" size={32} color={theme.colors.textMuted} style={{ marginBottom: 12, opacity: 0.5 }} />
+                <Text style={styles.hint}>No exercises added yet</Text>
+            </View>
+        )}
 
         {/* Exercise Cards */}
         {routine.exercises?.map((ex: any, idx: number) => {
@@ -427,21 +400,17 @@ export default function EditRoutine({ route }: any) {
               {ex.sets?.map((set: any, sIdx: number) => {
                 let setLabel = set.type
                 let labelColor = theme.colors.text
-                let labelBg = 'transparent'
                 
                 if (set.type === 'Warmup' || set.type === 'W' || set.type === 'Warm Up') {
                   setLabel = 'W'
                   labelColor = theme.colors.primary
-                  labelBg = 'transparent'
                 } else if (set.type === 'Drop' || set.type === 'D' || set.type === 'Drop Set') {
                   setLabel = 'D'
                   labelColor = theme.colors.primary
-                  labelBg = 'transparent'
                 } else {
                   normalCount++
                   setLabel = normalCount.toString()
                   labelColor = theme.colors.text
-                  labelBg = 'transparent'
                 }
 
                 return (
@@ -494,7 +463,7 @@ export default function EditRoutine({ route }: any) {
         })}
       </ScrollView>
 
-      {/* Floating Update Button */}
+      {/* Floating Save Button */}
       {!keyboardVisible && (
         <View style={[styles.footer, { paddingBottom: 28 }]}>
           <Pressable 
@@ -502,7 +471,7 @@ export default function EditRoutine({ route }: any) {
             onPress={handleSave} 
             disabled={saving}
           >
-            <Text style={styles.updateBtnText}>{saving ? 'Updating...' : 'Update Routine'}</Text>
+            <Text style={styles.updateBtnText}>{saving ? 'Saving...' : 'Save Routine'}</Text>
           </Pressable>
         </View>
       )}
@@ -650,9 +619,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
   
-  scrollArea: { padding: 16, paddingBottom: 90 }, // Decreased paddingBottom
+  scrollArea: { padding: 16, paddingBottom: 90 },
   
-  // Floating Label Input Style
   inputContainer: { marginTop: 8, marginBottom: 24, position: 'relative' },
   inputLegend: { position: 'absolute', top: -10, left: 12, backgroundColor: theme.colors.background, paddingHorizontal: 4, zIndex: 1 },
   inputLegendText: { color: theme.colors.textMuted, fontSize: 12, fontWeight: '500' },
@@ -663,29 +631,27 @@ const styles = StyleSheet.create({
   addExerciseBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   addExerciseText: { color: theme.colors.primary, fontSize: 15, fontWeight: '700' },
 
-  // Exercise Card
+  emptyState: { alignItems: 'center', paddingVertical: 40, backgroundColor: theme.colors.surfaceElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, borderStyle: 'dashed', marginBottom: 16 },
+  hint: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '500' },
+
   exerciseCard: { backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   exName: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginRight: 8 },
   machineBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   machineBadgeText: { color: theme.colors.primary, fontSize: 10, fontWeight: '700' },
   
-  // Table
   tableHeader: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   th: { color: theme.colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14 },
   td: { color: theme.colors.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   
-  // Add Set Button
   addSetBtn: { borderTopWidth: 1, borderTopColor: theme.colors.borderLight, paddingVertical: 14, alignItems: 'center', backgroundColor: theme.colors.surfaceVariant },
   addSetText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
 
-  // Footer Button
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.border },
   updateBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
   updateBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
-  // Reorder Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   reorderCard: { backgroundColor: '#36343B', width: '100%', borderRadius: 24, padding: 24 },
   reorderTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 24 },
@@ -694,10 +660,8 @@ const styles = StyleSheet.create({
   reorderDoneBtn: { alignSelf: 'flex-end', marginTop: 12, padding: 8, paddingRight: 0 },
   reorderDoneText: { color: theme.colors.primary, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   
-  // Set Inputs
   tableInput: { padding: 0, margin: 0, textAlign: 'center' },
 
-  // Bottom Sheet Modal
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
@@ -706,13 +670,11 @@ const styles = StyleSheet.create({
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
 
-  // Select Exercise Filters
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#484550', marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
   filterChipText: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
   filterChipTextActive: { color: theme.colors.primary },
   
-  // Exercise List Item
   exerciseListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
   exListTitle: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
   exListMeta: { color: theme.colors.textMuted, fontSize: 12 },

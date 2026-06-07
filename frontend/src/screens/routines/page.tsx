@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable, ActivityIndicator, Modal, TextInput, Animated } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect } from '@react-navigation/core'
 import { Feather } from '@expo/vector-icons'
 import api from '../../api'
 import { theme } from '../../theme'
@@ -14,10 +15,6 @@ export default function Routines() {
   const [routines, setRoutines] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [saving, setSaving] = useState(false)
 
   const [optionsRoutine, setOptionsRoutine] = useState<any>(null)
   const sheetAnim = useRef(new Animated.Value(300)).current
@@ -79,21 +76,8 @@ export default function Routines() {
     }, [user?.id])
   )
 
-  const handleAdd = async () => {
-    if (!newName.trim()) {
-      return Alert.alert('Error', 'Please provide a routine name.')
-    }
-    setSaving(true)
-    try {
-      await api.createRoutine({ name: newName.trim() })
-      setIsModalOpen(false)
-      setNewName('')
-      fetchRoutines()
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to create routine.')
-    } finally {
-      setSaving(false)
-    }
+  const handleAdd = () => {
+    navigation.navigate('CreateRoutine')
   }
 
   const handleDelete = (id: string | number) => {
@@ -184,33 +168,10 @@ export default function Routines() {
 
       {/* Floating Action Button */}
       <Animated.View style={[styles.fabContainer, { opacity: fabAnim }]} pointerEvents={fabVisible ? 'auto' : 'none'}>
-        <Pressable style={styles.fab} onPress={() => setIsModalOpen(true)}>
+        <Pressable style={styles.fab} onPress={handleAdd}>
           <Text style={styles.fabText}>+</Text>
         </Pressable>
       </Animated.View>
-
-      <Modal visible={isModalOpen} transparent animationType="fade">
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>New Routine</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Routine Name"
-              placeholderTextColor={theme.colors.textMuted}
-              value={newName}
-              onChangeText={setNewName}
-            />
-            <View style={styles.modalButtons}>
-              <Pressable style={styles.btnCancel} onPress={() => setIsModalOpen(false)}>
-                <Text style={styles.btnCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.btnConfirm} onPress={handleAdd} disabled={saving}>
-                <Text style={styles.btnConfirmText}>{saving ? 'Saving...' : 'Create'}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Options Bottom Sheet */}
       <Modal visible={!!optionsRoutine} transparent animationType="fade" onRequestClose={() => setOptionsRoutine(null)}>
@@ -270,15 +231,6 @@ const styles = StyleSheet.create({
   fabContainer: { position: 'absolute', bottom: 24, right: 24 },
   fab: { backgroundColor: theme.colors.primary, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6 },
   fabText: { color: theme.colors.background, fontSize: 32, fontWeight: '400', marginTop: -2 },
-  modalBg: { flex: 1, backgroundColor: theme.colors.overlayLight, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalCard: { backgroundColor: theme.colors.background, borderRadius: 16, padding: 24, width: '100%', borderWidth: 1, borderColor: theme.colors.border },
-  modalTitle: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text, marginBottom: 16, textAlign: 'center' },
-  input: { backgroundColor: theme.colors.surfaceElevated, color: theme.colors.text, fontSize: 16, padding: 16, borderRadius: 12, marginBottom: 24, borderWidth: 1, borderColor: theme.colors.border },
-  modalButtons: { flexDirection: 'row', gap: 12 },
-  btnCancel: { flex: 1, padding: 16, backgroundColor: theme.colors.surfaceElevated, borderRadius: 12, alignItems: 'center' },
-  btnCancelText: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
-  btnConfirm: { flex: 1, padding: 16, backgroundColor: theme.colors.primary, borderRadius: 12, alignItems: 'center' },
-  btnConfirmText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.border, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: '#444446', borderRadius: 2, alignSelf: 'center', marginBottom: 10 },
