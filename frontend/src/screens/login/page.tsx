@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -16,13 +17,13 @@ export default function Login() {
 
   const handleSubmit = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.')
+      Toast.show('Please enter both email and password.', 'error')
       return
     }
 
     setLoading(true)
     try {
-      const response = await fetch('http://192.168.0.108:3000/api/users/login', {
+      const response = await fetch('http://192.168.0.111:3000/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -40,7 +41,7 @@ export default function Login() {
         throw new Error('No token received from server')
       }
     } catch (err: any) {
-      Alert.alert('Login Failed', err.message || 'Check your credentials and try again.')
+      Toast.show(err.message || 'Check your credentials and try again.', 'error')
     } finally {
       setLoading(false)
     }

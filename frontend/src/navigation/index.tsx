@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import SignUp from '../screens/signup/page'
 import WorkoutDetails from '../screens/history/[id]/page'
 import { CustomAlertRenderer } from '../components/CustomAlert'
+import { CustomToastRenderer } from '../components/CustomToast'
 
 const Tab = createBottomTabNavigator()
 
@@ -72,6 +73,7 @@ import RoutineDetails from '../screens/routines/[id]/page'
 import EditRoutine from '../screens/routines/[id]/edit/page'
 import CreateRoutine from '../screens/routines/new/page'
 import Workout from '../screens/workout/page'
+import WorkoutSummary from '../screens/workout/summary/page'
 
 function RootStack() {
   return (
@@ -88,12 +90,19 @@ function RootStack() {
       <Stack.Screen name="EditRoutine" component={EditRoutine} />
       <Stack.Screen name="CreateRoutine" component={CreateRoutine} />
       <Stack.Screen name="Workout" component={Workout} />
+      <Stack.Screen name="WorkoutSummary" component={WorkoutSummary} options={{ gestureEnabled: false }} />
     </Stack.Navigator>
   )
 }
 
+import { WorkoutProvider } from '../contexts/WorkoutContext'
+import ActiveWorkoutBar from '../components/ActiveWorkoutBar'
+import { useNavigationContainerRef } from '@react-navigation/core'
+
 function NavigationContent() {
   const { signedIn } = useAuth()
+  const navigationRef = useNavigationContainerRef()
+  const [currentRoute, setCurrentRoute] = useState<string | undefined>(undefined)
 
   if (signedIn === null) {
     return (
@@ -105,16 +114,21 @@ function NavigationContent() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <NavigationContainer theme={{
-        dark: true,
-        colors: {
-          primary: theme.colors.primary,
-          background: theme.colors.background,
-          card: theme.colors.background,
-          text: theme.colors.text,
-          border: theme.colors.border,
-          notification: theme.colors.primary,
-        }
+      <NavigationContainer 
+        ref={navigationRef}
+        onStateChange={() => {
+          setCurrentRoute(navigationRef.getCurrentRoute()?.name)
+        }}
+        theme={{
+          dark: true,
+          colors: {
+            primary: theme.colors.primary,
+            background: theme.colors.background,
+            card: theme.colors.background,
+            text: theme.colors.text,
+            border: theme.colors.border,
+            notification: theme.colors.primary,
+          }
       }}>
         {signedIn ? (
           <RootStack />
@@ -128,7 +142,12 @@ function NavigationContent() {
             </Tab.Screen>
           </Tab.Navigator>
         )}
+        
+        {/* Render the active workout bar globally, but hide it if we are actually ON the Workout screen */}
+        {signedIn && currentRoute !== 'Workout' && <ActiveWorkoutBar />}
+        
         <CustomAlertRenderer />
+        <CustomToastRenderer />
       </NavigationContainer>
     </View>
   )
@@ -137,7 +156,9 @@ function NavigationContent() {
 export default function Navigation() {
   return (
     <AuthProvider>
-      <NavigationContent />
+      <WorkoutProvider>
+        <NavigationContent />
+      </WorkoutProvider>
     </AuthProvider>
   )
 }

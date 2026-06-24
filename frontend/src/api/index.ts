@@ -1,6 +1,6 @@
 import { getToken } from '../auth'
 
-const API_URL = 'http://192.168.0.108:3000/api' // Host LAN IP for physical device
+const API_URL = 'http://192.168.0.111:3000/api' // Host LAN IP for physical device
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getToken()
@@ -43,8 +43,17 @@ export default {
     const res = await fetchWithAuth('/workout-days')
     return res.docs || res || []
   },
+  loadWorkout: async (routineId: string | number) => {
+    return fetchWithAuth(`/custom/workouts/load?routineId=${routineId}`)
+  },
+  saveWorkout: async (data: any) => {
+    return fetchWithAuth('/custom/workouts/start', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
   startWorkout: async (data: any) => {
-    const res = await fetchWithAuth('/workout-days', {
+    const res = await fetchWithAuth('/custom/workouts/start', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -85,6 +94,13 @@ export default {
   },
   updateRoutine: async (id: number | string, data: any) => {
     const res = await fetchWithAuth(`/custom/routines/${id}/save`, { method: 'POST', body: JSON.stringify(data) })
+    return res.doc || res
+  },
+  deleteWorkoutDay: async (id: number | string) => {
+    await fetchWithAuth(`/workout-days/${id}`, { method: 'DELETE' })
+  },
+  updateUser: async (id: number | string, data: any) => {
+    const res = await fetchWithAuth(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     return res.doc || res
   },
 }

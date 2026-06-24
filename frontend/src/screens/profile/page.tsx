@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable, Modal, TextInput, ActivityIndicator, Animated } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
 import { getToken } from '../../auth'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { theme } from '../../theme'
+import api from '../../api'
 
 // Weight conversion helper functions
 const toKg = (val: number, unit: string) => {
@@ -69,30 +71,19 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     if (!displayName.trim()) {
-      Alert.alert('Error', 'Please enter a display name.')
+      Toast.show('Please enter a display name.', 'error')
       return
     }
 
     setSaving(true)
     try {
-      const token = await getToken()
-      const response = await fetch(`http://192.168.0.108:3000/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `JWT ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ displayName: displayName.trim() })
-      })
+      await api.updateUser(user.id, { displayName: displayName.trim() })
 
-      if (!response.ok) {
-        throw new Error('Failed to update display name')
-      }
-
+      Toast.show('Profile updated', 'info')
       await refreshUser()
       setEditOpen(false)
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not update profile')
+      Toast.show(err.message || 'Could not update profile', 'error')
     } finally {
       setSaving(false)
     }
@@ -101,32 +92,21 @@ export default function Profile() {
   const handleSaveTargetWeight = async () => {
     const weightNum = parseFloat(targetWeight)
     if (isNaN(weightNum) || weightNum <= 0) {
-      Alert.alert('Error', 'Please enter a valid weight.')
+      Toast.show('Please enter a valid weight.', 'error')
       return
     }
 
     setSaving(true)
     try {
-      const token = await getToken()
       const weightInKg = toKg(weightNum, user.preferredUnit || 'kg')
       
-      const response = await fetch(`http://192.168.0.108:3000/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `JWT ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ targetWeight: weightInKg })
-      })
+      await api.updateUser(user.id, { targetWeight: weightInKg })
 
-      if (!response.ok) {
-        throw new Error('Failed to update target weight')
-      }
-
+      Toast.show('Target weight updated', 'info')
       await refreshUser()
       setTargetWeightOpen(false)
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not update target weight')
+      Toast.show(err.message || 'Could not update target weight', 'error')
     } finally {
       setSaving(false)
     }
@@ -136,23 +116,12 @@ export default function Profile() {
     if (user.preferredUnit === newUnit) return
 
     try {
-      const token = await getToken()
-      const response = await fetch(`http://192.168.0.108:3000/api/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `JWT ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ preferredUnit: newUnit })
-      })
+      await api.updateUser(user.id, { preferredUnit: newUnit })
 
-      if (!response.ok) {
-        throw new Error('Failed to update preferred unit')
-      }
-
+      Toast.show('Unit updated', 'info')
       await refreshUser()
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not update preferred unit')
+      Toast.show(err.message || 'Could not update preferred unit', 'error')
     }
   }
 

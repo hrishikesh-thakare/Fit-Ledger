@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { CustomAlert as Alert } from '../../../../components/CustomAlert'
+import { Toast } from '../../../../components/CustomToast'
 import { theme } from '../../../../theme'
 import api from '../../../../api'
 
@@ -199,7 +200,7 @@ export default function EditRoutine({ route }: any) {
   }, [navigation]);
 
   const handleSave = async () => {
-    if (!name.trim()) return Alert.alert('Error', 'Routine name is required')
+    if (!name.trim()) return Toast.show('Routine name is required', 'error')
     setSaving(true)
     try {
       const exercisesToSave = routine.exercises.map((ex: any, index: number) => ({
@@ -216,10 +217,11 @@ export default function EditRoutine({ route }: any) {
       }))
 
       await api.updateRoutine(id, { name, exercises: exercisesToSave })
+      Toast.show('Routine updated', 'info')
       hasUnsavedChanges.current = false // Disable unsaved changes blocker
       setTimeout(() => navigation.goBack(), 0)
     } catch (err: any) {
-      Alert.alert('Error', 'Failed to save routine')
+      Toast.show('Failed to save routine', 'error')
     } finally {
       setSaving(false)
     }
@@ -231,10 +233,11 @@ export default function EditRoutine({ route }: any) {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await api.deleteRoutine(id)
+          Toast.show('Routine deleted', 'info')
           hasUnsavedChanges.current = false // Bypass beforeRemove lock
           setTimeout(() => navigation.navigate('MainTabs', { screen: 'Routines' }), 0)
         } catch (err) {
-          Alert.alert('Error', 'Failed to delete routine')
+          Toast.show('Failed to delete routine', 'error')
         }
       }}
     ])

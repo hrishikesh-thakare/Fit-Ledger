@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animated, PanResponder, Keyboard } from 'react-native'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animated, PanResponder, Keyboard, ActivityIndicator } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { theme } from '../../theme'
 import api from '../../api'
+import { useWorkoutContext } from '../../contexts/WorkoutContext'
 
 interface WorkoutSet {
   id: string
@@ -30,15 +32,25 @@ export default function Workout({ route }: any) {
 
   const insets = useSafeAreaInsets()
   
-  const [elapsedTime, setElapsedTime] = useState(0)
-  const [isActive, setIsActive] = useState(false)
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([])
+  const {
+    isActive,
+    elapsedTime,
+    exercises,
+    activeRestTimer,
+    remainingRest,
+    setRemainingRest,
+    setExercises,
+    setActiveRestTimer,
+    startWorkout,
+    endWorkout,
+    formatTime,
+  } = useWorkoutContext()
+
   const [isLoading, setIsLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Active Rest Timer
-  const [activeRestTimer, setActiveRestTimer] = useState<{ endTime: number, duration: number, exerciseId: string } | null>(null)
-  const [remainingRest, setRemainingRest] = useState(0)
+  // Confirmation Dialogs
+  const [showFinishDialog, setShowFinishDialog] = useState(false)
 
   // Modals
   const [activeSet, setActiveSet] = useState<{ exerciseId: string, setId: string } | null>(null)
@@ -50,67 +62,47 @@ export default function Workout({ route }: any) {
   const [muscleFilter, setMuscleFilter] = useState('All')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
 
-  // Timer Effect
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval>
-    if (isActive) {
-      timer = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
-    }
-    return () => clearInterval(timer)
-  }, [isActive])
-
-  // Rest Timer Effect
-  useEffect(() => {
-    if (!activeRestTimer) return
-    const interval = setInterval(() => {
-      const remaining = Math.max(0, Math.ceil((activeRestTimer.endTime - Date.now()) / 1000))
-      setRemainingRest(remaining)
-      if (remaining <= 0) {
-        setActiveRestTimer(null)
-      }
-    }, 200)
-    return () => clearInterval(interval)
-  }, [activeRestTimer])
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-  }
-
-  // Load routine
+  // Load workout data via the load API
+  const hasInitializedRef = useRef(false)
   useEffect(() => {
     const loadData = async () => {
-      if (!routineId) return
+      // If a workout is already active, resume it instead of reloading
+      if (isActive && exercises.length > 0) {
+        hasInitializedRef.current = true
+        return
+      }
+
+      if (!routineId || hasInitializedRef.current) return
+      
+      hasInitializedRef.current = true
       setIsLoading(true)
       try {
-        const routineData = await api.fetchRoutine(routineId)
-        if (routineData && routineData.exercises) {
-          const loadedEx = routineData.exercises.map((ex: any) => ({
+        const workoutData = await api.loadWorkout(routineId)
+        if (workoutData && workoutData.exercises) {
+          const loadedEx = workoutData.exercises.map((ex: any) => ({
             id: ex.id || Math.random().toString(),
-            exerciseId: ex.exercise?.id || ex.exerciseId || ex.id,
-            name: ex.exercise?.name || ex.name || 'Unknown Exercise',
-            restTime: 60, // Default rest time
+            exerciseId: ex.exerciseId || ex.id,
+            name: ex.name || 'Unknown Exercise',
+            restTime: ex.restTime || 60,
             sets: (ex.sets || []).map((s: any) => ({
               id: s.id || Math.random().toString(),
               type: s.type || 'N',
               weight: s.weight ? String(s.weight) : '',
               reps: s.reps ? String(s.reps) : '',
               completed: false,
-              previous: '-', // Backend doesn't provide previous directly in routine, need history API for this ideally
+              previous: s.previous || '-',
             }))
           }))
-          setExercises(loadedEx)
-          setIsActive(true) // Start timer automatically when routine loads
+          startWorkout(routineId, loadedEx)
         }
       } catch (err) {
-        Alert.alert('Error', 'Failed to load routine')
+        Toast.show('Failed to load workout data', 'error')
       } finally {
         setIsLoading(false)
       }
     }
     loadData()
-  }, [routineId])
+  }, [routineId, isActive])
 
   // Animations for bottom sheets
   const setOptionsPanY = useRef(new Animated.Value(500)).current
@@ -259,39 +251,76 @@ export default function Workout({ route }: any) {
     closeAddExerciseDrawer()
   }
 
-  const handleFinishWorkout = async () => {
-    const exercisesToSave = exercises.map(ex => ({
-      exercise: ex.exerciseId || ex.id,
-      sets: ex.sets.filter(s => s.completed).map(s => ({
-        weight: Number(s.weight) || 0,
-        reps: Number(s.reps) || 0,
-        setLabel: s.type === 'W' || s.type === 'Warmup' ? 'warmup' : s.type === 'D' || s.type === 'Drop' ? 'drop' : 'working',
-        completed: true
-      }))
-    })).filter(ex => ex.sets.length > 0)
-
-    if (exercisesToSave.length === 0) {
-      Alert.alert('Empty Workout', 'You need to complete at least one set to save the workout.')
+  const handleFinishWorkout = () => {
+    const hasCompletedSets = exercises.some(ex => ex.sets.some(s => s.completed))
+    if (!hasCompletedSets) {
+      Toast.show('Complete at least one set to save', 'error')
       return
     }
+    setShowFinishDialog(true)
+  }
+
+  const handleConfirmSave = async () => {
+    // Only save exercises that have at least one completed set
+    const exercisesToSave = exercises
+      .filter(ex => ex.sets.some(s => s.completed))
+      .map(ex => ({
+        exerciseId: ex.exerciseId || ex.id,
+        name: ex.name,
+        // Send ALL sets (including uncompleted ones) so the backend's updatePrevWeights
+        // doesn't delete uncompleted sets from the routine template!
+        // The backend `start.ts` checks `s.completed` to avoid logging history for uncompleted ones.
+        sets: ex.sets.map((s, idx) => ({
+          weight: String(Number(s.weight) || 0),
+          reps: String(Number(s.reps) || 0),
+          setLabel: s.type === 'W' || s.type === 'Warmup' ? 'warmup' : s.type === 'D' || s.type === 'Drop' ? 'drop' : 'working',
+          completed: s.completed,
+          setOrder: idx,
+        }))
+      }))
 
     setSaving(true)
+    setShowFinishDialog(false)
     try {
-      const payload = {
-        routine: routineId || undefined,
-        startedAt: new Date(Date.now() - elapsedTime * 1000).toISOString(),
+      const savePayload = {
+        routineId: routineId,
+        date: new Date().toISOString(),
         durationSeconds: elapsedTime,
         exercises: exercisesToSave,
-        date: new Date().toISOString()
       }
-      
-      await api.startWorkout(payload)
-      setIsActive(false)
-      Alert.alert('Workout Saved!', 'Great job!', [
-        { text: 'OK', onPress: () => navigation.navigate('Routines') }
-      ])
+
+      endWorkout()
+
+      // Build summary data for the summary screen
+      const summaryExercises = exercisesToSave.map(ex => {
+        // For the summary, we only want to calculate stats based on COMPLETED sets
+        const completedSets = ex.sets.filter(s => s.completed)
+        const weights = completedSets.map(s => Number(s.weight) || 0)
+        const bestWeight = weights.length > 0 ? Math.max(...weights) : 0
+        const totalReps = completedSets.reduce((sum, s) => sum + (Number(s.reps) || 0), 0)
+        const volume = completedSets.reduce((sum, s) => sum + ((Number(s.weight) || 0) * (Number(s.reps) || 0)), 0)
+        
+        return {
+          name: ex.name,
+          sets: completedSets.length,
+          totalReps,
+          bestWeight,
+          volume,
+        }
+      })
+      const totalVolume = summaryExercises.reduce((sum, ex) => sum + ex.volume, 0)
+
+      navigation.navigate('WorkoutSummary', {
+        summaryData: {
+          savePayload,
+          routineId,
+          duration: elapsedTime,
+          totalVolume,
+          exercises: summaryExercises,
+        }
+      })
     } catch (err) {
-      Alert.alert('Error', 'Failed to save workout.')
+      Toast.show('Failed to save workout', 'error')
     } finally {
       setSaving(false)
     }
@@ -653,6 +682,38 @@ export default function Workout({ route }: any) {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Finish Workout Confirmation Dialog */}
+      <Modal visible={showFinishDialog} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.confirmModalBg}>
+          <View style={styles.confirmModalCard}>
+            <Text style={styles.confirmModalTitle}>Save Workout?</Text>
+            <Text style={styles.confirmModalText}>
+              Your completed sets will be saved. Unchecked sets will be discarded.
+            </Text>
+            <View style={styles.confirmModalButtons}>
+              <Pressable
+                style={styles.confirmModalCancelBtn}
+                onPress={() => setShowFinishDialog(false)}
+                disabled={saving}
+              >
+                <Text style={styles.confirmModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.confirmModalSaveBtn}
+                onPress={handleConfirmSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color={theme.colors.background} size="small" />
+                ) : (
+                  <Text style={styles.confirmModalSaveText}>Save</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -726,4 +787,17 @@ const styles = StyleSheet.create({
   exListMeta: { color: theme.colors.textMuted, fontSize: 12 },
   machineBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   machineBadgeText: { color: theme.colors.primary, fontSize: 10, fontWeight: '700' },
+
+  // Confirmation Dialogs
+  confirmModalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  confirmModalCard: { width: '100%', backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 20, padding: 24 },
+  confirmModalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 10 },
+  confirmModalText: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 24, lineHeight: 22 },
+  confirmModalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
+  confirmModalCancelBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 },
+  confirmModalCancelText: { color: theme.colors.textMuted, fontWeight: '700', fontSize: 15 },
+  confirmModalSaveBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 10, backgroundColor: theme.colors.primary, minWidth: 80, alignItems: 'center' },
+  confirmModalSaveText: { color: theme.colors.background, fontWeight: '700', fontSize: 15 },
+  confirmModalDiscardBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.colors.destructive, minWidth: 80, alignItems: 'center' },
+  confirmModalDiscardText: { color: theme.colors.text, fontWeight: '700', fontSize: 15 },
 })

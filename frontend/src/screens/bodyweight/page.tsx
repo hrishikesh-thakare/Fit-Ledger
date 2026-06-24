@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Modal, Animated, Dimensions, FlatList, PanResponder } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
 import { theme } from '../../theme'
@@ -107,19 +108,21 @@ export default function Weight() {
 
   const handleSaveWeight = async () => {
     const weightVal = selectedInt + (selectedDec / 10)
-    if (weightVal <= 0) return Alert.alert('Error', 'Please select a valid weight.')
+    if (weightVal <= 0) return Toast.show('Please select a valid weight.', 'error')
     
     setSaving(true)
     try {
       if (editLogId) {
         await api.updateWeightLog(editLogId, { weight: weightVal, loggedAt: loggedAt.toISOString() })
+        Toast.show('Weight log updated', 'info')
       } else {
         await api.createWeightLog({ weight: weightVal, loggedAt: loggedAt.toISOString() })
+        Toast.show('Weight logged successfully', 'info')
       }
       setIsPickerOpen(false)
       fetchLogs()
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save weight.')
+      Toast.show(err.message || 'Failed to save weight.', 'error')
     } finally {
       setSaving(false)
     }
@@ -135,9 +138,10 @@ export default function Weight() {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await api.deleteWeightLog(id)
+          Toast.show('Entry deleted', 'info')
           fetchLogs()
         } catch (err: any) {
-          Alert.alert('Error', 'Failed to delete entry.')
+          Toast.show('Failed to delete entry.', 'error')
         }
       }}
     ])

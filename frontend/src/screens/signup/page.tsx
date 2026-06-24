@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -19,22 +20,22 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     if (!name.trim() || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields.')
+      Toast.show('Please fill in all fields.', 'error')
       return
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.')
+      Toast.show('Password must be at least 6 characters.', 'error')
       return
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.')
+      Toast.show('Passwords do not match.', 'error')
       return
     }
 
     setLoading(true)
     try {
       // Create account via Payload CMS users collection
-      const signUpResponse = await fetch('http://192.168.0.108:3000/api/users', {
+      const signUpResponse = await fetch('http://192.168.0.111:3000/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,7 +53,7 @@ export default function SignUp() {
       }
 
       // Auto-login after successful signup
-      const loginResponse = await fetch('http://192.168.0.108:3000/api/users/login', {
+      const loginResponse = await fetch('http://192.168.0.111:3000/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -70,7 +71,7 @@ export default function SignUp() {
         throw new Error('No token received from server')
       }
     } catch (err: any) {
-      Alert.alert('Registration Failed', err.message || 'Please try again.')
+      Toast.show(err.message || 'Please try again.', 'error')
     } finally {
       setLoading(false)
     }

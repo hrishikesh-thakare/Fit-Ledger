@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, Pressable, ActivityIndicator, Modal, TextInput, Animated } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
+import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/core'
@@ -86,9 +87,10 @@ export default function Routines() {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await api.deleteRoutine(id)
+          Toast.show('Routine deleted', 'info')
           fetchRoutines()
-        } catch (err: any) {
-          Alert.alert('Error', 'Failed to delete routine.')
+        } catch (err) {
+          Toast.show('Failed to delete routine.', 'error')
         }
       }}
     ])

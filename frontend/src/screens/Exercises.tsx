@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { ScrollView, Text, View, StyleSheet, ActivityIndicator, Pressable, TextInput, Modal, Animated } from 'react-native'
 import { CustomAlert as Alert } from '../components/CustomAlert'
+import { Toast } from '../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../api'
 import { theme } from '../theme'
@@ -46,7 +47,7 @@ export default function Exercises() {
 
   const handleAdd = async () => {
     if (!newName.trim() || !newMuscle.trim()) {
-      return Alert.alert('Error', 'Please provide a name and muscle group.')
+      return Toast.show('Please provide a name and muscle group.', 'error')
     }
     setSaving(true)
     try {
@@ -54,9 +55,10 @@ export default function Exercises() {
       setIsModalOpen(false)
       setNewName('')
       setNewMuscle('')
+      Toast.show('Exercise created', 'info')
       fetchExercises()
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to create exercise.')
+      Toast.show(err.message || 'Failed to create exercise.', 'error')
     } finally {
       setSaving(false)
     }
@@ -68,9 +70,10 @@ export default function Exercises() {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await api.deleteExercise(id)
+          Toast.show('Exercise deleted', 'info')
           fetchExercises()
         } catch (err: any) {
-          Alert.alert('Error', 'Failed to delete exercise.')
+          Toast.show('Failed to delete exercise.', 'error')
         }
       }}
     ])

@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { CustomAlert as Alert } from '../../../components/CustomAlert'
+import { Toast } from '../../../components/CustomToast'
 import { theme } from '../../../theme'
 import api from '../../../api'
 
@@ -188,7 +189,7 @@ export default function CreateRoutine() {
   }, [navigation]);
 
   const handleSave = async () => {
-    if (!name.trim()) return Alert.alert('Error', 'Routine name is required')
+    if (!name.trim()) return Toast.show('Routine name is required', 'error')
     setSaving(true)
     try {
       const exercisesToSave = routine.exercises.map((ex: any, index: number) => ({
@@ -205,10 +206,11 @@ export default function CreateRoutine() {
       }))
 
       await api.updateRoutine('new', { name, exercises: exercisesToSave })
+      Toast.show('Routine created', 'info')
       hasUnsavedChanges.current = false // Disable unsaved changes blocker
       setTimeout(() => navigation.goBack(), 0)
     } catch (err: any) {
-      Alert.alert('Error', 'Failed to save routine')
+      Toast.show('Failed to save routine', 'error')
     } finally {
       setSaving(false)
     }

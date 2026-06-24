@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMe = async (token: string): Promise<UserType | null> => {
     try {
-      const meResponse = await fetch('http://192.168.0.108:3000/api/users/me', {
+      const meResponse = await fetch('http://192.168.0.111:3000/api/users/me', {
         headers: {
           'Authorization': `JWT ${token}`,
           'Content-Type': 'application/json'
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meData = await meResponse.json()
       if (meResponse.ok && meData.user) {
         // Fetch full user details to get preferredUnit, targetWeight, etc.
-        const userResponse = await fetch(`http://192.168.0.108:3000/api/users/${meData.user.id}`, {
+        const userResponse = await fetch(`http://192.168.0.111:3000/api/users/${meData.user.id}`, {
           headers: {
             'Authorization': `JWT ${token}`,
             'Content-Type': 'application/json'
