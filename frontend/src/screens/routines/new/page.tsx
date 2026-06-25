@@ -7,6 +7,7 @@ import { CustomAlert as Alert } from '../../../components/CustomAlert'
 import { Toast } from '../../../components/CustomToast'
 import { theme } from '../../../theme'
 import api from '../../../api'
+import { CreateExerciseModal } from '../../../components/CreateExerciseModal'
 
 export default function CreateRoutine() {
   const navigation = useNavigation<any>()
@@ -49,6 +50,7 @@ export default function CreateRoutine() {
   // Add Exercise State
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [showAddExerciseDrawer, setShowAddExerciseDrawer] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [muscleFilter, setMuscleFilter] = useState('All')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
   
@@ -492,10 +494,10 @@ export default function CreateRoutine() {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 12 }}>
                     <Pressable hitSlop={10} onPress={() => moveExercise(idx, 'up')} disabled={idx === 0}>
-                      <Feather name="chevron-up" size={24} color={idx === 0 ? '#484550' : theme.colors.textMuted} />
+                      <Feather name="chevron-up" size={24} color={idx === 0 ? theme.colors.borderLight : theme.colors.textMuted} />
                     </Pressable>
                     <Pressable hitSlop={10} onPress={() => moveExercise(idx, 'down')} disabled={idx === routine.exercises.length - 1}>
-                      <Feather name="chevron-down" size={24} color={idx === routine.exercises.length - 1 ? '#484550' : theme.colors.textMuted} />
+                      <Feather name="chevron-down" size={24} color={idx === routine.exercises.length - 1 ? theme.colors.borderLight : theme.colors.textMuted} />
                     </Pressable>
                   </View>
                 </View>
@@ -543,8 +545,8 @@ export default function CreateRoutine() {
             <View style={styles.sheetDivider} />
 
             <Pressable style={styles.sheetOption} onPress={handleRemoveSet}>
-              <Text style={[styles.sheetOptionText, { color: '#F87171' }]}>Delete Set</Text>
-              <Feather name="trash-2" size={20} color="#F87171" />
+              <Text style={[styles.sheetOptionText, { color: theme.colors.error }]}>Delete Set</Text>
+              <Feather name="trash-2" size={20} color={theme.colors.error} />
             </Pressable>
           </Animated.View>
         </View>
@@ -560,7 +562,7 @@ export default function CreateRoutine() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.sheetTitle}>Select Exercise</Text>
                 <View style={{ flexDirection: 'row', gap: 20 }}>
-                  <Pressable hitSlop={15}><Feather name="plus" size={24} color={theme.colors.text} /></Pressable>
+                  <Pressable hitSlop={15} onPress={() => setShowCreateModal(true)}><Feather name="plus" size={24} color={theme.colors.text} /></Pressable>
                   <Pressable hitSlop={15} onPress={closeAddExerciseDrawer}><Feather name="x" size={24} color={theme.colors.text} /></Pressable>
                 </View>
               </View>
@@ -589,8 +591,8 @@ export default function CreateRoutine() {
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
               {filteredExercises.map((e: any, idx: number) => (
                 <View key={e.id || idx}>
-                  <Pressable style={styles.exerciseListItem} onPress={() => handleSelectExercise(e)}>
-                    <View>
+                  <View style={styles.exerciseListItem}>
+                    <Pressable style={{ flex: 1, paddingVertical: 4 }} onPress={() => handleSelectExercise(e)}>
                       <Text style={styles.exListTitle}>{e.name || e.title}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                         <Text style={styles.exListMeta}>{getMuscle(e) || 'Other'}</Text>
@@ -600,9 +602,18 @@ export default function CreateRoutine() {
                           </View>
                         )}
                       </View>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
-                  </Pressable>
+                    </Pressable>
+                    <Pressable 
+                      hitSlop={15} 
+                      style={{ padding: 8, marginRight: -8 }}
+                      onPress={() => {
+                        closeAddExerciseDrawer();
+                        navigation.navigate('ExerciseHistory', { exercise: e });
+                      }}
+                    >
+                      <Feather name="chevron-right" size={20} color={theme.colors.primary} />
+                    </Pressable>
+                  </View>
                   <View style={[styles.sheetDivider, { marginHorizontal: 0 }]} />
                 </View>
               ))}
@@ -610,6 +621,14 @@ export default function CreateRoutine() {
           </Animated.View>
         </View>
       </Modal>
+
+      <CreateExerciseModal 
+        visible={showCreateModal} 
+        onClose={() => setShowCreateModal(false)}
+        onCreated={() => {
+          api.fetchExercises().then((data: any) => setAvailableExercises(data || [])).catch(console.error)
+        }}
+      />
     </SafeAreaView>
   )
 }
@@ -654,25 +673,25 @@ const styles = StyleSheet.create({
   updateBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
   updateBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  reorderCard: { backgroundColor: '#36343B', width: '100%', borderRadius: 24, padding: 24 },
-  reorderTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 24 },
-  reorderItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#2A282E', borderWidth: 1, borderColor: '#484550', borderRadius: 24, padding: 16, marginBottom: 12 },
+  modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24 },
+  reorderTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
+  reorderItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 24, padding: 16, marginBottom: 12 },
   reorderItemText: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
   reorderDoneBtn: { alignSelf: 'flex-end', marginTop: 12, padding: 8, paddingRight: 0 },
   reorderDoneText: { color: theme.colors.primary, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   
   tableInput: { padding: 0, margin: 0, textAlign: 'center' },
 
-  modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
-  bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
-  sheetTitle: { color: theme.colors.text, fontSize: 18, fontWeight: '700' },
-  sheetDivider: { height: 1, backgroundColor: '#38383A', marginHorizontal: -24 },
+  modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
+  bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
+  bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  sheetTitle: { fontSize: 20, fontWeight: '600', color: theme.colors.text, marginBottom: 12 },
+  sheetDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: -24 },
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
 
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#484550', marginRight: 8 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
   filterChipText: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
   filterChipTextActive: { color: theme.colors.primary },

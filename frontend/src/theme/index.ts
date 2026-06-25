@@ -28,6 +28,8 @@ export const colors = {
   success: '#4ADE80',
   successBackground: '#1A2F24',
   error: '#FF3B30',
+  errorLight: 'rgba(255, 59, 48, 0.1)',
+  errorBorder: 'rgba(255, 59, 48, 0.3)',
   errorBackground: '#3F2222',
   destructive: '#7F1D1D',
   

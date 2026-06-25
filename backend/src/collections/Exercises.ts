@@ -6,6 +6,7 @@ export const Exercises: CollectionConfig = {
   access: {
     read: ({ req }) => {
       if (!req.user) return false
+      if (req.user.role === 'admin') return true
       const query: Where = {
         or: [
           { isCustom: { equals: false } },

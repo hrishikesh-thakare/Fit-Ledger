@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 12 },
   button: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, minWidth: 80, alignItems: 'center', backgroundColor: theme.colors.primaryLight },
   buttonCancel: { backgroundColor: 'transparent' },
-  buttonDestructive: { backgroundColor: theme.colors.destructive },
+  buttonDestructive: { backgroundColor: theme.colors.error },
   buttonText: { color: theme.colors.primary, fontWeight: '700', fontSize: 15 },
   buttonTextCancel: { color: theme.colors.textMuted },
   buttonTextDestructive: { color: theme.colors.text },

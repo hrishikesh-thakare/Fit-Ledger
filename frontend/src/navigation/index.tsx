@@ -46,7 +46,7 @@ function MainTabs() {
         },
         tabBarIcon: ({ color }: { color: string }) => {
           let iconName: keyof typeof MaterialCommunityIcons.glyphMap = 'help'
-          if (route.name === 'Dashboard') iconName = 'view-dashboard'
+          if (route.name === 'Dashboard') iconName = 'chart-bar'
           else if (route.name === 'Routines') iconName = 'dumbbell'
           else if (route.name === 'History') iconName = 'history'
           else if (route.name === 'Weight') iconName = 'scale-bathroom'
@@ -74,6 +74,7 @@ import EditRoutine from '../screens/routines/[id]/edit/page'
 import CreateRoutine from '../screens/routines/new/page'
 import Workout from '../screens/workout/page'
 import WorkoutSummary from '../screens/workout/summary/page'
+import ExerciseHistory from '../screens/exercises/history/page'
 
 function RootStack() {
   return (
@@ -91,6 +92,7 @@ function RootStack() {
       <Stack.Screen name="CreateRoutine" component={CreateRoutine} />
       <Stack.Screen name="Workout" component={Workout} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummary} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="ExerciseHistory" component={ExerciseHistory} />
     </Stack.Navigator>
   )
 }

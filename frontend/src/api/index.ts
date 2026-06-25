@@ -74,9 +74,13 @@ export default {
     const res = await fetchWithAuth(`/body-weight-logs/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     return res.doc || res
   },
-  createExercise: async (data: { name: string; muscleGroup: string; isBodyweight?: boolean }) => {
-    const res = await fetchWithAuth('/exercises', { method: 'POST', body: JSON.stringify(data) })
+  createExercise: async (data: { name: string; muscleGroupId: string | number; equipment?: string; isCustom?: boolean }) => {
+    const res = await fetchWithAuth('/custom/exercises', { method: 'POST', body: JSON.stringify(data) })
     return res.doc || res
+  },
+  fetchMuscleGroups: async () => {
+    const res = await fetchWithAuth('/muscle-groups?limit=100')
+    return res.docs || res
   },
   deleteExercise: async (id: number | string) => {
     await fetchWithAuth(`/exercises/${id}`, { method: 'DELETE' })

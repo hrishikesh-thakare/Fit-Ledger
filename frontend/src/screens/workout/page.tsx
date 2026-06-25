@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animat
 import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { theme } from '../../theme'
 import api from '../../api'
 import { useWorkoutContext } from '../../contexts/WorkoutContext'
+import { CreateExerciseModal } from '../../components/CreateExerciseModal'
 
 interface WorkoutSet {
   id: string
@@ -59,6 +61,7 @@ export default function Workout({ route }: any) {
   // Add Exercise State
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [showAddExerciseDrawer, setShowAddExerciseDrawer] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [muscleFilter, setMuscleFilter] = useState('All')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
 
@@ -108,6 +111,17 @@ export default function Workout({ route }: any) {
   const setOptionsPanY = useRef(new Animated.Value(500)).current
   const restTimePanY = useRef(new Animated.Value(500)).current
   const addExPanY = useRef(new Animated.Value(800)).current
+  const restProgressAnim = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (activeRestTimer && activeRestTimer.duration > 0) {
+      Animated.timing(restProgressAnim, {
+        toValue: remainingRest / activeRestTimer.duration,
+        duration: 300,
+        useNativeDriver: false
+      }).start()
+    }
+  }, [remainingRest, activeRestTimer])
 
   const addExPanResponder = useRef(
     PanResponder.create({
@@ -164,12 +178,17 @@ export default function Workout({ route }: any) {
   }
 
   const handleToggleComplete = (exerciseId: string, setId: string) => {
-    let isCompleting = false
+    const exercise = exercises.find(e => e.id === exerciseId)
+    if (!exercise) return
+    const set = exercise.sets.find(s => s.id === setId)
+    if (!set) return
+
+    const isCompleting = !set.completed
+
     setExercises(prev => prev.map(ex => {
       if (ex.id !== exerciseId) return ex
       return { ...ex, sets: ex.sets.map(s => {
         if (s.id === setId) {
-          isCompleting = !s.completed
           return { ...s, completed: !s.completed }
         }
         return s
@@ -177,15 +196,13 @@ export default function Workout({ route }: any) {
     }))
 
     if (isCompleting) {
-      const exercise = exercises.find(e => e.id === exerciseId)
-      if (exercise) {
-        setActiveRestTimer({
-          endTime: Date.now() + exercise.restTime * 1000,
-          duration: exercise.restTime,
-          exerciseId
-        })
-        setRemainingRest(exercise.restTime)
-      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      setActiveRestTimer({
+        endTime: Date.now() + exercise.restTime * 1000,
+        duration: exercise.restTime,
+        exerciseId
+      })
+      setRemainingRest(exercise.restTime)
     }
   }
 
@@ -449,7 +466,7 @@ export default function Workout({ route }: any) {
                   {/* Rows */}
                   {ex.sets.map((set, sIdx) => {
                     const isChecked = set.completed
-                    const rowBg = isChecked ? 'rgba(255, 90, 0, 0.05)' : 'transparent'
+                    const rowBg = isChecked ? theme.colors.primaryLight : 'transparent'
                     return (
                       <View key={set.id || sIdx} style={[styles.tableRow, { backgroundColor: rowBg }]}>
                         {/* Set Number/Type */}
@@ -529,24 +546,32 @@ export default function Workout({ route }: any) {
       {/* Active Rest Timer Banner */}
       {activeRestTimer && remainingRest > 0 && (
         <View style={styles.restBanner}>
-          <View style={[styles.restProgressBar, { width: `${(remainingRest / activeRestTimer.duration) * 100}%` }]} />
+          <Animated.View style={[styles.restProgressBar, { 
+            width: restProgressAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', '100%']
+            })
+          }]} />
           <View style={styles.restBannerInner}>
-            <Pressable style={styles.restBtn} onPress={() => setRemainingRest(r => Math.max(0, r - 15))}>
-              <Text style={styles.restBtnText}>-15</Text>
+            <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => {
+              setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime - 15000, duration: Math.max(15, prev.duration - 15) } : null)
+              setRemainingRest(r => Math.max(0, r - 15))
+            }}>
+              <Text style={[styles.restBtnText, { color: theme.colors.background }]}>-15</Text>
             </Pressable>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.restBannerLabel}>RESTING</Text>
               <Text style={styles.restBannerTime}>{formatTime(remainingRest)}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable style={styles.restBtn} onPress={() => {
-                 setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + 15000 } : null)
+              <Pressable style={[styles.restBtn, { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 8 }]} onPress={() => setActiveRestTimer(null)}>
+                <Text style={[styles.restBtnText, { color: theme.colors.primary }]}>Skip</Text>
+              </Pressable>
+              <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => {
+                 setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + 15000, duration: prev.duration + 15 } : null)
                  setRemainingRest(r => r + 15)
               }}>
-                <Text style={styles.restBtnText}>+15</Text>
-              </Pressable>
-              <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => setActiveRestTimer(null)}>
-                <Text style={[styles.restBtnText, { color: theme.colors.background }]}>Skip</Text>
+                <Text style={[styles.restBtnText, { color: theme.colors.background }]}>+15</Text>
               </Pressable>
             </View>
           </View>
@@ -590,8 +615,8 @@ export default function Workout({ route }: any) {
             </Pressable>
             <View style={styles.sheetDivider} />
             <Pressable style={styles.sheetOption} onPress={handleRemoveSet}>
-              <Text style={[styles.sheetOptionText, { color: '#F87171' }]}>Delete Set</Text>
-              <Feather name="trash-2" size={20} color="#F87171" />
+              <Text style={[styles.sheetOptionText, { color: theme.colors.error }]}>Delete Set</Text>
+              <Feather name="trash-2" size={20} color={theme.colors.error} />
             </Pressable>
           </Animated.View>
         </View>
@@ -632,7 +657,7 @@ export default function Workout({ route }: any) {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.sheetTitle}>Select Exercise</Text>
                 <View style={{ flexDirection: 'row', gap: 20 }}>
-                  <Pressable hitSlop={15}><Feather name="plus" size={24} color={theme.colors.text} /></Pressable>
+                  <Pressable hitSlop={15} onPress={() => setShowCreateModal(true)}><Feather name="plus" size={24} color={theme.colors.text} /></Pressable>
                   <Pressable hitSlop={15} onPress={closeAddExerciseDrawer}><Feather name="x" size={24} color={theme.colors.text} /></Pressable>
                 </View>
               </View>
@@ -661,8 +686,8 @@ export default function Workout({ route }: any) {
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
               {filteredExercises.map((e: any, idx: number) => (
                 <View key={e.id || idx}>
-                  <Pressable style={styles.exerciseListItem} onPress={() => handleSelectExercise(e)}>
-                    <View>
+                  <View style={styles.exerciseListItem}>
+                    <Pressable style={{ flex: 1, paddingVertical: 4 }} onPress={() => handleSelectExercise(e)}>
                       <Text style={styles.exListTitle}>{e.name || e.title}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                         <Text style={styles.exListMeta}>{getMuscle(e) || 'Other'}</Text>
@@ -672,9 +697,18 @@ export default function Workout({ route }: any) {
                           </View>
                         )}
                       </View>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.textMuted} />
-                  </Pressable>
+                    </Pressable>
+                    <Pressable 
+                      hitSlop={15} 
+                      style={{ padding: 8, marginRight: -8 }}
+                      onPress={() => {
+                        closeAddExerciseDrawer();
+                        navigation.navigate('ExerciseHistory', { exercise: e });
+                      }}
+                    >
+                      <Feather name="chevron-right" size={20} color={theme.colors.primary} />
+                    </Pressable>
+                  </View>
                   <View style={[styles.sheetDivider, { marginHorizontal: 0 }]} />
                 </View>
               ))}
@@ -682,6 +716,14 @@ export default function Workout({ route }: any) {
           </Animated.View>
         </View>
       </Modal>
+
+      <CreateExerciseModal 
+        visible={showCreateModal} 
+        onClose={() => setShowCreateModal(false)}
+        onCreated={() => {
+          api.fetchExercises().then((data: any) => setAvailableExercises(data || [])).catch(console.error)
+        }}
+      />
 
       {/* Finish Workout Confirmation Dialog */}
       <Modal visible={showFinishDialog} transparent animationType="fade" statusBarTranslucent>
@@ -754,10 +796,10 @@ const styles = StyleSheet.create({
   addSetBtn: { paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.colors.borderLight, backgroundColor: theme.colors.surfaceVariant },
   addSetText: { color: theme.colors.primary, fontSize: 15, fontWeight: '700' },
 
-  addExerciseCardBtn: { borderStyle: 'dashed', borderWidth: 1, borderColor: '#484550', borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 0 },
+  addExerciseCardBtn: { borderStyle: 'dashed', borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 0 },
   addExerciseCardText: { color: theme.colors.textMuted, fontSize: 15, fontWeight: '700' },
 
-  restBanner: { position: 'absolute', bottom: 85, left: 0, right: 0, backgroundColor: '#1A1A1A', borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+  restBanner: { position: 'absolute', bottom: 85, left: 0, right: 0, backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, elevation: 10, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
   restProgressBar: { height: 3, backgroundColor: theme.colors.primary, position: 'absolute', top: 0, left: 0 },
   restBannerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   restBtn: { backgroundColor: theme.colors.surfaceElevated, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight },
@@ -769,15 +811,15 @@ const styles = StyleSheet.create({
   finishBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
   finishBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
-  modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
-  bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
-  sheetTitle: { color: theme.colors.text, fontSize: 18, fontWeight: '700' },
-  sheetDivider: { height: 1, backgroundColor: '#38383A', marginHorizontal: -24 },
+  modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
+  bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
+  bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  sheetTitle: { fontSize: 20, fontWeight: '600', color: theme.colors.text, marginBottom: 12 },
+  sheetDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: -24 },
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
 
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#484550', marginRight: 8 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
   filterChipText: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
   filterChipTextActive: { color: theme.colors.primary },
@@ -790,7 +832,7 @@ const styles = StyleSheet.create({
 
   // Confirmation Dialogs
   confirmModalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  confirmModalCard: { width: '100%', backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 20, padding: 24 },
+  confirmModalCard: { width: '100%', backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 20, padding: 24 },
   confirmModalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 10 },
   confirmModalText: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 24, lineHeight: 22 },
   confirmModalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
@@ -798,6 +840,6 @@ const styles = StyleSheet.create({
   confirmModalCancelText: { color: theme.colors.textMuted, fontWeight: '700', fontSize: 15 },
   confirmModalSaveBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 10, backgroundColor: theme.colors.primary, minWidth: 80, alignItems: 'center' },
   confirmModalSaveText: { color: theme.colors.background, fontWeight: '700', fontSize: 15 },
-  confirmModalDiscardBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.colors.destructive, minWidth: 80, alignItems: 'center' },
+  confirmModalDiscardBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.colors.error, minWidth: 80, alignItems: 'center' },
   confirmModalDiscardText: { color: theme.colors.text, fontWeight: '700', fontSize: 15 },
 })

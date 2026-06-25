@@ -230,7 +230,7 @@ export default function WorkoutDetails({ route }: any) {
                   let labelWeight: any = '600'
                   
                   if (isWarmup) {
-                    labelColor = '#FF9500' // Orange
+                    labelColor = theme.colors.primary // Orange
                     labelWeight = 'bold'
                   } else if (isDrop) {
                     labelColor = theme.colors.primary // Blue

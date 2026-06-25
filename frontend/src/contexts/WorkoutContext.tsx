@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import * as Haptics from 'expo-haptics'
 
 interface WorkoutSet {
   id: string
@@ -66,6 +67,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       setRemainingRest(remaining)
       if (remaining <= 0) {
         setActiveRestTimer(null)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       }
     }, 200)
     return () => clearInterval(interval)

@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#4A4A4A',
+    backgroundColor: theme.colors.borderLight,
     justifyContent: 'center',
     padding: 2,
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#B0B0B0',
+    backgroundColor: theme.colors.textMuted,
     transform: [{ translateX: 0 }],
   },
   toggleThumbActive: {
@@ -310,11 +310,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   discardBtn: {
-    paddingVertical: 12,
+    backgroundColor: theme.colors.error,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
   },
   discardBtnText: {
-    color: theme.colors.primary,
-    fontSize: 15,
+    color: theme.colors.text,
+    fontSize: 16,
     fontWeight: '700',
   },
 })
