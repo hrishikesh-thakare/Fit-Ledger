@@ -23,7 +23,7 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const response = await fetch('http://192.168.0.111:3000/api/users/login', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -111,7 +111,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: { padding: 24, flex: 1, justifyContent: 'center', backgroundColor: theme.colors.background },
   headerContainer: { marginBottom: 40, alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: '700', color: theme.colors.text, marginBottom: 8, letterSpacing: 0.5 },
+  title: { ...theme.typography.display, marginBottom: 8, letterSpacing: 0.5 },
   hint: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '400' },
   inputLabel: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, height: 52 },

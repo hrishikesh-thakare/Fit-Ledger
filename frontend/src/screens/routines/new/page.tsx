@@ -8,6 +8,7 @@ import { Toast } from '../../../components/CustomToast'
 import { theme } from '../../../theme'
 import api from '../../../api'
 import { CreateExerciseModal } from '../../../components/CreateExerciseModal'
+import { getMuscle, getEquipment, capitalize } from '../../../utils/exercise'
 
 export default function CreateRoutine() {
   const navigation = useNavigation<any>()
@@ -36,6 +37,8 @@ export default function CreateRoutine() {
   const scrollRef = useRef<ScrollView>(null)
   const cardYPositions = useRef<Record<number, number>>({})
 
+  const generateId = () => "temp." + Date.now().toString(36) + Math.random().toString(36).substring(2)
+
   const handleFocusInput = (idx: number) => {
     const y = cardYPositions.current[idx]
     if (typeof y === 'number') {
@@ -52,6 +55,7 @@ export default function CreateRoutine() {
   const [showAddExerciseDrawer, setShowAddExerciseDrawer] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [muscleFilter, setMuscleFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
   
   const addExPanY = useRef(new Animated.Value(800)).current
@@ -90,42 +94,19 @@ export default function CreateRoutine() {
   const handleSelectExercise = (exercise: any) => {
     const newRoutine = { ...routine }
     newRoutine.exercises.push({
-      id: Math.random().toString(),
+      id: generateId(),
       exerciseId: exercise.id,
       name: exercise.name,
       bodyPart: exercise.bodyPart,
       equipment: exercise.equipment,
-      sets: [{ id: Math.random().toString(), type: 'Normal', weight: '', reps: '' }]
+      sets: [{ id: generateId(), type: 'Normal', weight: '', reps: '' }]
     })
     setRoutine(newRoutine)
     hasUnsavedChanges.current = true
     closeAddExerciseDrawer()
   }
 
-  const capitalize = (str: string) => {
-    if (!str) return '';
-    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  }
 
-  const getMuscle = (e: any) => {
-    if (!e) return null;
-    const val = e.bodyPart || (e.muscleGroup && (typeof e.muscleGroup === 'object' ? e.muscleGroup.name : e.muscleGroup));
-    return typeof val === 'string' ? capitalize(val) : null;
-  }
-  
-  const getEquipment = (e: any) => {
-    if (!e) return null;
-    let val = '';
-    if (typeof e.equipment === 'string') val = e.equipment;
-    else if (Array.isArray(e.equipment)) {
-      const eq = e.equipment[0];
-      if (typeof eq === 'string') val = eq;
-      else if (eq && typeof eq === 'object' && eq.name) val = eq.name;
-      else if (typeof eq === 'object') val = 'Machine';
-    }
-    else if (e.equipment && typeof e.equipment === 'object' && e.equipment.name) val = e.equipment.name;
-    return val ? capitalize(val) : null;
-  }
 
   const uniqueMuscles = ['All', ...Array.from(new Set(availableExercises.map(getMuscle).filter(Boolean)))]
   const uniqueEquipment = ['All', ...Array.from(new Set(availableExercises.map(getEquipment).filter(Boolean)))]
@@ -135,7 +116,8 @@ export default function CreateRoutine() {
     const eq = getEquipment(e);
     const matchMuscle = muscleFilter === 'All' || m === muscleFilter;
     const matchEquipment = equipmentFilter === 'All' || eq === equipmentFilter;
-    return matchMuscle && matchEquipment;
+    const matchSearch = (e.name || e.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchMuscle && matchEquipment && matchSearch;
   })
 
   const setOptionsPanY = useRef(new Animated.Value(500)).current
@@ -229,7 +211,7 @@ export default function CreateRoutine() {
     const lastSet = ex.sets?.[ex.sets?.length - 1];
     
     ex.sets = [...(ex.sets || []), {
-      id: Math.random().toString(),
+      id: generateId(),
       type: 'N',
       weight: lastSet ? lastSet.weight : '',
       reps: lastSet ? lastSet.reps : ''
@@ -568,6 +550,25 @@ export default function CreateRoutine() {
               </View>
             </View>
             
+            {/* Search Bar */}
+            <View style={{ paddingHorizontal: 24, marginTop: 12 }}>
+              <View style={styles.searchInputWrapper}>
+                <Feather name="search" size={18} color={theme.colors.textMuted} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search exercises..."
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                    <Feather name="x-circle" size={16} color={theme.colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            </View>
+            
             {/* Chips */}
             <View style={{ paddingHorizontal: 24, paddingBottom: 16, marginTop: 8 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
@@ -638,7 +639,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  headerTitle: { ...theme.typography.heading },
   
   scrollArea: { padding: 16, paddingBottom: 90 },
   
@@ -674,7 +675,7 @@ const styles = StyleSheet.create({
   updateBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
   modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24 },
+  reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.colors.borderLight },
   reorderTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
   reorderItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 24, padding: 16, marginBottom: 12 },
   reorderItemText: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
@@ -690,6 +691,9 @@ const styles = StyleSheet.create({
   sheetDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: -24 },
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
+  searchInputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, paddingHorizontal: 12, height: 44, borderWidth: 1, borderColor: theme.colors.borderLight },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: theme.colors.text, fontSize: 16 },
 
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },

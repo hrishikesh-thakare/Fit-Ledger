@@ -17,7 +17,7 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, flex: 1, backgroundColor: theme.colors.background },
-  title: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
+  title: { ...theme.typography.headerTitle },
   centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   comingSoon: { fontSize: 20, color: theme.colors.textMuted, fontWeight: '500' },
 })

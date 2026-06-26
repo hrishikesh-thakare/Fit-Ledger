@@ -1,15 +1,15 @@
 export const colors = {
-  // Backgrounds & Surfaces
+  // Background fills — pure black (no grey surfaces)
   background: '#000000',
   surface: '#000000',
   surfaceElevated: '#000000',
   surfaceVariant: '#000000',
   surfaceDropdown: '#000000',
   
-  // Borders & Dividers
-  border: '#1A1A1A',
+  // Lines & outlines — keep grey (not fills)
+  border: '#2D2D30',
   borderLight: '#1F1F21',
-  borderInput: '#2D2D30',
+  borderInput: '#3C3C3E',
   
   // Shadows
   shadow: '#000000',
@@ -39,13 +39,23 @@ export const colors = {
 };
 
 export const typography = {
+  display: { fontSize: 32, fontWeight: '800' as const, color: colors.text },
+  heading: { fontSize: 24, fontWeight: '700' as const, color: colors.text },
+  body: { fontSize: 16, fontWeight: '400' as const, color: colors.text },
+  label: { fontSize: 14, fontWeight: '600' as const, color: colors.text },
+  caption: { fontSize: 12, fontWeight: '400' as const, color: colors.textMuted },
   headerTitle: { fontSize: 28, fontWeight: '400' as const, lineHeight: 36, color: colors.text },
   cardTitle: { fontSize: 22, fontWeight: '400' as const, lineHeight: 28, color: colors.text },
+};
+
+export const layout = {
+  tabBarHeight: 68,
 };
 
 export const theme = {
   colors,
   typography,
+  layout,
 };
 
 export default theme;

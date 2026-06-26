@@ -46,18 +46,24 @@ export async function loadWorkoutFromPayload(
   }
 
   const [routine, routineExercisesResponse] = await Promise.all([
-    payload.findByID({ collection: 'routines', id: numericRoutineId }),
+    payload.findByID({ collection: 'routines', id: numericRoutineId, overrideAccess: true }),
     payload.find({
       collection: 'routine-exercises',
       where: { routine: { equals: numericRoutineId } },
       sort: 'exerciseOrder',
       limit: 100,
       depth: 1,
+      overrideAccess: true,
     }),
   ])
 
   if (!routine) {
     return { status: 404, body: { error: 'Routine not found' } }
+  }
+
+  const routineUserId = typeof routine.user === 'object' ? routine.user.id : routine.user
+  if (String(routineUserId) !== String(userId)) {
+    return { status: 403, body: { error: 'Forbidden' } }
   }
 
   const routineExerciseIds = routineExercisesResponse.docs.map((re) => re.id)
@@ -79,60 +85,56 @@ export async function loadWorkoutFromPayload(
           limit: 1000,
           sort: 'setOrder',
           depth: 0,
+          overrideAccess: true,
         })
       : Promise.resolve({ docs: [] as RoutineSetLike[] }),
-    Promise.all(
-      exerciseIds.map(async (exId) => {
-        const mostRecentWorkoutResult = await payload.find({
-          collection: 'workout-sets',
-          where: {
-            and: [
-              { 'workoutExercise.exercise': { equals: exId } },
-              { 'workoutExercise.workoutDay.user': { equals: resolvedUserId } },
-              { 'workoutExercise.workoutDay.date': { less_than: date } },
-            ],
-          },
-          sort: '-createdAt',
-          limit: 1,
-          depth: 1,
-        })
+    (async () => {
+      if (exerciseIds.length === 0) return new Map<string, { weight: number; reps: number }>()
 
-        if (!mostRecentWorkoutResult.docs.length) {
-          return { exId: String(exId), sets: [] as RoutineSetLike[] }
+      const recentSetsResult = await payload.find({
+        collection: 'workout-sets',
+        where: {
+          and: [
+            { 'workoutExercise.exercise': { in: exerciseIds } },
+            { 'workoutDay.user': { equals: resolvedUserId } },
+            { 'workoutDay.date': { less_than: date } },
+          ],
+        },
+        sort: '-createdAt',
+        limit: 1000,
+        depth: 1,
+        overrideAccess: true,
+      })
+
+      // Find the most recent workoutDay ID for each exercise
+      const mostRecentDayIdPerEx = new Map<string, string | number>()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recentSetsResult.docs.forEach((setRaw: any) => {
+        const set = setRaw
+        const exId = typeof set.workoutExercise.exercise === 'object' ? set.workoutExercise.exercise.id : set.workoutExercise.exercise
+        const exIdStr = String(exId)
+        
+        if (!mostRecentDayIdPerEx.has(exIdStr)) {
+          const dayId = typeof set.workoutDay === 'object' && set.workoutDay ? set.workoutDay.id : set.workoutDay
+          if (dayId) mostRecentDayIdPerEx.set(exIdStr, dayId)
         }
+      })
 
-        const mostRecentSet = mostRecentWorkoutResult.docs[0] as { workoutDay?: unknown }
-        let targetWorkoutDayId: string | number
-        if (mostRecentSet.workoutDay && typeof mostRecentSet.workoutDay === 'object' && 'id' in mostRecentSet.workoutDay) {
-          targetWorkoutDayId = (mostRecentSet.workoutDay as { id: string | number }).id
-        } else {
-          targetWorkoutDayId = mostRecentSet.workoutDay as string | number
-        }
-
-        const allPreviousSets = await payload.find({
-          collection: 'workout-sets',
-          where: {
-            and: [
-              { 'workoutExercise.exercise': { equals: exId } },
-              { workoutDay: { equals: targetWorkoutDayId } },
-            ],
-          },
-          limit: 50,
-          sort: 'setOrder',
-          depth: 0,
-        })
-
-        return { exId: String(exId), sets: allPreviousSets.docs as RoutineSetLike[] }
-      }),
-    ).then((results) => {
+      // Now populate stats Map only for the sets belonging to that most recent day
       const statsMap = new Map<string, { weight: number; reps: number }>()
-      results.forEach(({ exId, sets }) => {
-        sets.forEach((set) => {
-          statsMap.set(`${exId}:${set.setOrder}`, { weight: set.weight, reps: set.reps })
-        })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recentSetsResult.docs.forEach((setRaw: any) => {
+        const set = setRaw
+        const exId = typeof set.workoutExercise.exercise === 'object' ? set.workoutExercise.exercise.id : set.workoutExercise.exercise
+        const exIdStr = String(exId)
+        const dayId = typeof set.workoutDay === 'object' && set.workoutDay ? set.workoutDay.id : set.workoutDay
+        
+        if (mostRecentDayIdPerEx.get(exIdStr) === dayId) {
+          statsMap.set(`${exIdStr}:${set.setOrder}`, { weight: set.weight, reps: set.reps })
+        }
       })
       return statsMap
-    }),
+    })(),
   ])
 
   const allRoutineSets = routineSetsResponse.docs as RoutineSetLike[]

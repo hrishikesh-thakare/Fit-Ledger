@@ -17,6 +17,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const payload = await getPayloadClient()
 
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (user.role !== 'admin' && String(user.id) !== String(userId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   try {
     const payloadStart = performance.now()
 

@@ -27,6 +27,7 @@ interface RestTimerState {
 interface WorkoutContextType {
   isActive: boolean
   routineId: string | null
+  clientId: string | null
   elapsedTime: number
   exercises: WorkoutExercise[]
   activeRestTimer: RestTimerState | null
@@ -44,7 +45,9 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined)
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [isActive, setIsActive] = useState(false)
   const [routineId, setRoutineId] = useState<string | null>(null)
+  const [clientId, setClientId] = useState<string | null>(null)
   const [elapsedTime, setElapsedTime] = useState(0)
+  const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null)
   const [exercises, setExercises] = useState<WorkoutExercise[]>([])
   
   const [activeRestTimer, setActiveRestTimer] = useState<RestTimerState | null>(null)
@@ -53,11 +56,13 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   // Timer Effect
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>
-    if (isActive) {
-      timer = setInterval(() => setElapsedTime((prev) => prev + 1), 1000)
+    if (isActive && workoutStartTime) {
+      timer = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - workoutStartTime) / 1000))
+      }, 1000)
     }
     return () => clearInterval(timer)
-  }, [isActive])
+  }, [isActive, workoutStartTime])
 
   // Rest Timer Effect
   useEffect(() => {
@@ -75,16 +80,20 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
   const startWorkout = (id: string, initialExercises: WorkoutExercise[]) => {
     setRoutineId(id)
+    setClientId(`sess-${Date.now()}-${Math.floor(Math.random() * 10000)}`)
     setExercises(initialExercises)
     setElapsedTime(0)
+    setWorkoutStartTime(Date.now())
     setIsActive(true)
   }
 
   const endWorkout = () => {
     setIsActive(false)
     setRoutineId(null)
+    setClientId(null)
     setExercises([])
     setElapsedTime(0)
+    setWorkoutStartTime(null)
     setActiveRestTimer(null)
     setRemainingRest(0)
   }
@@ -100,6 +109,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       value={{
         isActive,
         routineId,
+        clientId,
         elapsedTime,
         exercises,
         activeRestTimer,

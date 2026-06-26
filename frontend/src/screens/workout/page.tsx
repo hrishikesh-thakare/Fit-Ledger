@@ -8,6 +8,7 @@ import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { theme } from '../../theme'
 import api from '../../api'
+import { getMuscle, getEquipment, capitalize } from '../../utils/exercise'
 import { useWorkoutContext } from '../../contexts/WorkoutContext'
 import { CreateExerciseModal } from '../../components/CreateExerciseModal'
 
@@ -63,7 +64,10 @@ export default function Workout({ route }: any) {
   const [showAddExerciseDrawer, setShowAddExerciseDrawer] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [muscleFilter, setMuscleFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
+
+  const generateId = () => "temp." + Date.now().toString(36) + Math.random().toString(36).substring(2)
 
   // Load workout data via the load API
   const hasInitializedRef = useRef(false)
@@ -83,12 +87,12 @@ export default function Workout({ route }: any) {
         const workoutData = await api.loadWorkout(routineId)
         if (workoutData && workoutData.exercises) {
           const loadedEx = workoutData.exercises.map((ex: any) => ({
-            id: ex.id || Math.random().toString(),
+            id: ex.id || generateId(),
             exerciseId: ex.exerciseId || ex.id,
             name: ex.name || 'Unknown Exercise',
             restTime: ex.restTime || 60,
             sets: (ex.sets || []).map((s: any) => ({
-              id: s.id || Math.random().toString(),
+              id: s.id || generateId(),
               type: s.type || 'N',
               weight: s.weight ? String(s.weight) : '',
               reps: s.reps ? String(s.reps) : '',
@@ -219,7 +223,7 @@ export default function Workout({ route }: any) {
       if (ex.id !== exerciseId) return ex
       const lastSet = ex.sets[ex.sets.length - 1]
       const newSet: WorkoutSet = {
-        id: Math.random().toString(),
+        id: generateId(),
         type: 'N',
         weight: lastSet ? lastSet.weight : '',
         reps: lastSet ? lastSet.reps : '',
@@ -258,11 +262,11 @@ export default function Workout({ route }: any) {
     setExercises(prev => [
       ...prev,
       {
-        id: Math.random().toString(),
+        id: generateId(),
         exerciseId: exercise.id,
         name: exercise.name,
         restTime: 60,
-        sets: [{ id: Math.random().toString(), type: 'N', weight: '', reps: '', completed: false, previous: '-' }]
+        sets: [{ id: generateId(), type: 'N', weight: '', reps: '', completed: false, previous: '-' }]
       }
     ])
     closeAddExerciseDrawer()
@@ -287,13 +291,26 @@ export default function Workout({ route }: any) {
         // Send ALL sets (including uncompleted ones) so the backend's updatePrevWeights
         // doesn't delete uncompleted sets from the routine template!
         // The backend `start.ts` checks `s.completed` to avoid logging history for uncompleted ones.
-        sets: ex.sets.map((s, idx) => ({
-          weight: String(Number(s.weight) || 0),
-          reps: String(Number(s.reps) || 0),
-          setLabel: s.type === 'W' || s.type === 'Warmup' ? 'warmup' : s.type === 'D' || s.type === 'Drop' ? 'drop' : 'working',
-          completed: s.completed,
-          setOrder: idx,
-        }))
+        sets: ex.sets.map((s, idx) => {
+          let prevW, prevR
+          if (s.previous && s.previous !== '-') {
+            const parts = s.previous.split('x')
+            if (parts.length === 2) {
+              prevW = Number(parts[0])
+              prevR = Number(parts[1])
+            }
+          }
+          return {
+            weight: String(Number(s.weight) || 0),
+            reps: String(Number(s.reps) || 0),
+            setLabel: s.type === 'W' || s.type === 'Warmup' ? 'warmup' : s.type === 'D' || s.type === 'Drop' ? 'drop' : 'working',
+            completed: s.completed,
+            setOrder: idx,
+            displayLabel: getSetLabelText(ex.sets, idx),
+            previousWeight: prevW,
+            previousReps: prevR,
+          }
+        })
       }))
 
     setSaving(true)
@@ -305,8 +322,6 @@ export default function Workout({ route }: any) {
         durationSeconds: elapsedTime,
         exercises: exercisesToSave,
       }
-
-      endWorkout()
 
       // Build summary data for the summary screen
       const summaryExercises = exercisesToSave.map(ex => {
@@ -337,35 +352,10 @@ export default function Workout({ route }: any) {
         }
       })
     } catch (err) {
-      Toast.show('Failed to save workout', 'error')
+      Toast.show('Failed to prepare summary', 'error')
     } finally {
       setSaving(false)
     }
-  }
-
-  const capitalize = (str: string) => {
-    if (!str) return '';
-    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  }
-
-  const getMuscle = (e: any) => {
-    if (!e) return null;
-    const val = e.bodyPart || (e.muscleGroup && (typeof e.muscleGroup === 'object' ? e.muscleGroup.name : e.muscleGroup));
-    return typeof val === 'string' ? capitalize(val) : null;
-  }
-  
-  const getEquipment = (e: any) => {
-    if (!e) return null;
-    let val = '';
-    if (typeof e.equipment === 'string') val = e.equipment;
-    else if (Array.isArray(e.equipment)) {
-      const eq = e.equipment[0];
-      if (typeof eq === 'string') val = eq;
-      else if (eq && typeof eq === 'object' && eq.name) val = eq.name;
-      else if (typeof eq === 'object') val = 'Machine';
-    }
-    else if (e.equipment && typeof e.equipment === 'object' && e.equipment.name) val = e.equipment.name;
-    return val ? capitalize(val) : null;
   }
 
   const uniqueMuscles = ['All', ...Array.from(new Set(availableExercises.map(getMuscle).filter(Boolean)))]
@@ -376,7 +366,8 @@ export default function Workout({ route }: any) {
     const eq = getEquipment(e);
     const matchMuscle = muscleFilter === 'All' || m === muscleFilter;
     const matchEquipment = equipmentFilter === 'All' || eq === equipmentFilter;
-    return matchMuscle && matchEquipment;
+    const matchSearch = (e.name || e.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchMuscle && matchEquipment && matchSearch;
   })
 
   const getSetLabelText = (exSets: WorkoutSet[], idx: number) => {
@@ -434,9 +425,13 @@ export default function Workout({ route }: any) {
       </View>
 
       {/* Main List */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollArea} keyboardShouldPersistTaps="handled">
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={[styles.scrollArea, { paddingBottom: (activeRestTimer && remainingRest > 0) ? 180 : 100 }]} 
+        keyboardShouldPersistTaps="handled"
+      >
         {isLoading ? (
-          <Text style={{ color: theme.colors.textMuted, textAlign: 'center', marginTop: 40 }}>Loading...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <>
             {exercises.map((ex, exIdx) => {
@@ -543,50 +538,51 @@ export default function Workout({ route }: any) {
         )}
       </ScrollView>
 
-      {/* Active Rest Timer Banner */}
-      {activeRestTimer && remainingRest > 0 && (
-        <View style={styles.restBanner}>
-          <Animated.View style={[styles.restProgressBar, { 
-            width: restProgressAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%']
-            })
-          }]} />
-          <View style={styles.restBannerInner}>
-            <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => {
-              setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime - 15000, duration: Math.max(15, prev.duration - 15) } : null)
-              setRemainingRest(r => Math.max(0, r - 15))
-            }}>
-              <Text style={[styles.restBtnText, { color: theme.colors.background }]}>-15</Text>
-            </Pressable>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={styles.restBannerLabel}>RESTING</Text>
-              <Text style={styles.restBannerTime}>{formatTime(remainingRest)}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Pressable style={[styles.restBtn, { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 8 }]} onPress={() => setActiveRestTimer(null)}>
-                <Text style={[styles.restBtnText, { color: theme.colors.primary }]}>Skip</Text>
-              </Pressable>
+      {/* Bottom bar: rest timer stacked directly above finish button */}
+      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        {activeRestTimer && remainingRest > 0 && (
+          <View style={styles.restBanner}>
+            <Animated.View style={[styles.restProgressBar, { 
+              width: restProgressAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%']
+              })
+            }]} />
+            <View style={styles.restBannerInner}>
               <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => {
-                 setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + 15000, duration: prev.duration + 15 } : null)
-                 setRemainingRest(r => r + 15)
+                setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime - 15000, duration: Math.max(15, prev.duration - 15) } : null)
+                setRemainingRest(r => Math.max(0, r - 15))
               }}>
-                <Text style={[styles.restBtnText, { color: theme.colors.background }]}>+15</Text>
+                <Text style={[styles.restBtnText, { color: theme.colors.background }]}>-15</Text>
               </Pressable>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.restBannerLabel}>RESTING</Text>
+                <Text style={styles.restBannerTime}>{formatTime(remainingRest)}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable style={[styles.restBtn, { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 8 }]} onPress={() => setActiveRestTimer(null)}>
+                  <Text style={[styles.restBtnText, { color: theme.colors.primary }]}>Skip</Text>
+                </Pressable>
+                <Pressable style={[styles.restBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]} onPress={() => {
+                   setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + 15000, duration: prev.duration + 15 } : null)
+                   setRemainingRest(r => r + 15)
+                }}>
+                  <Text style={[styles.restBtnText, { color: theme.colors.background }]}>+15</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Pressable 
-          style={[styles.finishBtn, saving && { opacity: 0.7 }]} 
-          onPress={handleFinishWorkout}
-          disabled={saving}
-        >
-          <Text style={styles.finishBtnText}>{saving ? 'Saving...' : 'Finish Workout'}</Text>
-        </Pressable>
+        <View style={[styles.footer, activeRestTimer && remainingRest > 0 && styles.footerWithRestBanner]}>
+          <Pressable 
+            style={[styles.finishBtn, saving && { opacity: 0.7 }]} 
+            onPress={handleFinishWorkout}
+            disabled={saving}
+          >
+            <Text style={styles.finishBtnText}>{saving ? 'Saving...' : 'Finish Workout'}</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Set Options Modal */}
@@ -660,6 +656,25 @@ export default function Workout({ route }: any) {
                   <Pressable hitSlop={15} onPress={() => setShowCreateModal(true)}><Feather name="plus" size={24} color={theme.colors.text} /></Pressable>
                   <Pressable hitSlop={15} onPress={closeAddExerciseDrawer}><Feather name="x" size={24} color={theme.colors.text} /></Pressable>
                 </View>
+              </View>
+            </View>
+            
+            {/* Search Bar */}
+            <View style={{ paddingHorizontal: 24, marginTop: 12 }}>
+              <View style={styles.searchInputWrapper}>
+                <Feather name="search" size={18} color={theme.colors.textMuted} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search exercises..."
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                    <Feather name="x-circle" size={16} color={theme.colors.textMuted} />
+                  </Pressable>
+                )}
               </View>
             </View>
             
@@ -764,7 +779,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
+  headerTitle: { ...theme.typography.heading },
   timerBox: { alignItems: 'flex-end' },
   timerLabel: { fontSize: 10, fontWeight: '800', color: theme.colors.textMuted, letterSpacing: 1 },
   timerValue: { fontSize: 22, fontWeight: '800', color: theme.colors.primary, fontFamily: 'monospace' },
@@ -773,7 +788,7 @@ const styles = StyleSheet.create({
   
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   hint: { color: theme.colors.textMuted, fontSize: 16, textAlign: 'center', marginBottom: 24 },
-  backBtn: { paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surfaceVariant, borderRadius: 12 },
+  backBtn: { paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.borderLight },
   backBtnText: { color: theme.colors.text, fontWeight: '600' },
 
   card: { backgroundColor: theme.colors.surfaceElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, overflow: 'hidden', marginBottom: 16 },
@@ -799,7 +814,8 @@ const styles = StyleSheet.create({
   addExerciseCardBtn: { borderStyle: 'dashed', borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 0 },
   addExerciseCardText: { color: theme.colors.textMuted, fontSize: 15, fontWeight: '700' },
 
-  restBanner: { position: 'absolute', bottom: 85, left: 0, right: 0, backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, elevation: 10, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, backgroundColor: theme.colors.background },
+  restBanner: { backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, elevation: 10, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
   restProgressBar: { height: 3, backgroundColor: theme.colors.primary, position: 'absolute', top: 0, left: 0 },
   restBannerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   restBtn: { backgroundColor: theme.colors.surfaceElevated, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight },
@@ -807,7 +823,8 @@ const styles = StyleSheet.create({
   restBannerLabel: { color: theme.colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 2 },
   restBannerTime: { color: theme.colors.primary, fontSize: 24, fontWeight: '800', fontFamily: 'monospace' },
 
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.borderLight },
+  footer: { paddingHorizontal: 16, paddingTop: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.borderLight },
+  footerWithRestBanner: { borderTopWidth: 0, paddingTop: 15 },
   finishBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
   finishBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
@@ -818,6 +835,9 @@ const styles = StyleSheet.create({
   sheetDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: -24 },
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
+  searchInputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, paddingHorizontal: 12, height: 44, borderWidth: 1, borderColor: theme.colors.borderLight },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: theme.colors.text, fontSize: 16 },
 
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },

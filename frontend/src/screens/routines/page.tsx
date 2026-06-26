@@ -62,19 +62,20 @@ export default function Routines() {
     lastOffsetY.current = offsetY
   }
 
-  const fetchRoutines = () => {
+  const fetchRoutines = (silent = false) => {
     if (!user?.id) return
+    if (!silent) setLoading(true)
     api
       .fetchRoutines(user.id)
       .then((data: any) => setRoutines(data || []))
       .catch((err: any) => setError(err.message))
-      .finally(() => setLoading(false))
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   useFocusEffect(
     React.useCallback(() => {
-      fetchRoutines()
-    }, [user?.id])
+      fetchRoutines(routines.length > 0)
+    }, [user?.id, routines.length])
   )
 
   const handleAdd = () => {
@@ -129,7 +130,7 @@ export default function Routines() {
           const mg = r.muscleGroups || []
           const numExercises = r.exerciseCount || 0
           // Mock preview text if not available
-          const previewText = r.previewExercises?.join(' · ') || 'Decline Chest Press · Incline Chest Press · Bench Press · ...'
+          const previewText = (r.previewExercises && r.previewExercises.length > 0) ? r.previewExercises.join(' · ') : 'No exercises added'
           
           return (
             <View key={r.id || r._id} style={styles.card}>
@@ -208,7 +209,7 @@ export default function Routines() {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: theme.colors.background },
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
-  headerTitle: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
+  headerTitle: { ...theme.typography.headerTitle },
   container: { padding: 16, paddingBottom: 100, flexGrow: 1 },
   card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.background, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
   startButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
-  startButtonText: { color: theme.colors.background, fontWeight: '500', fontSize: 14, lineHeight: 20, marginRight: 6 },
+  startButtonText: { color: theme.colors.background, fontWeight: '700', fontSize: 14, lineHeight: 20, marginRight: 6 },
   
   emptyState: { alignItems: 'center', marginTop: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 16 },

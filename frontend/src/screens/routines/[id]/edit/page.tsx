@@ -1,16 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animated, PanResponder, Keyboard, Platform } from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Modal, Animated, PanResponder, Keyboard, Platform, ActivityIndicator } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { getMuscle, getEquipment, capitalize } from '../../../../utils/exercise'
 import { CustomAlert as Alert } from '../../../../components/CustomAlert'
 import { Toast } from '../../../../components/CustomToast'
 import { theme } from '../../../../theme'
 import api from '../../../../api'
 import { CreateExerciseModal } from '../../../../components/CreateExerciseModal'
 
-export default function EditRoutine({ route }: any) {
-  const navigation = useNavigation<any>()
+interface RoutineSet {
+  id?: string;
+  type?: string;
+  weight?: string | number;
+  reps?: string | number;
+}
+interface RoutineExercise {
+  id?: string;
+  exerciseId?: string;
+  exercise?: { id?: string | number; name?: string; title?: string; equipment?: string; bodyPart?: string };
+  name?: string;
+  title?: string;
+  bodyPart?: string;
+  equipment?: string;
+  sets?: RoutineSet[];
+}
+interface Routine {
+  id?: string | number;
+  name?: string;
+  title?: string;
+  exercises?: RoutineExercise[];
+}
+
+export default function EditRoutine({ route }: { route: { params?: { id?: string | number } } }) {
+  const navigation = useNavigation() as {
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+    goBack: () => void;
+    dispatch: (action: unknown) => void;
+    addListener: (event: string, callback: (e: { preventDefault: () => void; data: { action: unknown } }) => void) => () => void;
+  }
   const insets = useSafeAreaInsets()
   const { id } = route.params || {}
   
@@ -29,7 +58,7 @@ export default function EditRoutine({ route }: any) {
     }
   }, [])
   
-  const [routine, setRoutine] = useState<any>(null)
+  const [routine, setRoutine] = useState<Routine | null>(null)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const hasUnsavedChanges = useRef(false)
@@ -49,10 +78,11 @@ export default function EditRoutine({ route }: any) {
   const [selectedSet, setSelectedSet] = useState<{ exIdx: number, sIdx: number, type: string } | null>(null)
 
   // Add Exercise State
-  const [availableExercises, setAvailableExercises] = useState<any[]>([])
+  const [availableExercises, setAvailableExercises] = useState<RoutineExercise[]>([])
   const [showAddExerciseDrawer, setShowAddExerciseDrawer] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [muscleFilter, setMuscleFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [equipmentFilter, setEquipmentFilter] = useState('All')
   
   const addExPanY = useRef(new Animated.Value(800)).current
@@ -75,7 +105,7 @@ export default function EditRoutine({ route }: any) {
   useEffect(() => {
     if (showAddExerciseDrawer) {
       if (availableExercises.length === 0) {
-        api.fetchExercises().then((data: any) => setAvailableExercises(data || [])).catch(console.error)
+        api.fetchExercises().then((data: RoutineExercise[]) => setAvailableExercises(data || [])).catch(console.error)
       }
       addExPanY.setValue(800)
       Animated.spring(addExPanY, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }).start()
@@ -88,55 +118,34 @@ export default function EditRoutine({ route }: any) {
     })
   }
 
-  const handleSelectExercise = (exercise: any) => {
+  const handleSelectExercise = (exercise: RoutineExercise) => {
     const newRoutine = { ...routine }
+    if (!newRoutine.exercises) newRoutine.exercises = []
     newRoutine.exercises.push({
-      id: Math.random().toString(),
+      id: "temp." + Date.now().toString(36) + Math.random().toString(36).substring(2),
       exerciseId: exercise.id,
       name: exercise.name,
       bodyPart: exercise.bodyPart,
       equipment: exercise.equipment,
-      sets: [{ id: Math.random().toString(), type: 'Normal', weight: '', reps: '' }]
+      sets: [{ id: "temp." + Date.now().toString(36) + Math.random().toString(36).substring(2), type: 'Normal', weight: '', reps: '' }]
     })
     setRoutine(newRoutine)
     hasUnsavedChanges.current = true
     closeAddExerciseDrawer()
   }
 
-  const capitalize = (str: string) => {
-    if (!str) return '';
-    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-  }
 
-  const getMuscle = (e: any) => {
-    if (!e) return null;
-    const val = e.bodyPart || (e.muscleGroup && (typeof e.muscleGroup === 'object' ? e.muscleGroup.name : e.muscleGroup));
-    return typeof val === 'string' ? capitalize(val) : null;
-  }
-  
-  const getEquipment = (e: any) => {
-    if (!e) return null;
-    let val = '';
-    if (typeof e.equipment === 'string') val = e.equipment;
-    else if (Array.isArray(e.equipment)) {
-      const eq = e.equipment[0];
-      if (typeof eq === 'string') val = eq;
-      else if (eq && typeof eq === 'object' && eq.name) val = eq.name;
-      else if (typeof eq === 'object') val = 'Machine';
-    }
-    else if (e.equipment && typeof e.equipment === 'object' && e.equipment.name) val = e.equipment.name;
-    return val ? capitalize(val) : null;
-  }
 
-  const uniqueMuscles = ['All', ...Array.from(new Set(availableExercises.map(getMuscle).filter(Boolean)))]
-  const uniqueEquipment = ['All', ...Array.from(new Set(availableExercises.map(getEquipment).filter(Boolean)))]
+  const uniqueMuscles = ['All', ...Array.from(new Set(availableExercises.map(getMuscle).filter((x): x is string => Boolean(x))))]
+  const uniqueEquipment = ['All', ...Array.from(new Set(availableExercises.map(getEquipment).filter((x): x is string => Boolean(x))))]
 
   const filteredExercises = availableExercises.filter(e => {
     const m = getMuscle(e);
     const eq = getEquipment(e);
     const matchMuscle = muscleFilter === 'All' || m === muscleFilter;
     const matchEquipment = equipmentFilter === 'All' || eq === equipmentFilter;
-    return matchMuscle && matchEquipment;
+    const matchSearch = (e.name || e.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchMuscle && matchEquipment && matchSearch;
   })
 
   const setOptionsPanY = useRef(new Animated.Value(500)).current
@@ -174,17 +183,17 @@ export default function EditRoutine({ route }: any) {
 
   useEffect(() => {
     if (id) {
-      api.fetchRoutine(id).then((data: any) => {
+      api.fetchRoutine(id).then((data: Routine) => {
         setRoutine(data)
         setName(data.name || data.title || '')
         hasUnsavedChanges.current = false
-      }).catch((err: any) => console.error(err))
+      }).catch((err: unknown) => console.error(err))
     }
   }, [id])
 
   // Intercept the back button action if there are unsaved changes
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: { preventDefault: () => void; data: { action: unknown } }) => {
       if (!hasUnsavedChanges.current) return;
       
       e.preventDefault();
@@ -202,13 +211,14 @@ export default function EditRoutine({ route }: any) {
   }, [navigation]);
 
   const handleSave = async () => {
+    if (!id) return
     if (!name.trim()) return Toast.show('Routine name is required', 'error')
     setSaving(true)
     try {
-      const exercisesToSave = routine.exercises.map((ex: any, index: number) => ({
+      const exercisesToSave = routine?.exercises?.map((ex: RoutineExercise, index: number) => ({
         id: String(ex.id).includes('.') ? undefined : ex.id, // Skip temp ids
         exerciseId: ex.exerciseId || ex.exercise?.id || ex.id,
-        sets: ex.sets.map((set: any, setIdx: number) => ({
+        sets: ex.sets?.map((set: RoutineSet, setIdx: number) => ({
           id: String(set.id).includes('.') ? undefined : set.id,
           type: set.type === 'Warmup' || set.type === 'W' ? 'W' : set.type === 'Drop' || set.type === 'D' ? 'D' : 'N',
           weight: set.weight ? Number(set.weight) : 0,
@@ -222,7 +232,7 @@ export default function EditRoutine({ route }: any) {
       Toast.show('Routine updated', 'info')
       hasUnsavedChanges.current = false // Disable unsaved changes blocker
       setTimeout(() => navigation.goBack(), 0)
-    } catch (err: any) {
+    } catch (err) {
       Toast.show('Failed to save routine', 'error')
     } finally {
       setSaving(false)
@@ -230,6 +240,7 @@ export default function EditRoutine({ route }: any) {
   }
 
   const handleDeleteRoutine = () => {
+    if (!id) return
     Alert.alert('Delete Routine', 'Are you sure you want to delete this routine entirely?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
@@ -250,12 +261,12 @@ export default function EditRoutine({ route }: any) {
   }
 
   const handleAddSet = (exerciseIndex: number) => {
-    const updatedExercises = [...routine.exercises];
+    const updatedExercises = [...(routine?.exercises || [])];
     const ex = updatedExercises[exerciseIndex];
     const lastSet = ex.sets?.[ex.sets?.length - 1];
     
     ex.sets = [...(ex.sets || []), {
-      id: Math.random().toString(),
+      id: "temp." + Date.now().toString(36) + Math.random().toString(36).substring(2),
       type: 'N',
       weight: lastSet ? lastSet.weight : '',
       reps: lastSet ? lastSet.reps : ''
@@ -269,7 +280,7 @@ export default function EditRoutine({ route }: any) {
     Alert.alert('Remove Exercise', 'Are you sure you want to remove this exercise from the routine?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => {
-        const updatedExercises = [...routine.exercises];
+        const updatedExercises = [...(routine?.exercises || [])];
         updatedExercises.splice(exerciseIndex, 1);
         setRoutine({ ...routine, exercises: updatedExercises });
         hasUnsavedChanges.current = true;
@@ -279,21 +290,22 @@ export default function EditRoutine({ route }: any) {
 
   const handleUpdateSet = (exIdx: number, sIdx: number, field: string, value: string) => {
     const newRoutine = { ...routine }
-    const sets = newRoutine.exercises[exIdx].sets
-    const oldValue = sets[sIdx][field]
+    const sets = newRoutine.exercises?.[exIdx]?.sets
+    if (!sets) return
+    const oldValue = (sets[sIdx] as Record<string, string | number | undefined>)[field]
     
-    sets[sIdx][field] = value
+    ;(sets[sIdx] as Record<string, string | number | undefined>)[field] = value
 
     // Auto-fill subsequent rows when modifying the first row
     if (sIdx === 0 && (field === 'weight' || field === 'reps')) {
       for (let i = 1; i < sets.length; i++) {
         // Cascade the change if the target set is empty, or if it matched the previous value of the first set
-        if (!sets[i][field] || sets[i][field] === oldValue) {
-          sets[i][field] = value
+        const nextValue = (sets[i] as Record<string, string | number | undefined>)[field]
+        if (!nextValue || nextValue === oldValue) {
+          ;(sets[i] as Record<string, string | number | undefined>)[field] = value
         }
       }
     }
-
     setRoutine(newRoutine)
     hasUnsavedChanges.current = true
   }
@@ -306,24 +318,29 @@ export default function EditRoutine({ route }: any) {
   }
 
   const handleChangeSetType = (type: string) => {
-    if (!selectedSet) return
+    if (!selectedSet || !routine?.exercises) return
     const newRoutine = { ...routine }
-    newRoutine.exercises[selectedSet.exIdx].sets[selectedSet.sIdx].type = type
+    if (!newRoutine.exercises) return
+    const sets = newRoutine.exercises[selectedSet.exIdx]?.sets
+    if (sets) sets[selectedSet.sIdx].type = type
     setRoutine(newRoutine)
     hasUnsavedChanges.current = true
     closeSetOptions()
   }
 
   const handleRemoveSet = () => {
-    if (!selectedSet) return
+    if (!selectedSet || !routine?.exercises) return
     const newRoutine = { ...routine }
-    newRoutine.exercises[selectedSet.exIdx].sets.splice(selectedSet.sIdx, 1)
+    if (!newRoutine.exercises) return
+    const sets = newRoutine.exercises[selectedSet.exIdx]?.sets
+    if (sets) sets.splice(selectedSet.sIdx, 1)
     setRoutine(newRoutine)
     hasUnsavedChanges.current = true
     closeSetOptions()
   }
 
   const moveExercise = (index: number, direction: 'up' | 'down') => {
+    if (!routine || !routine.exercises) return;
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === routine.exercises.length - 1) return;
     
@@ -341,7 +358,7 @@ export default function EditRoutine({ route }: any) {
   if (!routine) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={{ color: theme.colors.textMuted, textAlign: 'center', marginTop: 50 }}>Loading...</Text>
+        <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 50 }} />
       </SafeAreaView>
     )
   }
@@ -398,7 +415,7 @@ export default function EditRoutine({ route }: any) {
         </View>
 
         {/* Exercise Cards */}
-        {routine.exercises?.map((ex: any, idx: number) => {
+        {routine?.exercises?.map((ex: RoutineExercise, idx: number) => {
           let normalCount = 0;
           return (
             <View 
@@ -429,7 +446,7 @@ export default function EditRoutine({ route }: any) {
               </View>
 
               {/* Table Rows */}
-              {ex.sets?.map((set: any, sIdx: number) => {
+              {ex.sets?.map((set: RoutineSet, sIdx: number) => {
                 let setLabel = set.type
                 let labelColor = theme.colors.text
                 let labelBg = 'transparent'
@@ -518,7 +535,7 @@ export default function EditRoutine({ route }: any) {
           <View style={styles.reorderCard}>
             <Text style={styles.reorderTitle}>Reorder Exercises</Text>
             <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-              {routine?.exercises?.map((ex: any, idx: number) => (
+              {routine?.exercises?.map((ex: RoutineExercise, idx: number) => (
                 <View key={ex.id || idx} style={styles.reorderItem}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     <MaterialCommunityIcons name="drag-horizontal" size={24} color={theme.colors.textMuted} style={{ marginRight: 16 }} />
@@ -528,8 +545,8 @@ export default function EditRoutine({ route }: any) {
                     <Pressable hitSlop={10} onPress={() => moveExercise(idx, 'up')} disabled={idx === 0}>
                       <Feather name="chevron-up" size={24} color={idx === 0 ? theme.colors.borderLight : theme.colors.textMuted} />
                     </Pressable>
-                    <Pressable hitSlop={10} onPress={() => moveExercise(idx, 'down')} disabled={idx === routine.exercises.length - 1}>
-                      <Feather name="chevron-down" size={24} color={idx === routine.exercises.length - 1 ? theme.colors.borderLight : theme.colors.textMuted} />
+                    <Pressable hitSlop={10} onPress={() => moveExercise(idx, 'down')} disabled={idx === (routine?.exercises?.length || 1) - 1}>
+                      <Feather name="chevron-down" size={24} color={idx === (routine?.exercises?.length || 1) - 1 ? theme.colors.borderLight : theme.colors.textMuted} />
                     </Pressable>
                   </View>
                 </View>
@@ -600,17 +617,36 @@ export default function EditRoutine({ route }: any) {
               </View>
             </View>
             
+            {/* Search Bar */}
+            <View style={{ paddingHorizontal: 24, marginTop: 12 }}>
+              <View style={styles.searchInputWrapper}>
+                <Feather name="search" size={18} color={theme.colors.textMuted} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search exercises..."
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                    <Feather name="x-circle" size={16} color={theme.colors.textMuted} />
+                  </Pressable>
+                )}
+              </View>
+            </View>
+            
             {/* Chips */}
             <View style={{ paddingHorizontal: 24, paddingBottom: 16, marginTop: 8 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                {uniqueMuscles.map((m: any) => (
+                {uniqueMuscles.map((m: string) => (
                   <Pressable key={m} onPress={() => setMuscleFilter(m)} style={[styles.filterChip, muscleFilter === m && styles.filterChipActive]}>
                     <Text style={[styles.filterChipText, muscleFilter === m && styles.filterChipTextActive]}>{m}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {uniqueEquipment.map((eq: any) => (
+                {uniqueEquipment.map((eq: string) => (
                   <Pressable key={eq} onPress={() => setEquipmentFilter(eq)} style={[styles.filterChip, equipmentFilter === eq && styles.filterChipActive]}>
                     <Text style={[styles.filterChipText, equipmentFilter === eq && styles.filterChipTextActive]}>{eq}</Text>
                   </Pressable>
@@ -621,7 +657,7 @@ export default function EditRoutine({ route }: any) {
             <View style={[styles.sheetDivider, { marginHorizontal: 0 }]} />
 
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }}>
-              {filteredExercises.map((e: any, idx: number) => (
+              {filteredExercises.map((e: RoutineExercise, idx: number) => (
                 <View key={e.id || idx}>
                   <View style={styles.exerciseListItem}>
                     <Pressable style={{ flex: 1, paddingVertical: 4 }} onPress={() => handleSelectExercise(e)}>
@@ -658,7 +694,7 @@ export default function EditRoutine({ route }: any) {
         visible={showCreateModal} 
         onClose={() => setShowCreateModal(false)}
         onCreated={() => {
-          api.fetchExercises().then((data: any) => setAvailableExercises(data || [])).catch(console.error)
+          api.fetchExercises().then((data: RoutineExercise[]) => setAvailableExercises(data || [])).catch(console.error)
         }}
       />
     </SafeAreaView>
@@ -670,7 +706,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  headerTitle: { ...theme.typography.heading },
   
   scrollArea: { padding: 16, paddingBottom: 90 }, // Decreased paddingBottom
   
@@ -709,7 +745,7 @@ const styles = StyleSheet.create({
 
   // Reorder Modal
   modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24 },
+  reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.colors.borderLight },
   reorderTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
   reorderItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 24, padding: 16, marginBottom: 12 },
   reorderItemText: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
@@ -727,6 +763,9 @@ const styles = StyleSheet.create({
   sheetDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: -24 },
   sheetOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   sheetOptionText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
+  searchInputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, paddingHorizontal: 12, height: 44, borderWidth: 1, borderColor: theme.colors.borderLight },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: theme.colors.text, fontSize: 16 },
 
   // Select Exercise Filters
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },

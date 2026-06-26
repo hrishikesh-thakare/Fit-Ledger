@@ -5,6 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   const payload = await getPayloadClient()
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
 
   try {
     // 1. Fetch all routines that need processing

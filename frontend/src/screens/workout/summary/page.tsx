@@ -7,7 +7,9 @@ import { CustomAlert as Alert } from '../../../components/CustomAlert'
 import { Toast } from '../../../components/CustomToast'
 import { theme } from '../../../theme'
 import api from '../../../api'
-
+import { useWorkoutContext } from '../../../contexts/WorkoutContext'
+import { useAuth } from '../../../contexts/AuthContext'
+import { fromKg } from '../../../utils/unit'
 interface SummaryExercise {
   name: string
   sets: number
@@ -32,8 +34,13 @@ export default function WorkoutSummary({ route }: any) {
     exercises: [],
   }
 
+  const { endWorkout, clientId } = useWorkoutContext()
+  const { user } = useAuth()
+
   const [isSaving, setIsSaving] = useState(false)
   const [updateWeights, setUpdateWeights] = useState(true)
+
+  const unit = user?.preferredUnit === 'lb' ? 'LBS' : 'KG'
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600)
@@ -55,9 +62,11 @@ export default function WorkoutSummary({ route }: any) {
     try {
       const payload = {
         ...summaryData.savePayload,
+        clientId,
         updatePrevWeights: updateWeights,
       }
       await api.saveWorkout(payload)
+      endWorkout()
       navigation.navigate('MainTabs', { screen: 'Routines' })
     } catch (err) {
       Toast.show('Failed to save workout', 'error')
@@ -75,7 +84,10 @@ export default function WorkoutSummary({ route }: any) {
         { 
           text: 'Discard', 
           style: 'destructive',
-          onPress: () => navigation.navigate('MainTabs', { screen: 'Routines' })
+          onPress: () => {
+            endWorkout()
+            navigation.navigate('MainTabs', { screen: 'Routines' })
+          }
         }
       ]
     )
@@ -99,8 +111,8 @@ export default function WorkoutSummary({ route }: any) {
             <Text style={styles.statLabel}>DURATION</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{summaryData.totalVolume.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>VOLUME (KG)</Text>
+            <Text style={styles.statValue}>{fromKg(summaryData.totalVolume, user?.preferredUnit || 'kg').toFixed(0)}</Text>
+            <Text style={styles.statLabel}>VOLUME ({unit})</Text>
           </View>
         </View>
 
@@ -112,7 +124,7 @@ export default function WorkoutSummary({ route }: any) {
               </View>
               <View style={styles.exerciseInfo}>
                 <Text style={styles.exerciseName}>{ex.name}</Text>
-                <Text style={styles.exerciseMeta}>{ex.sets} sets • {ex.bestWeight}kg best</Text>
+                <Text style={styles.exerciseMeta}>{ex.sets} sets • {fromKg(ex.bestWeight, user?.preferredUnit || 'kg').toFixed(1)}{unit.toLowerCase()} best</Text>
               </View>
             </View>
           ))}
@@ -310,14 +322,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   discardBtn: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 30,
     alignItems: 'center',
-    marginTop: 12,
+    width: '100%',
+    marginTop: 0,
   },
   discardBtnText: {
-    color: theme.colors.text,
+    color: theme.colors.error,
     fontSize: 16,
     fontWeight: '700',
   },

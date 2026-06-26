@@ -5,6 +5,7 @@ import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
 import { theme } from '../../theme'
+import { fromKg, toKg } from '../../utils/unit'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -87,7 +88,8 @@ export default function Weight() {
   }, [])
 
   const openNewPicker = () => {
-    const w = logs.length > 0 ? logs[0].weight : 70.0
+    const rawW = logs.length > 0 ? logs[0].weight : (user?.preferredUnit === 'lb' ? toKg(150, 'lb') : 70.0)
+    const w = fromKg(rawW, user?.preferredUnit || 'kg')
     setSelectedInt(Math.floor(w))
     setSelectedDec(Math.round((w - Math.floor(w)) * 10))
     setEditLogId(null)
@@ -97,7 +99,7 @@ export default function Weight() {
 
   const openEditPicker = () => {
     if (!optionsLog) return
-    const w = optionsLog.weight
+    const w = fromKg(optionsLog.weight, user?.preferredUnit || 'kg')
     setSelectedInt(Math.floor(w))
     setSelectedDec(Math.round((w - Math.floor(w)) * 10))
     setEditLogId(optionsLog.id)
@@ -107,8 +109,10 @@ export default function Weight() {
   }
 
   const handleSaveWeight = async () => {
-    const weightVal = selectedInt + (selectedDec / 10)
-    if (weightVal <= 0) return Toast.show('Please select a valid weight.', 'error')
+    const displayVal = selectedInt + (selectedDec / 10)
+    if (displayVal <= 0) return Toast.show('Please select a valid weight.', 'error')
+    
+    const weightVal = toKg(displayVal, user?.preferredUnit || 'kg')
     
     setSaving(true)
     try {
@@ -150,10 +154,13 @@ export default function Weight() {
   const currentWeight = logs.length > 0 ? logs[0].weight : 0
   
   const { user } = useAuth()
-  const targetWeight = user?.targetWeight || 0
-  const diff = targetWeight > 0 ? Math.abs(targetWeight - currentWeight) : 0
+  const preferredUnit = user?.preferredUnit || 'kg'
+  
+  const displayCurrentWeight = fromKg(currentWeight, preferredUnit)
+  const displayTargetWeight = fromKg(user?.targetWeight || 0, preferredUnit)
+  const displayDiff = displayTargetWeight > 0 ? Math.abs(displayTargetWeight - displayCurrentWeight) : 0
 
-  const integers = Array.from({length: 101}, (_, i) => i + 20) // 20 to 120
+  const integers = preferredUnit === 'lb' ? Array.from({length: 401}, (_, i) => i + 40) : Array.from({length: 181}, (_, i) => i + 20)
   const decimals = Array.from({length: 10}, (_, i) => i) // 0 to 9
 
   // Helper for initial scroll
@@ -202,12 +209,12 @@ export default function Weight() {
             <Text style={styles.cardTitle}>Current Weight</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 }}>
-            <Text style={styles.currentWeightText}>{currentWeight > 0 ? currentWeight.toFixed(1) : '--'}</Text>
-            <Text style={styles.unitText}> kg</Text>
+            <Text style={styles.currentWeightText}>{displayCurrentWeight > 0 ? displayCurrentWeight.toFixed(1) : '--'}</Text>
+            <Text style={styles.unitText}> {preferredUnit}</Text>
           </View>
-          {targetWeight > 0 ? (
+          {displayTargetWeight > 0 ? (
             <Text style={styles.hint}>
-              Target: {targetWeight}kg   •   {diff.toFixed(1)}kg to go
+              Target: {displayTargetWeight.toFixed(1)}{preferredUnit}   •   {displayDiff.toFixed(1)}{preferredUnit} to go
             </Text>
           ) : (
             <Text style={styles.hint}>Set your target weight in settings</Text>
@@ -231,15 +238,15 @@ export default function Weight() {
                       <Text style={styles.dateText}>{dateStr}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                      <Text style={styles.listItemWeight}>{log.weight.toFixed(1)}</Text>
-                      <Text style={styles.unitText}> kg</Text>
+                      <Text style={styles.listItemWeight}>{fromKg(log.weight, preferredUnit).toFixed(1)}</Text>
+                      <Text style={styles.unitText}> {preferredUnit}</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     {log.change !== 0 ? (
                       <View style={styles.chip}>
                         <Text style={[styles.chipText, { color: log.change > 0 ? theme.colors.success : theme.colors.error }]}>
-                          {log.change > 0 ? '+' : ''}{log.change.toFixed(1)}kg
+                          {log.change > 0 ? '+' : ''}{fromKg(log.change, preferredUnit).toFixed(1)}{preferredUnit}
                         </Text>
                       </View>
                     ) : (
@@ -274,7 +281,7 @@ export default function Weight() {
             {optionsLog && (
               <View style={styles.bottomSheetHeader}>
                 <Text style={styles.bottomSheetSub}>{new Date(optionsLog.loggedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
-                <Text style={styles.bottomSheetVal}>{optionsLog.weight.toFixed(1)} kg</Text>
+                <Text style={styles.bottomSheetVal}>{fromKg(optionsLog.weight, preferredUnit).toFixed(1)} {preferredUnit}</Text>
               </View>
             )}
 
@@ -370,7 +377,7 @@ export default function Weight() {
                     return (
                       <View style={styles.verticalCarouselItem}>
                         <Animated.View style={{ opacity: inactiveOpacity, transform: [{ scale }] }}>
-                          <Text style={[styles.carouselTextAnimated, { color: '#3A3A3C' }]}>{num}</Text>
+                          <Text style={[styles.carouselTextAnimated, { color: theme.colors.borderInput }]}>{num}</Text>
                         </Animated.View>
                         <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', opacity: activeOpacity, transform: [{ scale }] }]}>
                           <Text style={[styles.carouselTextAnimated, { color: theme.colors.primary }]}>{num}</Text>
@@ -426,7 +433,7 @@ export default function Weight() {
                     return (
                       <View style={styles.verticalCarouselItem}>
                         <Animated.View style={{ opacity: inactiveOpacity, transform: [{ scale }] }}>
-                          <Text style={[styles.carouselTextAnimated, { color: '#3A3A3C' }]}>{num}</Text>
+                          <Text style={[styles.carouselTextAnimated, { color: theme.colors.borderInput }]}>{num}</Text>
                         </Animated.View>
                         <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', opacity: activeOpacity, transform: [{ scale }] }]}>
                           <Text style={[styles.carouselTextAnimated, { color: theme.colors.primary }]}>{num}</Text>
@@ -437,7 +444,7 @@ export default function Weight() {
                 />
               </View>
 
-              <Text style={styles.carouselUnit}>kg</Text>
+              <Text style={styles.carouselUnit}>{preferredUnit}</Text>
               
               <View style={[styles.verticalCarouselSelector, { top: VERTICAL_PADDING }]} pointerEvents="none" />
             </View>
@@ -460,7 +467,7 @@ export default function Weight() {
 const styles = StyleSheet.create({
   container: { padding: 0, flex: 1, backgroundColor: theme.colors.background },
   headerBar: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
-  title: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
+  title: { ...theme.typography.headerTitle },
   scrollContent: { padding: 16, paddingBottom: 0, flexGrow: 1 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 12, marginTop: 8 },
   card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.borderLight },
@@ -470,7 +477,7 @@ const styles = StyleSheet.create({
   listItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 20 },
   listItemWeight: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
   dateText: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '500' },
-  chip: { backgroundColor: '#202023', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, minWidth: 80, alignItems: 'center' },
+  chip: { backgroundColor: theme.colors.surfaceVariant, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, minWidth: 80, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderLight },
   chipText: { fontSize: 14, fontWeight: '700', color: theme.colors.textMuted },
   divider: { height: 1, backgroundColor: theme.colors.border, marginHorizontal: 16 },
   hint: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400' },
@@ -481,11 +488,11 @@ const styles = StyleSheet.create({
   fabText: { color: theme.colors.background, fontSize: 32, fontWeight: '400', marginTop: -2 },
   
   modalBgCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalCard: { backgroundColor: '#1A1A1A', borderRadius: 28, padding: 24, width: '100%', borderWidth: 1, borderColor: theme.colors.borderLight },
+  modalCard: { backgroundColor: theme.colors.surfaceElevated, borderRadius: 28, padding: 24, width: '100%', borderWidth: 1, borderColor: theme.colors.borderLight },
   modalTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 24, textAlign: 'center' },
   
   dateInputContainer: { borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginTop: 8, marginBottom: 24 },
-  dateInputLabel: { position: 'absolute', top: -10, left: 12, backgroundColor: '#1A1A1A', paddingHorizontal: 6, fontSize: 12, color: theme.colors.textMuted, fontWeight: '600' },
+  dateInputLabel: { position: 'absolute', top: -10, left: 12, backgroundColor: theme.colors.surfaceElevated, paddingHorizontal: 6, fontSize: 12, color: theme.colors.textMuted, fontWeight: '600' },
   dateInputText: { fontSize: 16, color: theme.colors.text, fontWeight: '500' },
 
   verticalCarouselsWrapper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: CAROUSEL_HEIGHT, backgroundColor: 'transparent', marginBottom: 24, position: 'relative' },
@@ -493,7 +500,7 @@ const styles = StyleSheet.create({
   verticalCarouselItem: { height: ITEM_HEIGHT, justifyContent: 'center', alignItems: 'center' },
   decimalDot: { fontSize: 28, fontWeight: '700', color: theme.colors.primary, marginHorizontal: 2 },
   carouselTextAnimated: { fontWeight: '700', fontSize: 28 },
-  carouselText: { fontSize: 22, fontWeight: '700', color: '#3A3A3C' },
+  carouselText: { fontSize: 22, fontWeight: '700', color: theme.colors.borderInput },
   carouselTextActive: { fontSize: 32, fontWeight: '700', color: theme.colors.primary },
   verticalCarouselSelector: { position: 'absolute', left: 16, right: 16, height: ITEM_HEIGHT, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.borderInput },
   carouselUnit: { position: 'absolute', right: 32, fontSize: 16, fontWeight: '600', color: theme.colors.textSecondary },
@@ -505,12 +512,12 @@ const styles = StyleSheet.create({
   btnConfirmText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
 
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
+  bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   bottomSheetHeader: { alignItems: 'center', marginBottom: 20 },
   bottomSheetSub: { fontSize: 16, color: theme.colors.textMuted, fontWeight: '500' },
   bottomSheetVal: { fontSize: 22, color: theme.colors.text, fontWeight: '700', marginTop: 4 },
-  optionsCard: { backgroundColor: '#2C2C2E', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderLight },
+  optionsCard: { backgroundColor: theme.colors.surfaceDropdown, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.borderLight },
   optionRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 16 },
   optionText: { fontSize: 18, fontWeight: '600', color: theme.colors.text },
   optionsDivider: { height: 1, backgroundColor: theme.colors.border },

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getToken, loginWithToken, removeToken } from '../auth'
+import { DeviceEventEmitter } from 'react-native'
 
 export interface UserType {
   id: string
@@ -25,45 +26,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [user, setUser] = useState<UserType | null>(null)
 
-  const fetchMe = async (token: string): Promise<UserType | null> => {
+  const fetchMe = async (token: string): Promise<{ user: UserType | null, status: number }> => {
     try {
-      const meResponse = await fetch('http://192.168.0.111:3000/api/users/me', {
+      const meResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/me`, {
         headers: {
           'Authorization': `JWT ${token}`,
           'Content-Type': 'application/json'
         }
       })
-      const meData = await meResponse.json()
-      if (meResponse.ok && meData.user) {
-        // Fetch full user details to get preferredUnit, targetWeight, etc.
-        const userResponse = await fetch(`http://192.168.0.111:3000/api/users/${meData.user.id}`, {
-          headers: {
-            'Authorization': `JWT ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-        if (userResponse.ok) {
-          return await userResponse.json()
-        }
-        return meData.user
+      if (meResponse.ok) {
+        const meData = await meResponse.json()
+        return { user: meData.user, status: meResponse.status }
       }
-    } catch (e) {
+      return { user: null, status: meResponse.status }
+    } catch (e: unknown) {
       console.error('Failed to fetch user details', e)
+      return { user: null, status: 0 } // 0 indicates network error
     }
-    return null
   }
 
   const loadSession = async () => {
     const t = await getToken()
     if (t) {
-      const userData = await fetchMe(t)
+      const { user: userData, status } = await fetchMe(t)
       if (userData) {
         setUser(userData)
         setSignedIn(true)
-      } else {
+      } else if (status === 401) {
+        // Only log out on explicit 401 Unauthorized
         await removeToken()
         setUser(null)
         setSignedIn(false)
+      } else {
+        // Network error or server down: keep the user logged in locally
+        setSignedIn(true)
       }
     } else {
       setUser(null)
@@ -71,13 +67,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+
   useEffect(() => {
     loadSession()
+    
+    const subscription = DeviceEventEmitter.addListener('force_logout', async () => {
+      setUser(null)
+      setSignedIn(false)
+    })
+    
+    return () => {
+      subscription.remove()
+    }
   }, [])
 
   const login = async (token: string) => {
     await loginWithToken(token)
-    const userData = await fetchMe(token)
+    const { user: userData } = await fetchMe(token)
     setUser(userData)
     setSignedIn(true)
   }
@@ -91,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     const t = await getToken()
     if (t) {
-      const userData = await fetchMe(t)
+      const { user: userData } = await fetchMe(t)
       if (userData) {
         setUser(userData)
       }

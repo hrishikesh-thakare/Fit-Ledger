@@ -1,6 +1,6 @@
-import { getToken } from '../auth'
-
-const API_URL = 'http://192.168.0.111:3000/api' // Host LAN IP for physical device
+import { getToken, removeToken } from '../auth'
+import { DeviceEventEmitter } from 'react-native'
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getToken()
@@ -16,10 +16,14 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      await removeToken()
+      DeviceEventEmitter.emit('force_logout')
+    }
     let message = 'An error occurred'
     try {
       const err = await response.json()
-      message = err?.message || message
+      message = err?.message || err?.error || message
     } catch (_) {}
     throw new Error(message)
   }
@@ -40,19 +44,13 @@ export default {
     return res.docs || res || []
   },
   fetchHistory: async () => {
-    const res = await fetchWithAuth('/workout-days')
+    const res = await fetchWithAuth('/custom/history')
     return res.docs || res || []
   },
   loadWorkout: async (routineId: string | number) => {
     return fetchWithAuth(`/custom/workouts/load?routineId=${routineId}`)
   },
-  saveWorkout: async (data: any) => {
-    return fetchWithAuth('/custom/workouts/start', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-  startWorkout: async (data: any) => {
+  saveWorkout: async (data: Record<string, unknown>) => {
     const res = await fetchWithAuth('/custom/workouts/start', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -96,14 +94,14 @@ export default {
     const res = await fetchWithAuth(`/custom/routines/${id}`)
     return res.routine || res
   },
-  updateRoutine: async (id: number | string, data: any) => {
+  updateRoutine: async (id: number | string, data: Record<string, unknown>) => {
     const res = await fetchWithAuth(`/custom/routines/${id}/save`, { method: 'POST', body: JSON.stringify(data) })
     return res.doc || res
   },
   deleteWorkoutDay: async (id: number | string) => {
     await fetchWithAuth(`/workout-days/${id}`, { method: 'DELETE' })
   },
-  updateUser: async (id: number | string, data: any) => {
+  updateUser: async (id: number | string, data: Record<string, unknown>) => {
     const res = await fetchWithAuth(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     return res.doc || res
   },

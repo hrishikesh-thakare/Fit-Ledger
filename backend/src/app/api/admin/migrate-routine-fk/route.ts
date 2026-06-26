@@ -1,5 +1,5 @@
 import { getPayloadClient } from '@/lib/payload'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * POST /api/admin/migrate-routine-fk
@@ -13,8 +13,13 @@ import { NextResponse } from 'next/server'
  */
 const BATCH_SIZE = 50
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const payload = await getPayloadClient()
+
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 401 })
+  }
 
   let page = 1
   let hasMore = true

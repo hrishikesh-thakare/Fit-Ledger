@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
-  // Simple auth check mock - in real app, check req.user.role === 'admin'
-  // But since this is a custom route, we rely on Payload's local API not exposing this easily
-  // unless we use `payload.login` or similar.
-  // For now, assuming this is an internal utility script usage.
-
   const payload = await getPayloadClient()
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
+
   const { routineId } = await req.json()
 
   if (!routineId) {

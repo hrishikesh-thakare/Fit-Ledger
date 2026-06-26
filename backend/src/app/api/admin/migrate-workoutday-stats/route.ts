@@ -5,6 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   const payload = await getPayloadClient()
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
   const page = Number(req.nextUrl.searchParams.get('page')) || 1
   const limit = 50 // Process in smaller batches due to complexity
 

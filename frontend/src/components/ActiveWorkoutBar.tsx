@@ -10,7 +10,7 @@ import { Toast } from './CustomToast'
 
 export default function ActiveWorkoutBar() {
   const { isActive, elapsedTime, formatTime, endWorkout, routineId } = useWorkoutContext()
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation() as { navigate: (screen: string, params?: Record<string, unknown>) => void }
   const insets = useSafeAreaInsets()
 
   if (!isActive) return null
@@ -38,8 +38,11 @@ export default function ActiveWorkoutBar() {
     )
   }
 
+  // Use a fixed bottom position that accommodates the tab bar
+  const bottomPosition = theme.layout.tabBarHeight + (insets.bottom ? insets.bottom + 4 : 10) + 16
+
   return (
-    <View style={[styles.container, { bottom: 68 + (insets.bottom ? insets.bottom + 4 : 10) + 16 }]}>
+    <View style={[styles.container, { bottom: bottomPosition }]}>
       <Pressable style={styles.pill} onPress={handlePress}>
         <Feather name="chevron-up" size={24} color={theme.colors.primary} />
         

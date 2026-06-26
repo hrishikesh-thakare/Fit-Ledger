@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, ActivityIndicator } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -33,7 +33,7 @@ function MainTabs() {
           backgroundColor: theme.colors.background, 
           borderTopColor: theme.colors.border, 
           borderTopWidth: 1,
-          height: 68 + insets.bottom,
+          height: theme.layout.tabBarHeight + insets.bottom,
           paddingTop: 10,
           paddingBottom: insets.bottom ? insets.bottom + 4 : 10
         },
@@ -109,7 +109,7 @@ function NavigationContent() {
   if (signedIn === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     )
   }
@@ -145,8 +145,8 @@ function NavigationContent() {
           </Tab.Navigator>
         )}
         
-        {/* Render the active workout bar globally, but hide it if we are actually ON the Workout screen */}
-        {signedIn && currentRoute !== 'Workout' && <ActiveWorkoutBar />}
+        {/* Render the active workout bar globally, but hide it if we are actually ON the Workout or WorkoutSummary screen */}
+        {signedIn && currentRoute !== 'Workout' && currentRoute !== 'WorkoutSummary' && <ActiveWorkoutBar />}
         
         <CustomAlertRenderer />
         <CustomToastRenderer />

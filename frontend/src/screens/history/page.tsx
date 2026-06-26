@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { ScrollView, Text, View, StyleSheet, ActivityIndicator, Pressable, Modal, Animated, FlatList, PanResponder } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
 import { theme } from '../../theme'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 
 const PERIODS = ['All', 'This Week', 'This Month', 'Last Month']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -82,18 +82,30 @@ export default function History() {
     }
   }, [isFilterOpen])
 
-  useEffect(() => {
-    api
-      .fetchHistory()
-      .then((data: any) => setItems(data || []))
-      .catch((err: any) => setError(err?.message || String(err)))
-      .finally(() => setLoading(false))
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      api
+        .fetchHistory()
+        .then((data: any) => setItems(data || []))
+        .catch((err: any) => setError(err?.message || String(err)))
+        .finally(() => setLoading(false))
+    }, [])
+  )
+
+  // Date boundaries
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  const lastMonthStart = new Date(currentYear, currentMonth - 1, 1)
+  
+  const startOfWeek = new Date(now)
+  startOfWeek.setDate(now.getDate() - now.getDay())
+  startOfWeek.setHours(0, 0, 0, 0)
 
   // Filter Logic
   const filteredItems = items.filter((workout) => {
     const d = new Date(workout.date || workout.startedAt || workout.createdAt)
-    const now = new Date()
     
     if (customFilterActive) {
       const monthIdx = MONTHS.indexOf(filterMonth)
@@ -101,16 +113,12 @@ export default function History() {
     }
     
     if (selectedPeriod === 'This Month') {
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
     }
     if (selectedPeriod === 'Last Month') {
-      const lastMonth = new Date()
-      lastMonth.setMonth(now.getMonth() - 1)
-      return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear()
+      return d.getMonth() === lastMonthStart.getMonth() && d.getFullYear() === lastMonthStart.getFullYear()
     }
     if (selectedPeriod === 'This Week') {
-      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-      startOfWeek.setHours(0,0,0,0)
       return d >= startOfWeek
     }
     return true
@@ -368,7 +376,7 @@ export default function History() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
+  title: { ...theme.typography.headerTitle },
   
   sectionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.textMuted, letterSpacing: 1, marginLeft: 16, marginBottom: 12, marginTop: 8 },
 
@@ -399,7 +407,7 @@ const styles = StyleSheet.create({
   error: { color: theme.colors.error, marginBottom: 16 },
 
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: '#1A1A1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
+  bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
   

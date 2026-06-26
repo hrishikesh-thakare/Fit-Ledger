@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { theme } from '../../theme'
 
 export default function SignUp() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation() as { navigate: (route: string) => void }
   const { login } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -35,7 +35,7 @@ export default function SignUp() {
     setLoading(true)
     try {
       // Create account via Payload CMS users collection
-      const signUpResponse = await fetch('http://192.168.0.111:3000/api/users', {
+      const signUpResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -48,12 +48,13 @@ export default function SignUp() {
       const signUpData = await signUpResponse.json()
 
       if (!signUpResponse.ok) {
-        const errMsg = signUpData.message || signUpData.errors?.[0]?.message || 'Registration failed'
-        throw new Error(errMsg)
+        throw new Error(
+          signUpData.errors?.[0]?.message || 'Sign up failed. Please check your details.',
+        )
       }
 
-      // Auto-login after successful signup
-      const loginResponse = await fetch('http://192.168.0.111:3000/api/users/login', {
+      // Step 2: Login to get token
+      const loginResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -70,8 +71,8 @@ export default function SignUp() {
       } else {
         throw new Error('No token received from server')
       }
-    } catch (err: any) {
-      Toast.show(err.message || 'Please try again.', 'error')
+    } catch (err) {
+      Toast.show((err as Error).message || 'Please try again.', 'error')
     } finally {
       setLoading(false)
     }
@@ -177,7 +178,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: { padding: 24, flexGrow: 1, justifyContent: 'center', backgroundColor: theme.colors.background },
   headerContainer: { marginBottom: 40, alignItems: 'center' },
-  title: { fontSize: 32, fontWeight: '700', color: theme.colors.text, marginBottom: 8, letterSpacing: 0.5 },
+  title: { ...theme.typography.display, marginBottom: 8, letterSpacing: 0.5 },
   hint: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '400' },
   inputLabel: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, height: 52 },

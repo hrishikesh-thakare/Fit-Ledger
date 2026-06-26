@@ -19,6 +19,7 @@ export async function listRoutinesFromPayload(
     sort: '-createdAt',
     depth: 0,
     limit: 100,
+    overrideAccess: true,
     select: {
       id: true,
       name: true,
@@ -42,6 +43,7 @@ export async function listRoutinesFromPayload(
     },
     depth: 0,
     limit: 500,
+    overrideAccess: true,
     select: {
       routine: true,
       exercise: true,
@@ -66,8 +68,9 @@ export async function listRoutinesFromPayload(
           where: {
             id: { in: exerciseIds },
           },
-          depth: 1,
+          depth: 0,
           limit: 500,
+          overrideAccess: true,
           select: {
             id: true,
             name: true,
@@ -77,9 +80,45 @@ export async function listRoutinesFromPayload(
       : { docs: [] }
 
   const exercises = exercisesRes.docs
+  
+  const muscleGroupIds = [
+    ...new Set(
+      exercises
+        .map((ex) => (typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.id : ex.muscleGroup))
+        .filter(Boolean)
+    ),
+  ]
+
+  const muscleGroupsRes =
+    muscleGroupIds.length > 0
+      ? await payload.find({
+          collection: 'muscle-groups',
+          where: {
+            id: { in: muscleGroupIds },
+          },
+          depth: 0,
+          limit: 100,
+          overrideAccess: true,
+          select: {
+            id: true,
+            name: true,
+          },
+        })
+      : { docs: [] }
+
+  const muscleGroupMap = new Map<number, { id: number; name: string }>()
+  muscleGroupsRes.docs.forEach((mg) => {
+    muscleGroupMap.set(mg.id, mg)
+  })
+
   const exerciseMap = new Map<number, { id: number; name: string; muscleGroup?: { name: string } | number }>()
   exercises.forEach((ex) => {
-    exerciseMap.set(ex.id, ex)
+    const mgId = typeof ex.muscleGroup === 'object' ? ex.muscleGroup?.id : ex.muscleGroup
+    const mappedMg = mgId ? muscleGroupMap.get(mgId as number) : undefined
+    exerciseMap.set(ex.id, {
+      ...ex,
+      muscleGroup: mappedMg ? { name: mappedMg.name } : ex.muscleGroup,
+    })
   })
 
   const exercisesByRoutine: Record<number, typeof routineExercises[number][]> = {}

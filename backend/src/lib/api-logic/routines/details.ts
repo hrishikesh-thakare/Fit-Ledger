@@ -28,29 +28,39 @@ interface FetchedRoutineDetails {
 export async function getRoutineDetailsFromPayload(
   payload: Payload,
   id: string | number,
+  userId: string | number,
 ): Promise<{ status: number; body: FetchedRoutineDetails | { error: string }; headers?: Record<string, string> }> {
   const numericId = Number(id)
 
-  const routine = await payload.findByID({
-    collection: 'routines',
-    id: numericId,
-  })
+  try {
+    const [routine, routineExercises] = await Promise.all([
+      payload.findByID({
+        collection: 'routines',
+        id: numericId,
+        overrideAccess: true,
+      }),
+      payload.find({
+        collection: 'routine-exercises',
+        where: {
+          routine: {
+            equals: numericId,
+          },
+        },
+        sort: 'exerciseOrder',
+        limit: 100,
+        depth: 1,
+        overrideAccess: true,
+      })
+    ])
 
-  if (!routine) {
-    return { status: 404, body: { error: 'Routine not found' } }
-  }
+    if (!routine) {
+      return { status: 404, body: { error: 'Routine not found' } }
+    }
 
-  const routineExercises = await payload.find({
-    collection: 'routine-exercises',
-    where: {
-      routine: {
-        equals: numericId,
-      },
-    },
-    sort: 'exerciseOrder',
-    limit: 100,
-    depth: 1,
-  })
+    const routineUserId = typeof routine.user === 'object' ? routine.user?.id : routine.user
+    if (String(routineUserId) !== String(userId)) {
+      return { status: 403, body: { error: 'Forbidden' } }
+    }
 
   const routineExerciseIds = routineExercises.docs.map((re) => re.id)
   let allSets: Array<{ routineExercise?: string | number | { id: string | number }; id: string | number; setLabel: string; weight: number; reps: number; setOrder: number }> = []
@@ -65,6 +75,7 @@ export async function getRoutineDetailsFromPayload(
       },
       limit: 500,
       sort: 'setOrder',
+      overrideAccess: true,
     })
     allSets = setsResponse.docs as typeof allSets
   }
@@ -111,13 +122,21 @@ export async function getRoutineDetailsFromPayload(
     }
   })
 
-  return {
-    status: 200,
-    body: {
-      id: String(routine.id),
-      name: routine.name,
-      description: routine.notes || undefined,
-      exercises,
-    },
+    return {
+      status: 200,
+      body: {
+        id: String(routine.id),
+        name: routine.name,
+        description: routine.notes || undefined,
+        exercises,
+      },
+    }
+  } catch (err: unknown) {
+    const error = err as Error & { status?: number }
+    // If findByID throws a NotFound error
+    if (error?.status === 404 || error?.message?.includes('not found')) {
+      return { status: 404, body: { error: 'Routine not found' } }
+    }
+    throw err
   }
 }

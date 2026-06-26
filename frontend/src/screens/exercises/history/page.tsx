@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
+import { useAuth } from '../../../contexts/AuthContext'
 import api from '../../../api'
 import { theme } from '../../../theme'
 
@@ -29,6 +30,7 @@ interface ProcessedExercise {
 
 export default function ExerciseHistory({ route }: any) {
   const navigation = useNavigation<any>()
+  const { user } = useAuth()
   const exerciseParam = route.params?.exercise
 
   const [exercise, setExercise] = useState<ProcessedExercise | null>(null)
@@ -54,104 +56,25 @@ export default function ExerciseHistory({ route }: any) {
             ? exerciseParam.muscleGroup.name
             : (typeof exerciseParam.muscleGroup === 'string' ? exerciseParam.muscleGroup : 'Unknown'))
 
-        // Fetch workout sets for this exercise
-        const setsResponse = await api.customFetch(
-          `/workout-sets?where[workoutExercise.exercise][equals]=${numericId}&sort=-createdAt&limit=200&depth=2`
+        if (!user?.id) {
+          throw new Error('User not authenticated')
+        }
+
+        // Fetch exercise history from the dedicated endpoint
+        const response = await api.customFetch(
+          `/custom/exercises/${numericId}/history?userId=${user.id}`
         )
 
-        // Process sets into grouped history entries by workout day
-        const workoutDayMap = new Map<
-          string,
-          {
-            date: string
-            rawDate: Date
-            sets: { weight: number; reps: number }[]
-          }
-        >()
-
-        for (const set of setsResponse.docs) {
-          const workoutExercise = set.workoutExercise
-          if (!workoutExercise || typeof workoutExercise === 'number') continue
-
-          const workoutDay = workoutExercise.workoutDay
-          if (!workoutDay || typeof workoutDay === 'number') continue
-
-          const dayId = typeof workoutDay === 'object' ? String(workoutDay.id) : String(workoutDay)
-          const dateStr = typeof workoutDay === 'object' ? workoutDay.date : ''
-
-          if (!workoutDayMap.has(dayId)) {
-            const d = new Date(dateStr)
-            workoutDayMap.set(dayId, {
-              date: d.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              }),
-              rawDate: d,
-              sets: [],
-            })
-          }
-
-          workoutDayMap.get(dayId)!.sets.push({
-            weight: set.weight || 0,
-            reps: set.reps || 0,
-          })
-        }
-
-        // Convert to history entries
-        const historyEntries: (HistoryEntry & { rawDate: Date })[] = []
-        let bestWeight = 0
-        let bestReps = 0
-        let bestDate = ''
-
-        for (const [, entry] of workoutDayMap) {
-          // Find best set in this workout
-          let maxWeight = 0
-          let maxReps = 0
-          let totalVolume = 0
-          for (const s of entry.sets) {
-            totalVolume += s.weight * s.reps
-            if (s.weight > maxWeight || (s.weight === maxWeight && s.reps > maxReps)) {
-              maxWeight = s.weight
-              maxReps = s.reps
-            }
-          }
-
-          // Track overall personal best
-          if (maxWeight > bestWeight || (maxWeight === bestWeight && maxReps > bestReps)) {
-            bestWeight = maxWeight
-            bestReps = maxReps
-            bestDate = entry.date
-          }
-
-          historyEntries.push({
-            date: entry.date,
-            rawDate: entry.rawDate,
-            weight: maxWeight,
-            reps: maxReps,
-            volume: totalVolume,
-            sets: entry.sets.length,
-            isPR: false,
-          })
-        }
-
-        // Sort by date descending
-        historyEntries.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime())
-
-        // Mark PR entries
-        for (const entry of historyEntries) {
-          if (entry.weight === bestWeight && entry.reps === bestReps && entry.date === bestDate && bestWeight > 0) {
-            entry.isPR = true
-          }
+        if (response.error) {
+          throw new Error(response.error)
         }
 
         setExercise({
-          id: numericId,
-          name: exerciseParam.name || exerciseParam.title || 'Unknown',
+          id: response.exercise.id,
+          name: response.exercise.name,
           muscleGroup: muscleGroupName,
-          personalBest:
-            bestWeight > 0 ? { weight: bestWeight, reps: bestReps, date: bestDate } : null,
-          history: historyEntries,
+          personalBest: response.exercise.personalBest,
+          history: response.history,
         })
       } catch (err: any) {
         console.error('Error fetching exercise data:', err)

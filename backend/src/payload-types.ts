@@ -298,6 +298,7 @@ export interface WorkoutSet {
   weight: number;
   previousWeight?: number | null;
   previousReps?: number | null;
+  displayLabel?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -571,6 +572,7 @@ export interface WorkoutSetsSelect<T extends boolean = true> {
   weight?: T;
   previousWeight?: T;
   previousReps?: T;
+  displayLabel?: T;
   updatedAt?: T;
   createdAt?: T;
 }

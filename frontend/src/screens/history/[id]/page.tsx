@@ -13,6 +13,7 @@ interface SetDetail {
   type: SetDisplayType
   weight: string
   reps: number | string
+  displayLabel?: string
 }
 
 const getSetLabel = (sets: SetDetail[], currentIndex: number) => {
@@ -99,6 +100,7 @@ export default function WorkoutDetails({ route }: any) {
               type: setLabelMap[set.setLabel] || 'Working',
               weight: set.weight ? String(set.weight) : '0',
               reps: set.reps || '-',
+              displayLabel: set.displayLabel,
             })),
           }
         })
@@ -222,7 +224,7 @@ export default function WorkoutDetails({ route }: any) {
                 </View>
 
                 {exercise.sets.map((set, index) => {
-                  const label = getSetLabel(exercise.sets, index)
+                  const label = set.displayLabel || getSetLabel(exercise.sets, index)
                   const isWarmup = set.type === 'Warmup'
                   const isDrop = set.type === 'Drop'
                   

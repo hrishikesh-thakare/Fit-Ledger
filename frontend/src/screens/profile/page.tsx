@@ -361,7 +361,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
-  headerTitle: { fontSize: 28, fontWeight: '400', lineHeight: 36, color: theme.colors.text },
+  headerTitle: { ...theme.typography.headerTitle },
   
   scrollArea: { paddingHorizontal: 16, paddingBottom: 0 },
 

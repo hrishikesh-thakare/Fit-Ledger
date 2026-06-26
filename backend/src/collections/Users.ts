@@ -63,6 +63,35 @@ export const Users: CollectionConfig = {
       ],
       defaultValue: 'user',
       required: true,
+      access: {
+        read: () => true,
+        update: ({ req }) => req.user?.role === 'admin',
+      },
+      hooks: {
+        beforeChange: [
+          async ({ req, value }) => {
+            // Only admins can set or change roles
+            if (req.user?.role === 'admin') {
+              return value
+            }
+            
+            // Allow the very first user created in the database to be an admin (Payload onboarding flow)
+            if (!req.user) {
+              const { totalDocs } = await req.payload.find({
+                collection: 'users',
+                limit: 1,
+                depth: 0,
+              })
+              if (totalDocs === 0) {
+                return value
+              }
+            }
+            
+            // Everyone else is forced to be a user
+            return 'user'
+          },
+        ],
+      },
     },
     {
       name: 'isActive',

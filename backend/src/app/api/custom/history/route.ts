@@ -9,18 +9,23 @@ import { formatServerTimingHeader } from '@/lib/timing'
 export async function GET(req: NextRequest) {
   const routeStart = performance.now()
   const searchParams = req.nextUrl.searchParams
-  const userId = searchParams.get('userId')
+  const payload = await getPayloadClient()
+
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const userId = searchParams.get('userId') || user.id
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
 
-  if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+  if (user.role !== 'admin' && String(user.id) !== String(userId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   // Cast userId to number
   const numericUserId = Number(userId)
-
-  const payload = await getPayloadClient()
 
   try {
     const payloadStart = performance.now()
@@ -49,6 +54,7 @@ export async function GET(req: NextRequest) {
       sort: '-date',
       limit: safeLimit,
       depth: 0,
+      overrideAccess: true,
       select: {
         id: true,
         title: true,
@@ -76,7 +82,7 @@ export async function GET(req: NextRequest) {
       return {
         id: day.id,
         name: day.title || 'Workout',
-        dateRaw: day.date,
+        date: day.date,
         duration: durationStr,
         volumeKg: day.volumeKg || 0,
         exercises: day.exerciseCount || 0,

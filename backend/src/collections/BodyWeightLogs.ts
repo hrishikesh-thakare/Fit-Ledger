@@ -24,22 +24,6 @@ export const BodyWeightLogs: CollectionConfig = {
   },
 
   hooks: {
-    beforeValidate: [
-      async ({ data, operation, req }) => {
-        // Idempotency check: if clientId is provided and already exists, reject as duplicate
-        if (operation === 'create' && data?.clientId) {
-          const existing = await req.payload.find({
-            collection: 'body-weight-logs',
-            where: { clientId: { equals: data.clientId } },
-            limit: 1,
-          })
-          if (existing.docs.length > 0) {
-            throw new APIError('Duplicate entry — already synced', 409)
-          }
-        }
-        return data
-      },
-    ],
     beforeChange: [
       ({ data, operation, req }) => {
         // Auto-fill user field on create

@@ -4,13 +4,20 @@ import { saveWorkoutToPayload } from '@/lib/api-logic/workouts/start'
 
 export async function POST(req: NextRequest) {
   const payload = await getPayloadClient()
+
+  const { user } = await payload.auth({ headers: req.headers })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const body = await req.json()
 
   try {
-    const result = await saveWorkoutToPayload(payload, body)
+    const result = await saveWorkoutToPayload(payload, body, user.id)
     return NextResponse.json(result.body, { status: result.status })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error saving workout data:', error)
+    require('fs').writeFileSync('error.log', error.stack || error.message || String(error))
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

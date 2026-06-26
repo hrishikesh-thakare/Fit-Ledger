@@ -45,15 +45,13 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
       setEquipmentLabel('')
       setIsCustom(true)
       
-      if (muscleGroups.length === 0) {
-        setLoadingGroups(true)
-        api.fetchMuscleGroups()
-          .then((data: any) => {
-            setMuscleGroups(data)
-          })
-          .catch(console.error)
-          .finally(() => setLoadingGroups(false))
-      }
+      setLoadingGroups(true)
+      api.fetchMuscleGroups()
+        .then((data: any) => {
+          setMuscleGroups(data)
+        })
+        .catch(console.error)
+        .finally(() => setLoadingGroups(false))
     }
   }, [visible])
 

@@ -1,0 +1,27 @@
+Error: Failed query: insert into "workout_exercises" ("id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at") values (default, default, default, default, default, default, default) returning "id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at"
+params: 
+    at NodePgPreparedQuery.queryWithCache (file:///D:/Gym-App/Fit-Ledger/backend/node_modules/@payloadcms/db-postgres/node_modules/drizzle-orm/pg-core/session.js:41:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///D:/Gym-App/Fit-Ledger/backend/node_modules/@payloadcms/db-postgres/node_modules/drizzle-orm/node-postgres/session.js:117:22
+    at async saveWorkoutToPayload (webpack-internal:///(rsc)/./src/lib/api-logic/workouts/start.ts:96:34)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/custom/workouts/start/route.ts:28:24)
+    at async AppRouteRouteModule.do (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:5:38782)
+    at async AppRouteRouteModule.handle (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:5:45984)
+    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&page=%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute.ts&appDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend%5Csrc%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:206:38)
+    at async AppRouteRouteModule.handleResponse (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:1:183692)
+    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&page=%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute.ts&appDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend%5Csrc%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:268:32)
+    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&page=%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fcustom%2Fworkouts%2Fstart%2Froute.ts&appDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend%5Csrc%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=D%3A%5CGym-App%5CFit-Ledger%5Cbackend&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:320:13)
+    at async doRender (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:1592:34)
+    at async DevServer.renderToResponseWithComponentsImpl (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:1934:13)
+    at async DevServer.renderPageComponent (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:2400:24)
+    at async DevServer.renderToResponseImpl (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:2440:32)
+    at async DevServer.pipeImpl (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:1035:25)
+    at async NextNodeServer.handleCatchallRenderRequest (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\next-server.js:393:17)
+    at async DevServer.handleRequestImpl (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\base-server.js:925:17)
+    at async D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\dev\next-dev-server.js:398:20
+    at async Span.traceAsyncFn (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\dev\next-dev-server.js:394:24)
+    at async invokeRender (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\lib\router-server.js:239:21)
+    at async handleRequest (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\lib\router-server.js:464:13)
+    at async Server.requestListener (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\server\lib\start-server.js:218:13)
