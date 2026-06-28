@@ -79,7 +79,7 @@ export default {
     const res = await fetchWithAuth(`/body-weight-logs/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
     return res.doc || res
   },
-  createExercise: async (data: { name: string; muscleGroupId: string | number; equipment?: string; isCustom?: boolean }) => {
+  createExercise: async (data: { name: string; muscleGroupId: string | number; equipment?: string }) => {
     const res = await fetchWithAuth('/custom/exercises', { method: 'POST', body: JSON.stringify(data) })
     return res.doc || res
   },

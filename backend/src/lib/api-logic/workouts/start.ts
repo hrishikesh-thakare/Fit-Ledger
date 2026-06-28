@@ -37,6 +37,10 @@ export async function saveWorkoutToPayload(
     return { status: 400, body: { error: 'routineId and exercises are required' } }
   }
 
+  if (exercises.length > 50) {
+    return { status: 400, body: { error: 'Too many exercises in one workout' } }
+  }
+
   const routine = await payload.findByID({
     collection: 'routines',
     id: Number(routineId),
@@ -56,6 +60,7 @@ export async function saveWorkoutToPayload(
   let totalVolumeKg = 0
   exercises.forEach((ex) => {
     ;(ex.sets || []).forEach((set) => {
+      if (!set.completed) return
       totalVolumeKg += (Number(set.weight) || 0) * (Number(set.reps) || 0)
     })
   })

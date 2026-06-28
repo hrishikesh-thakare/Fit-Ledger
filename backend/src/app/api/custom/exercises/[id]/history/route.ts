@@ -78,7 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         exercise: {
           id: exercise.id,
           name: exercise.name,
-          muscleGroup: 'Unknown',
+          muscleGroup: typeof exercise.muscleGroup === 'object' && exercise.muscleGroup !== null ? exercise.muscleGroup.name : 'Unknown',
           personalBest: null,
         },
         history: [],

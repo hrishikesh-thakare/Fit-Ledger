@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, type AnyColumn } from 'drizzle-orm'
 import type { Payload } from 'payload'
 
 interface SetInput {
@@ -27,8 +27,9 @@ export async function saveRoutineToPayload(
   data: SaveRoutinePayload,
 ): Promise<{ status: number; body: unknown }> {
   const { id, user } = params
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = (payload.db as unknown as { drizzle: unknown; tables: Record<string, unknown> }).drizzle as any
-  const tables = (payload.db as unknown as { tables: Record<string, any> }).tables
+  const tables = (payload.db as unknown as { tables: Record<string, Record<string, AnyColumn>> }).tables
 
   const routinesTable = tables.routines
   const reTable = tables.routine_exercises
@@ -40,6 +41,7 @@ export async function saveRoutineToPayload(
 
   let finalRoutineId = 0
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await db.transaction(async (tx: any) => {
     if (id === 'new') {
       const newRoutine = await tx
@@ -60,6 +62,8 @@ export async function saveRoutineToPayload(
     } else {
       finalRoutineId = Number(id)
 
+      const ownershipCondition = user.role !== 'admin' ? eq(routinesTable.user, user.id) : undefined
+
       const updateResult = await tx
         .update(routinesTable)
         .set({
@@ -70,10 +74,9 @@ export async function saveRoutineToPayload(
           updatedAt: now,
         })
         .where(
-          and(
-            eq(routinesTable.id, finalRoutineId),
-            user.role === 'admin' ? undefined : eq(routinesTable.user, user.id),
-          ),
+          ownershipCondition
+            ? and(eq(routinesTable.id, finalRoutineId), ownershipCondition)
+            : eq(routinesTable.id, finalRoutineId)
         )
         .returning({ id: routinesTable.id })
 

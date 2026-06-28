@@ -23,6 +23,9 @@ const dirname = path.dirname(filename)
 const secret = process.env.PAYLOAD_SECRET
 if (!secret) throw new Error('PAYLOAD_SECRET env var is required')
 
+const dbUrl = process.env.DATABASE_URL
+if (!dbUrl) throw new Error('DATABASE_URL env var is required')
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -62,7 +65,7 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URL || '',
+      connectionString: dbUrl,
     },
   }),
   sharp,

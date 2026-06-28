@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Modal, ActivityIndicator } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, Pressable, ScrollView, Modal, ActivityIndicator, BackHandler } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
@@ -41,6 +41,13 @@ export default function WorkoutSummary({ route }: any) {
   const [updateWeights, setUpdateWeights] = useState(true)
 
   const unit = user?.preferredUnit === 'lb' ? 'LBS' : 'KG'
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      return true
+    })
+    return () => sub.remove()
+  }, [])
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600)

@@ -26,8 +26,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
   const [muscleGroupLabel, setMuscleGroupLabel] = useState<string>('')
   const [equipment, setEquipment] = useState<string>('')
   const [equipmentLabel, setEquipmentLabel] = useState<string>('')
-  const [isCustom, setIsCustom] = useState(true)
-  
+
   const [muscleGroups, setMuscleGroups] = useState<any[]>([])
   const [loadingGroups, setLoadingGroups] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -43,7 +42,6 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
       setMuscleGroupLabel('')
       setEquipment('')
       setEquipmentLabel('')
-      setIsCustom(true)
       
       setLoadingGroups(true)
       api.fetchMuscleGroups()
@@ -64,8 +62,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
       await api.createExercise({
         name: name.trim(),
         muscleGroupId,
-        equipment: equipment || undefined,
-        isCustom
+        equipment: equipment || undefined
       })
       Toast.show('Custom exercise created!', 'success')
       onCreated()
@@ -120,19 +117,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
             </Pressable>
           </View>
 
-          {/* Custom Toggle */}
-          <View style={styles.toggleContainer}>
-            <View style={{ flex: 1, paddingRight: 16 }}>
-              <Text style={styles.toggleTitle}>Custom exercise (only visible to me)</Text>
-              <Text style={styles.toggleDesc}>Only you can see and use this exercise</Text>
-            </View>
-            <Switch
-              value={isCustom}
-              onValueChange={setIsCustom}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primaryLight }}
-              thumbColor={isCustom ? theme.colors.primary : '#f4f3f4'}
-            />
-          </View>
+
 
           {/* Actions */}
           <View style={styles.actions}>

@@ -21,9 +21,9 @@ const toEquipmentValue = (value: unknown): EquipmentValue | undefined => {
 export async function createCustomExercise(
   payload: Payload,
   user: { id: string | number },
-  body: { name?: string; muscleGroupId?: string | number; equipment?: unknown; isCustom?: boolean },
+  body: { name?: string; muscleGroupId?: string | number; equipment?: unknown },
 ): Promise<{ status: number; body: unknown }> {
-  const { name, muscleGroupId, equipment, isCustom } = body
+  const { name, muscleGroupId, equipment } = body
 
   if (!name?.trim()) {
     return { status: 400, body: { error: 'Exercise name is required' } }
@@ -38,7 +38,7 @@ export async function createCustomExercise(
       name: name.trim(),
       muscleGroup: Number(muscleGroupId),
       equipment: toEquipmentValue(equipment),
-      isCustom: isCustom !== false,
+      isCustom: true,
       createdBy: Number(user.id),
     },
     overrideAccess: true,
