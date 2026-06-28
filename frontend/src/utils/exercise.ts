@@ -22,3 +22,16 @@ export const getSetLabelDisplay = (label: string) => {
   }
   return map[label.toLowerCase()] || capitalize(label)
 }
+
+export const getSetLabelText = (exSets: { type?: string }[], idx: number) => {
+  const set = exSets[idx]
+  if (!set) return ''
+  if (set.type === 'W' || set.type === 'Warmup') return 'W'
+  if (set.type === 'D' || set.type === 'Drop' || set.type === 'Drop Set') return 'D'
+  let normalCount = 0
+  for (let i = 0; i <= idx; i++) {
+    const s = exSets[i]
+    if (s && (s.type === 'N' || s.type === 'Normal')) normalCount++
+  }
+  return normalCount.toString()
+}

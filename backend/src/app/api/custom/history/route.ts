@@ -2,7 +2,7 @@ import { getPayloadClient } from '@/lib/payload'
 import { NextRequest, NextResponse } from 'next/server'
 import type { Where } from 'payload'
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 import { formatServerTimingHeader } from '@/lib/timing'
 
@@ -70,20 +70,11 @@ export async function GET(req: NextRequest) {
 
     // 2. Transform to response format
     const results = workoutDays.map((day) => {
-      const durationSeconds = day.durationSeconds || 0
-      const hours = Math.floor(durationSeconds / 3600)
-      const minutes = Math.floor((durationSeconds % 3600) / 60)
-      const seconds = durationSeconds % 60
-      const durationStr =
-        hours > 0
-          ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-          : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-
       return {
         id: day.id,
         name: day.title || 'Workout',
         date: day.date,
-        duration: durationStr,
+        durationSeconds: day.durationSeconds || 0,
         volumeKg: day.volumeKg || 0,
         exercises: day.exerciseCount || 0,
       }

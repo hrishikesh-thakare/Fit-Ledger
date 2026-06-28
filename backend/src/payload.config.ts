@@ -20,6 +20,9 @@ import { BodyWeightLogs } from './collections/BodyWeightLogs'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const secret = process.env.PAYLOAD_SECRET
+if (!secret) throw new Error('PAYLOAD_SECRET env var is required')
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -32,14 +35,12 @@ export default buildConfig({
     'http://localhost:8081',
     'http://10.0.2.2:3000',
     'http://10.0.2.2:8081',
-    '*',
   ],
   csrf: [
     'http://localhost:3000',
     'http://localhost:8081',
     'http://10.0.2.2:3000',
     'http://10.0.2.2:8081',
-    '*',
   ],
   collections: [
     Users,
@@ -55,7 +56,7 @@ export default buildConfig({
     BodyWeightLogs,
   ],
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import * as Haptics from 'expo-haptics'
+import * as Crypto from 'expo-crypto'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface WorkoutSet {
@@ -150,10 +151,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     setRoutineId(id)
     
     // Generate UUID v4 for unique session idempotency
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
-      return v.toString(16)
-    })
+    const uuid = Crypto.randomUUID()
     
     setClientId(`sess-${Date.now()}-${uuid}`)
     setExercises(initialExercises)

@@ -15,9 +15,8 @@ export async function POST(req: NextRequest) {
   try {
     const result = await saveWorkoutToPayload(payload, body, user.id)
     return NextResponse.json(result.body, { status: result.status })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving workout data:', error)
-    require('fs').writeFileSync('error.log', error.stack || error.message || String(error))
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

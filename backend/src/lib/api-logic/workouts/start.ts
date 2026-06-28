@@ -1,7 +1,4 @@
 import type { Payload } from 'payload'
-import { sql } from 'drizzle-orm'
-
-type BulkInsertDatabase = Parameters<NonNullable<Payload['db']['insert']>>[0]['db']
 
 interface WorkoutSetData {
   weight: string | number
@@ -27,37 +24,6 @@ interface SaveWorkoutRequest {
   durationSeconds?: number
   updatePrevWeights?: boolean
   exercises: WorkoutExerciseData[]
-}
-
-type WorkoutSetInsert = {
-  workoutDay: number
-  workoutExercise: number
-  setOrder: number
-  setLabel: 'warmup' | 'working' | 'drop'
-  reps: number
-  weight: number
-  previousWeight: number | null
-  previousReps: number | null
-  displayLabel: string | null
-  createdAt: Date
-  updatedAt: Date
-}
-
-type RoutineSetInsert = {
-  routineExercise: number
-  setOrder: number
-  setLabel: 'warmup' | 'working' | 'drop'
-  reps: number
-  weight: number
-  createdAt: Date
-  updatedAt: Date
-}
-
-type DrizzleDB = {
-  insert: (table: unknown) => { 
-    values: (data: unknown) => { returning: () => unknown[] } & Promise<void> 
-  }
-  execute: (query: unknown) => Promise<void>
 }
 
 export async function saveWorkoutToPayload(
@@ -117,15 +83,6 @@ export async function saveWorkoutToPayload(
 
   const t = await payload.db.beginTransaction()
   try {
-    // Payload keeps the Drizzle transaction by ID. Raw bulk operations must use
-    // this connection too, otherwise they cannot see the uncommitted parent rows.
-    const db = (t === null ? payload.db.drizzle : payload.db.sessions?.[String(t)]?.db) as
-      | BulkInsertDatabase
-      | undefined
-    if (!db) {
-      throw new Error('Unable to access the workout save transaction')
-    }
-
     const workoutDay = await payload.create({
       collection: 'workout-days',
       data: {
@@ -142,17 +99,20 @@ export async function saveWorkoutToPayload(
       req: t ? { transactionID: t } : undefined,
     })
 
-    const now = new Date()
-
-    const workoutExercises = await (db as unknown as DrizzleDB).insert(payload.db.tables.workout_exercises)
-      .values(exercises.map((ex, exerciseOrder) => ({
-        workoutDay: Number(workoutDay.id),
-        exercise: Number(ex.exerciseId),
-        exerciseOrder: exerciseOrder,
-        createdAt: now,
-        updatedAt: now,
-      })))
-      .returning() as { exerciseOrder: number; id: number }[]
+    const workoutExercises = await Promise.all(
+      exercises.map((ex, exerciseOrder) => {
+        return payload.create({
+          collection: 'workout-exercises',
+          data: {
+            workoutDay: Number(workoutDay.id),
+            exercise: Number(ex.exerciseId),
+            exerciseOrder: exerciseOrder,
+          },
+          overrideAccess: true,
+          req: t ? { transactionID: t } : undefined,
+        })
+      })
+    )
     
     const workoutExerciseIdsByOrder = new Map<number, number>(
       workoutExercises.map((exercise) => [Number(exercise.exerciseOrder), Number(exercise.id)]),
@@ -160,7 +120,18 @@ export async function saveWorkoutToPayload(
 
     const validSetLabels = ['warmup', 'working', 'drop']
 
-    const workoutSetsToInsert: WorkoutSetInsert[] = []
+    type NewWorkoutSet = {
+      workoutDay: number
+      workoutExercise: number
+      setOrder: number
+      setLabel: 'warmup' | 'working' | 'drop'
+      reps: number
+      weight: number
+      previousWeight: number | null
+      previousReps: number | null
+      displayLabel: string | null
+    }
+    const workoutSetsToInsert: NewWorkoutSet[] = []
 
     exercises.forEach((ex, exIndex) => {
       const workoutExerciseId = workoutExerciseIdsByOrder.get(exIndex)
@@ -185,14 +156,21 @@ export async function saveWorkoutToPayload(
           previousWeight: set.previousWeight !== undefined ? Number(set.previousWeight) : null,
           previousReps: set.previousReps !== undefined ? Number(set.previousReps) : null,
           displayLabel: set.displayLabel || null,
-          createdAt: now,
-          updatedAt: now,
         })
       })
     })
 
     if (workoutSetsToInsert.length > 0) {
-      await (db as unknown as DrizzleDB).insert(payload.db.tables.workout_sets).values(workoutSetsToInsert)
+      await Promise.all(
+        workoutSetsToInsert.map((data) =>
+          payload.create({
+            collection: 'workout-sets',
+            data,
+            overrideAccess: true,
+            req: t ? { transactionID: t } : undefined,
+          })
+        )
+      )
     }
 
     if (updatePrevWeights) {
@@ -217,14 +195,26 @@ export async function saveWorkoutToPayload(
       }
 
       if (routineExerciseIdsToDelete.length > 0) {
-        const joinedIds = sql.join(
-          routineExerciseIdsToDelete.map((id) => sql`${id}`),
-          sql`, `
-        );
-        await (db as unknown as DrizzleDB).execute(sql`DELETE FROM routine_sets WHERE routine_exercise_id IN (${joinedIds})`);
+        await Promise.all(
+          routineExerciseIdsToDelete.map((id) =>
+            payload.delete({
+              collection: 'routine-sets',
+              where: { routineExercise: { equals: id } },
+              overrideAccess: true,
+              req: t ? { transactionID: t } : undefined,
+            })
+          )
+        )
       }
 
-      const routineSetsToInsert: RoutineSetInsert[] = []
+      type NewRoutineSet = {
+        routineExercise: number
+        setOrder: number
+        setLabel: 'warmup' | 'working' | 'drop'
+        reps: number
+        weight: number
+      }
+      const routineSetsToInsert: NewRoutineSet[] = []
       for (const ex of exercises) {
         const routineExercise = routineExercises.find(
           (re) => (typeof re.exercise === 'object' ? re.exercise.id : re.exercise) === Number(ex.exerciseId),
@@ -241,15 +231,22 @@ export async function saveWorkoutToPayload(
               setLabel: setLabel,
               reps: Number(set.reps) || 0,
               weight: Number(set.weight) || 0,
-              createdAt: now,
-              updatedAt: now,
             })
           })
         }
       }
 
       if (routineSetsToInsert.length > 0) {
-        await (db as unknown as DrizzleDB).insert(payload.db.tables.routine_sets).values(routineSetsToInsert)
+        await Promise.all(
+          routineSetsToInsert.map((data) =>
+            payload.create({
+              collection: 'routine-sets',
+              data,
+              overrideAccess: true,
+              req: t ? { transactionID: t } : undefined,
+            })
+          )
+        )
       }
     }
 

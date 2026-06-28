@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       exercise = await payload.findByID({
         collection: 'exercises',
         id: numericId,
-        depth: 0,
+        depth: 1,
       })
     } else {
       const nameQuery = id.replace(/-/g, ' ')
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           name: { like: nameQuery },
         },
         limit: 1,
-        depth: 0,
+        depth: 1,
       })
       exercise = exercises.docs[0]
     }
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: {
         and: [{ exercise: { equals: exercise.id } }, { 'workoutDay.user': { equals: userId } }],
       },
-      limit: 50,
+      limit: 500,
       sort: '-createdAt',
       depth: 0,
     })
@@ -164,9 +164,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           reps: bestSet.reps,
           volume,
           sets: weSets.length,
+          isPR: false,
         }
       })
       .filter(Boolean)
+
+    if (personalBest.weight > 0) {
+      const prEntry = history.find(e => e?.date === personalBest.date)
+      if (prEntry) prEntry.isPR = true
+    }
 
     const totalDuration = performance.now() - routeStart
 
@@ -175,7 +181,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         exercise: {
           id: exercise.id,
           name: exercise.name,
-          muscleGroup: 'Unknown',
+          muscleGroup: typeof exercise.muscleGroup === 'object' && exercise.muscleGroup !== null ? exercise.muscleGroup.name : 'Unknown',
           personalBest: personalBest.weight > 0 ? personalBest : null,
         },
         history,

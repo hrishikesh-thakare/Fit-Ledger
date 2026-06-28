@@ -15,6 +15,8 @@ const ITEM_HEIGHT = 60
 const CAROUSEL_HEIGHT = 180
 const VERTICAL_PADDING = (CAROUSEL_HEIGHT - ITEM_HEIGHT) / 2
 
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList)
+
 export default function Weight() {
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -335,10 +337,10 @@ export default function Weight() {
 
             <View style={styles.verticalCarouselsWrapper}>
               <View style={[styles.verticalCarouselContainer, { width: 60 }]}>
-                <Animated.FlatList 
+                <AnimatedFlatList 
                   ref={intScrollRef}
                   data={integers}
-                  keyExtractor={(item: number) => item.toString()}
+                  keyExtractor={(item: any) => item.toString()}
                   showsVerticalScrollIndicator={false}
                   snapToOffsets={integers.map((_, i) => i * ITEM_HEIGHT)}
                   decelerationRate="fast"
@@ -353,7 +355,7 @@ export default function Weight() {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT)
                     if(integers[idx] !== undefined) setSelectedInt(integers[idx])
                   }}
-                  renderItem={({ item: num, index: idx }: { item: number, index: number }) => {
+                  renderItem={({ item: num, index: idx }: any) => {
                     const inputRange = [
                       (idx - 1) * ITEM_HEIGHT,
                       idx * ITEM_HEIGHT,
@@ -391,10 +393,10 @@ export default function Weight() {
               <Text style={styles.decimalDot}>.</Text>
 
               <View style={[styles.verticalCarouselContainer, { width: 60 }]}>
-                <Animated.FlatList 
+                <AnimatedFlatList 
                   ref={decScrollRef}
                   data={decimals}
-                  keyExtractor={(item: number) => item.toString()}
+                  keyExtractor={(item: any) => item.toString()}
                   showsVerticalScrollIndicator={false}
                   snapToOffsets={decimals.map((_, i) => i * ITEM_HEIGHT)}
                   decelerationRate="fast"
@@ -409,7 +411,7 @@ export default function Weight() {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT)
                     if(decimals[idx] !== undefined) setSelectedDec(decimals[idx])
                   }}
-                  renderItem={({ item: num, index: idx }: { item: number, index: number }) => {
+                  renderItem={({ item: num, index: idx }: any) => {
                     const inputRange = [
                       (idx - 1) * ITEM_HEIGHT,
                       idx * ITEM_HEIGHT,

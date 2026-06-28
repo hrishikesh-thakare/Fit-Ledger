@@ -23,6 +23,8 @@ export default function RoutineDetails({ route }: any) {
   useFocusEffect(
     React.useCallback(() => {
       if (!id) return
+      setLoading(true)
+      setError(null)
       api.customFetch(`/custom/routines/${id}`)
         .then((data: any) => {
           setRoutine(data)

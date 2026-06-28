@@ -135,14 +135,10 @@ function NavigationContent() {
         {signedIn ? (
           <RootStack />
         ) : (
-          <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: theme.colors.background, borderTopColor: theme.colors.border }, tabBarActiveTintColor: theme.colors.primary }}>
-            <Tab.Screen name="Login" options={{ tabBarStyle: { display: 'none' } }}>
-              {() => <Login />}
-            </Tab.Screen>
-            <Tab.Screen name="SignUp" options={{ tabBarStyle: { display: 'none' } }}>
-              {() => <SignUp />}
-            </Tab.Screen>
-          </Tab.Navigator>
+          <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="SignUp" component={SignUp} />
+          </Stack.Navigator>
         )}
         
         {/* Render the active workout bar globally, but hide it if we are actually ON the Workout or WorkoutSummary screen */}

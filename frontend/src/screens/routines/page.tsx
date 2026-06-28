@@ -72,10 +72,13 @@ export default function Routines() {
       .finally(() => { if (!silent) setLoading(false) })
   }
 
+  const hasFetchedRef = useRef(false)
+
   useFocusEffect(
     React.useCallback(() => {
-      fetchRoutines(routines.length > 0)
-    }, [user?.id, routines.length])
+      fetchRoutines(hasFetchedRef.current)
+      hasFetchedRef.current = true
+    }, [user?.id])
   )
 
   const handleAdd = () => {

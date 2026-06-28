@@ -8,9 +8,11 @@ import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { theme } from '../../theme'
 import api from '../../api'
-import { getMuscle, getEquipment, capitalize } from '../../utils/exercise'
+import { getMuscle, getEquipment, capitalize, getSetLabelText } from '../../utils/exercise'
 import { useWorkoutContext } from '../../contexts/WorkoutContext'
 import { CreateExerciseModal } from '../../components/CreateExerciseModal'
+import { useAuth } from '../../contexts/AuthContext'
+import { fromKg, toKg } from '../../utils/unit'
 
 interface WorkoutSet {
   id: string
@@ -30,6 +32,7 @@ interface WorkoutExercise {
 }
 
 export default function Workout({ route }: any) {
+  const { user } = useAuth()
   const navigation = useNavigation<any>()
   const routineId = route.params?.routineId || route.params?.id
 
@@ -91,14 +94,28 @@ export default function Workout({ route }: any) {
             exerciseId: ex.exerciseId || ex.id,
             name: ex.name || 'Unknown Exercise',
             restTime: ex.restTime || 60,
-            sets: (ex.sets || []).map((s: any) => ({
-              id: s.id || generateId(),
-              type: s.type || 'N',
-              weight: s.weight ? String(s.weight) : '',
-              reps: s.reps ? String(s.reps) : '',
-              completed: false,
-              previous: s.previous || '-',
-            }))
+            sets: (ex.sets || []).map((s: any) => {
+              let prevFormatted = '-'
+              if (s.previous && s.previous !== '-') {
+                const parts = s.previous.split('x')
+                if (parts.length === 2) {
+                  const kgWeight = Number(parts[0]) || 0
+                  const reps = parts[1]
+                  const displayWeight = fromKg(kgWeight, user?.preferredUnit)
+                  prevFormatted = `${displayWeight % 1 === 0 ? displayWeight : displayWeight.toFixed(1)}x${reps}`
+                } else {
+                  prevFormatted = s.previous
+                }
+              }
+              return {
+                id: s.id || generateId(),
+                type: s.type || 'N',
+                weight: s.weight ? String(fromKg(Number(s.weight), user?.preferredUnit)) : '',
+                reps: s.reps ? String(s.reps) : '',
+                completed: false,
+                previous: prevFormatted,
+              }
+            })
           }))
           startWorkout(routineId, loadedEx)
         }
@@ -301,7 +318,7 @@ export default function Workout({ route }: any) {
             }
           }
           return {
-            weight: String(Number(s.weight) || 0),
+            weight: String(toKg(Number(s.weight) || 0, user?.preferredUnit)),
             reps: String(Number(s.reps) || 0),
             setLabel: s.type === 'W' || s.type === 'Warmup' ? 'warmup' : s.type === 'D' || s.type === 'Drop' ? 'drop' : 'working',
             completed: s.completed,
@@ -370,16 +387,7 @@ export default function Workout({ route }: any) {
     return matchMuscle && matchEquipment && matchSearch;
   })
 
-  const getSetLabelText = (exSets: WorkoutSet[], idx: number) => {
-    const set = exSets[idx]
-    if (set.type === 'W' || set.type === 'Warmup') return 'W'
-    if (set.type === 'D' || set.type === 'Drop' || set.type === 'Drop Set') return 'D'
-    let normalCount = 0
-    for (let i = 0; i <= idx; i++) {
-      if (exSets[i].type === 'N' || exSets[i].type === 'Normal') normalCount++
-    }
-    return normalCount.toString()
-  }
+
 
   const getSetLabelColor = (type: string) => {
     if (type === 'W' || type === 'Warmup') return theme.colors.primary

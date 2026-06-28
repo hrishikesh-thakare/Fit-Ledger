@@ -7,6 +7,9 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/core'
 
+const ITEM_HEIGHT = 60
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList)
 const PERIODS = ['All', 'This Week', 'This Month', 'Last Month']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const YEARS = Array.from({length: 10}, (_, i) => String(new Date().getFullYear() - i))
@@ -250,8 +253,8 @@ export default function History() {
             Animated.timing(panY, { toValue: 500, duration: 200, useNativeDriver: true }).start(() => setIsFilterOpen(false))
           }} />
           <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: panY }] }]}>
-            <View {...panResponder.panHandlers} style={{ paddingBottom: 16, backgroundColor: 'transparent' }}>
-              <View style={styles.bottomSheetDragHandle} />
+            <View style={{ paddingBottom: 16, backgroundColor: 'transparent' }}>
+              <View style={styles.bottomSheetDragHandle} {...panResponder.panHandlers} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} />
               <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={styles.modalTitle}>Filter History</Text>
               </View>
@@ -260,10 +263,10 @@ export default function History() {
             <View style={styles.filterCarouselsWrapper}>
               {/* Month Picker */}
               <View style={[styles.carouselContainer, { width: 140 }]}>
-                <Animated.FlatList 
+                <AnimatedFlatList 
                   ref={monthScrollRef}
                   data={MONTHS}
-                  keyExtractor={(item: string) => item}
+                  keyExtractor={(item: any) => item}
                   showsVerticalScrollIndicator={false}
                   snapToOffsets={MONTHS.map((_, i) => i * 50)}
                   decelerationRate="fast"
@@ -278,7 +281,7 @@ export default function History() {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / 50)
                     if(MONTHS[idx]) setFilterMonth(MONTHS[idx])
                   }}
-                  renderItem={({ item: m, index: idx }: { item: string, index: number }) => {
+                  renderItem={({ item: m, index: idx }: any) => {
                     const inputRange = [
                       (idx - 1) * 50,
                       idx * 50,
@@ -315,10 +318,10 @@ export default function History() {
               
               {/* Year Picker */}
               <View style={[styles.carouselContainer, { width: 80 }]}>
-                <Animated.FlatList 
+                <AnimatedFlatList 
                   ref={yearScrollRef}
                   data={YEARS}
-                  keyExtractor={(item: string) => item}
+                  keyExtractor={(item: any) => item}
                   showsVerticalScrollIndicator={false}
                   snapToOffsets={YEARS.map((_, i) => i * 50)}
                   decelerationRate="fast"
@@ -333,7 +336,7 @@ export default function History() {
                     const idx = Math.round(e.nativeEvent.contentOffset.y / 50)
                     if(YEARS[idx]) setFilterYear(YEARS[idx])
                   }}
-                  renderItem={({ item: y, index: idx }: { item: string, index: number }) => {
+                  renderItem={({ item: y, index: idx }: any) => {
                     const inputRange = [
                       (idx - 1) * 50,
                       idx * 50,

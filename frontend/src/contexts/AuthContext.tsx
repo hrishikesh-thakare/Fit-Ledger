@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getToken, loginWithToken, removeToken } from '../auth'
 import { DeviceEventEmitter } from 'react-native'
 import { API_URL } from '../api'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export interface UserType {
   id: string
@@ -53,18 +54,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userData) {
         setUser(userData)
         setSignedIn(true)
+        await AsyncStorage.setItem('cached_user', JSON.stringify(userData))
       } else if (status === 401) {
         // Only log out on explicit 401 Unauthorized
         await removeToken()
         setUser(null)
         setSignedIn(false)
+        await AsyncStorage.removeItem('cached_user')
       } else {
-        // Network error or server down: keep the user logged in locally
+        // Network error or server down: use cached user if available
+        try {
+          const cachedUserStr = await AsyncStorage.getItem('cached_user')
+          if (cachedUserStr) {
+            setUser(JSON.parse(cachedUserStr))
+          }
+        } catch (e) {}
         setSignedIn(true)
       }
     } else {
       setUser(null)
       setSignedIn(false)
+      await AsyncStorage.removeItem('cached_user')
     }
   }
 
@@ -87,12 +97,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: userData } = await fetchMe(token)
     setUser(userData)
     setSignedIn(true)
+    if (userData) {
+      await AsyncStorage.setItem('cached_user', JSON.stringify(userData))
+    }
   }
 
   const logout = async () => {
     await removeToken()
     setUser(null)
     setSignedIn(false)
+    await AsyncStorage.removeItem('cached_user')
   }
 
   const refreshUser = async () => {
@@ -101,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { user: userData } = await fetchMe(t)
       if (userData) {
         setUser(userData)
+        await AsyncStorage.setItem('cached_user', JSON.stringify(userData))
       }
     }
   }
