@@ -9,6 +9,8 @@ import { Toast } from '../../../../components/CustomToast'
 import { theme } from '../../../../theme'
 import api from '../../../../api'
 import { CreateExerciseModal } from '../../../../components/CreateExerciseModal'
+import { useAuth } from '../../../../contexts/AuthContext'
+import { fromKg, toKg } from '../../../../utils/unit'
 
 interface RoutineSet {
   id?: string;
@@ -34,6 +36,8 @@ interface Routine {
 }
 
 export default function EditRoutine({ route }: { route: { params?: { id?: string | number } } }) {
+  const { user } = useAuth()
+  const unit = user?.preferredUnit || 'kg'
   const navigation = useNavigation() as {
     navigate: (screen: string, params?: Record<string, unknown>) => void;
     goBack: () => void;
@@ -184,12 +188,21 @@ export default function EditRoutine({ route }: { route: { params?: { id?: string
   useEffect(() => {
     if (id) {
       api.fetchRoutine(id).then((data: Routine) => {
+        if (data.exercises) {
+          data.exercises.forEach(ex => {
+            ex.sets?.forEach(set => {
+              if (set.weight) {
+                set.weight = Math.round(fromKg(Number(set.weight), unit, true) * 10) / 10
+              }
+            })
+          })
+        }
         setRoutine(data)
         setName(data.name || data.title || '')
         hasUnsavedChanges.current = false
       }).catch((err: unknown) => console.error(err))
     }
-  }, [id])
+  }, [id, unit])
 
   // Intercept the back button action if there are unsaved changes
   useEffect(() => {
@@ -221,7 +234,7 @@ export default function EditRoutine({ route }: { route: { params?: { id?: string
         sets: ex.sets?.map((set: RoutineSet, setIdx: number) => ({
           id: String(set.id).includes('.') ? undefined : set.id,
           type: set.type === 'Warmup' || set.type === 'W' ? 'W' : set.type === 'Drop' || set.type === 'D' ? 'D' : 'N',
-          weight: set.weight ? Number(set.weight) : 0,
+          weight: set.weight ? toKg(Number(set.weight), unit) : 0,
           reps: set.reps ? Number(set.reps) : 0,
           setOrder: setIdx,
         })),
@@ -441,7 +454,7 @@ export default function EditRoutine({ route }: { route: { params?: { id?: string
               {/* Table Header */}
               <View style={styles.tableHeader}>
                 <Text style={[styles.th, { flex: 1, textAlign: 'left' }]}>Set</Text>
-                <Text style={[styles.th, { flex: 2 }]}>kg</Text>
+                <Text style={[styles.th, { flex: 2 }]}>{unit}</Text>
                 <Text style={[styles.th, { flex: 2 }]}>Reps</Text>
               </View>
 

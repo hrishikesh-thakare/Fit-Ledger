@@ -6,9 +6,13 @@ import { useFocusEffect } from '@react-navigation/core'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import api from '../../../api'
 import { theme } from '../../../theme'
+import { useAuth } from '../../../contexts/AuthContext'
+import { fromKg } from '../../../utils/unit'
 
 export default function RoutineDetails({ route }: any) {
   const navigation = useNavigation<any>()
+  const { user } = useAuth()
+  const unit = user?.preferredUnit || 'kg'
   const { id } = route.params || {}
   
   const [loading, setLoading] = useState(true)
@@ -112,7 +116,7 @@ export default function RoutineDetails({ route }: any) {
               <View style={styles.table}>
                 <View style={styles.tableHeader}>
                   <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'left' }]}>Set</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>kg</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>{unit}</Text>
                   <Text style={[styles.tableHeaderText, { flex: 2 }]}>Reps</Text>
                 </View>
                 {ex.sets?.map((set: any, sIdx: number) => {
@@ -135,7 +139,9 @@ export default function RoutineDetails({ route }: any) {
                       <Text style={[styles.tableCell, { flex: 1, textAlign: 'left', fontWeight: 'bold', color: labelColor }]}>
                         {setLabel}
                       </Text>
-                      <Text style={[styles.tableCell, { flex: 2 }]}>{set.weight || '-'}</Text>
+                      <Text style={[styles.tableCell, { flex: 2 }]}>
+                        {set.weight ? Math.round(fromKg(Number(set.weight), unit, true) * 10) / 10 : '-'}
+                      </Text>
                       <Text style={[styles.tableCell, { flex: 2 }]}>{set.reps || '-'}</Text>
                     </View>
                   )

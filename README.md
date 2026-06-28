@@ -20,6 +20,21 @@ Required versions:
 
 - Node: `^18.20.2 || >=20.9.0`
 
+## Environment Variables
+
+For the frontend app to correctly communicate with the backend, you must configure the environment variables.
+Copy the `.env.example` file in the `frontend` directory to a new `.env` file:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Ensure `EXPO_PUBLIC_API_URL` is set to your backend's API base URL. If developing locally with Expo Go on a physical device, replace `YOUR_SERVER_IP` with your computer's actual local IP address (not `localhost`).
+
+```env
+EXPO_PUBLIC_API_URL=http://YOUR_SERVER_IP:3000/api
+```
+
 ## Local Development
 
 1. Install dependencies:

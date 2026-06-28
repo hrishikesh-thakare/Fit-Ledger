@@ -1,6 +1,6 @@
 import { getToken, removeToken } from '../auth'
 import { DeviceEventEmitter } from 'react-native'
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = await getToken()
@@ -43,8 +43,15 @@ export default {
     const res = await fetchWithAuth('/custom/exercises')
     return res.docs || res || []
   },
-  fetchHistory: async () => {
-    const res = await fetchWithAuth('/custom/history')
+  fetchHistory: async (startDate?: string, endDate?: string) => {
+    let url = '/custom/history'
+    const query: string[] = []
+    if (startDate) query.push(`startDate=${encodeURIComponent(startDate)}`)
+    if (endDate) query.push(`endDate=${encodeURIComponent(endDate)}`)
+    if (query.length > 0) {
+      url += `?${query.join('&')}`
+    }
+    const res = await fetchWithAuth(url)
     return res.docs || res || []
   },
   loadWorkout: async (routineId: string | number) => {

@@ -1,9 +1,9 @@
-Error: Failed query: insert into "workout_exercises" ("id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at") values (default, default, default, default, default, default, default) returning "id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at"
-params: 
+Error: Failed query: insert into "workout_exercises" ("id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at") values (default, default, default, $1, default, default, default) returning "id", "workout_day_id", "exercise_id", "exercise_order", "notes", "updated_at", "created_at"
+params: 0
     at NodePgPreparedQuery.queryWithCache (file:///D:/Gym-App/Fit-Ledger/backend/node_modules/@payloadcms/db-postgres/node_modules/drizzle-orm/pg-core/session.js:41:15)
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
     at async file:///D:/Gym-App/Fit-Ledger/backend/node_modules/@payloadcms/db-postgres/node_modules/drizzle-orm/node-postgres/session.js:117:22
-    at async saveWorkoutToPayload (webpack-internal:///(rsc)/./src/lib/api-logic/workouts/start.ts:96:34)
+    at async saveWorkoutToPayload (webpack-internal:///(rsc)/./src/lib/api-logic/workouts/start.ts:98:34)
     at async POST (webpack-internal:///(rsc)/./src/app/api/custom/workouts/start/route.ts:28:24)
     at async AppRouteRouteModule.do (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:5:38782)
     at async AppRouteRouteModule.handle (D:\Gym-App\Fit-Ledger\backend\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:5:45984)

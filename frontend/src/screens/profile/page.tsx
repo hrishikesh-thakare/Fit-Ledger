@@ -4,19 +4,10 @@ import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
-import { getToken } from '../../auth'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { theme } from '../../theme'
 import api from '../../api'
-
-// Weight conversion helper functions
-const toKg = (val: number, unit: string) => {
-  return unit === 'lb' ? Math.round((val / 2.20462) * 10) / 10 : val
-}
-
-const fromKg = (val: number, unit: string) => {
-  return unit === 'lb' ? Math.round((val * 2.20462) * 10) / 10 : val
-}
+import { toKg, fromKg } from '../../utils/unit'
 
 export default function Profile() {
   const { user, logout, refreshUser } = useAuth()
@@ -30,18 +21,24 @@ export default function Profile() {
   const [targetWeight, setTargetWeight] = useState('')
   const [saving, setSaving] = useState(false)
   
+  const [localUnit, setLocalUnit] = useState<'kg' | 'lb'>(user?.preferredUnit || 'kg')
+  
   // Animation state for weight unit segmented control slider
-  const slideAnim = useRef(new Animated.Value(user?.preferredUnit === 'lb' ? 1 : 0)).current
+  const slideAnim = useRef(new Animated.Value(localUnit === 'lb' ? 1 : 0)).current
 
   useEffect(() => {
-    if (user) {
-      Animated.timing(slideAnim, {
-        toValue: (user.preferredUnit || 'kg') === 'lb' ? 1 : 0,
-        duration: 200,
-        useNativeDriver: true
-      }).start()
+    if (user?.preferredUnit) {
+      setLocalUnit(user.preferredUnit as 'kg' | 'lb')
     }
   }, [user?.preferredUnit])
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: localUnit === 'lb' ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start()
+  }, [localUnit])
 
   const translateX = slideAnim.interpolate({
     inputRange: [0, 1],
@@ -53,7 +50,7 @@ export default function Profile() {
     if (user) {
       setDisplayName(user.displayName || '')
       if (user.targetWeight) {
-        const displayWeight = fromKg(user.targetWeight, user.preferredUnit || 'kg')
+        const displayWeight = Math.round(fromKg(user.targetWeight, user.preferredUnit || 'kg') * 10) / 10
         setTargetWeight(displayWeight.toString())
       } else {
         setTargetWeight('')
@@ -113,7 +110,10 @@ export default function Profile() {
   }
 
   const handleSelectUnit = async (newUnit: 'kg' | 'lb') => {
-    if (user.preferredUnit === newUnit) return
+    if (localUnit === newUnit) return
+
+    const previousUnit = localUnit
+    setLocalUnit(newUnit) // Optimistic update
 
     try {
       await api.updateUser(user.id, { preferredUnit: newUnit })
@@ -121,6 +121,7 @@ export default function Profile() {
       Toast.show('Unit updated', 'info')
       await refreshUser()
     } catch (err: any) {
+      setLocalUnit(previousUnit) // Revert on failure
       Toast.show(err.message || 'Could not update preferred unit', 'error')
     }
   }
@@ -142,11 +143,11 @@ export default function Profile() {
       const date = new Date(rawDate)
       return `Member since ${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
     }
-    return 'Member since January 2026'
+    return null
   }
 
   const displayTargetWeight = user.targetWeight 
-    ? `${fromKg(user.targetWeight, user.preferredUnit || 'kg')} ${user.preferredUnit || 'kg'}`
+    ? `${Math.round(fromKg(user.targetWeight, localUnit) * 10) / 10} ${localUnit}`
     : 'Not set'
 
   return (
@@ -164,7 +165,7 @@ export default function Profile() {
           </View>
           <Text style={styles.userName}>{user.displayName || 'FitLedger Athlete'}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
-          <Text style={styles.memberSince}>{getMemberDate()}</Text>
+          {getMemberDate() && <Text style={styles.memberSince}>{getMemberDate()}</Text>}
 
           <Pressable style={styles.editBtn} onPress={() => setEditOpen(true)}>
             <MaterialCommunityIcons name="pencil-outline" size={18} color={theme.colors.primary} />
@@ -193,13 +194,13 @@ export default function Profile() {
                 style={styles.segmentButton}
                 onPress={() => handleSelectUnit('kg')}
               >
-                <Text style={[styles.segmentText, (user.preferredUnit || 'kg') === 'kg' && styles.segmentTextActive]}>kg</Text>
+                <Text style={[styles.segmentText, localUnit === 'kg' && styles.segmentTextActive]}>kg</Text>
               </Pressable>
               <Pressable 
                 style={styles.segmentButton}
                 onPress={() => handleSelectUnit('lb')}
               >
-                <Text style={[styles.segmentText, user.preferredUnit === 'lb' && styles.segmentTextActive]}>lb</Text>
+                <Text style={[styles.segmentText, localUnit === 'lb' && styles.segmentTextActive]}>lb</Text>
               </Pressable>
             </View>
           </View>
@@ -283,7 +284,7 @@ export default function Profile() {
         <View style={styles.modalBg}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Set Target Weight</Text>
-            <Text style={styles.modalLabel}>Target Weight ({user.preferredUnit || 'kg'})</Text>
+            <Text style={styles.modalLabel}>Target Weight ({localUnit})</Text>
             <TextInput 
               style={styles.modalInput} 
               value={targetWeight} 
@@ -387,8 +388,8 @@ const styles = StyleSheet.create({
   dropdown: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dropdownText: { color: theme.colors.text, fontSize: 14, marginRight: 4, fontWeight: '600' },
 
-  logoutButton: { backgroundColor: theme.colors.error, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32, marginBottom: 24 },
-  logoutButtonText: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
+  logoutButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.error, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 32, marginBottom: 24 },
+  logoutButtonText: { color: theme.colors.error, fontSize: 16, fontWeight: '700' },
 
   // Modals
   modalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },

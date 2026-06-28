@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getToken, loginWithToken, removeToken } from '../auth'
 import { DeviceEventEmitter } from 'react-native'
+import { API_URL } from '../api'
 
 export interface UserType {
   id: string
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMe = async (token: string): Promise<{ user: UserType | null, status: number }> => {
     try {
-      const meResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/me`, {
+      const meResponse = await fetch(`${API_URL}/users/me`, {
         headers: {
           'Authorization': `JWT ${token}`,
           'Content-Type': 'application/json'

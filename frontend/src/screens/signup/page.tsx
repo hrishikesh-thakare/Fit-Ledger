@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { theme } from '../../theme'
+import { API_URL } from '../../api'
 
 export default function SignUp() {
   const navigation = useNavigation() as { navigate: (route: string) => void }
@@ -35,7 +36,7 @@ export default function SignUp() {
     setLoading(true)
     try {
       // Create account via Payload CMS users collection
-      const signUpResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users`, {
+      const signUpResponse = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,7 +55,7 @@ export default function SignUp() {
       }
 
       // Step 2: Login to get token
-      const loginResponse = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/login`, {
+      const loginResponse = await fetch(`${API_URL}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

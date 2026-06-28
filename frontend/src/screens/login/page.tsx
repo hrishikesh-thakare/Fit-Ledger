@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { theme } from '../../theme'
+import { API_URL } from '../../api'
 
 export default function Login() {
   const navigation = useNavigation<any>()
@@ -23,7 +24,7 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api'}/users/login`, {
+      const response = await fetch(`${API_URL}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

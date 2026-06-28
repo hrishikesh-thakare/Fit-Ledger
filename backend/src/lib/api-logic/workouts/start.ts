@@ -39,6 +39,8 @@ type WorkoutSetInsert = {
   previousWeight: number | null
   previousReps: number | null
   displayLabel: string | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 type RoutineSetInsert = {
@@ -47,6 +49,8 @@ type RoutineSetInsert = {
   setLabel: 'warmup' | 'working' | 'drop'
   reps: number
   weight: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 type DrizzleDB = {
@@ -138,11 +142,15 @@ export async function saveWorkoutToPayload(
       req: t ? { transactionID: t } : undefined,
     })
 
+    const now = new Date()
+
     const workoutExercises = await (db as unknown as DrizzleDB).insert(payload.db.tables.workout_exercises)
       .values(exercises.map((ex, exerciseOrder) => ({
         workoutDay: Number(workoutDay.id),
         exercise: Number(ex.exerciseId),
         exerciseOrder: exerciseOrder,
+        createdAt: now,
+        updatedAt: now,
       })))
       .returning() as { exerciseOrder: number; id: number }[]
     
@@ -177,6 +185,8 @@ export async function saveWorkoutToPayload(
           previousWeight: set.previousWeight !== undefined ? Number(set.previousWeight) : null,
           previousReps: set.previousReps !== undefined ? Number(set.previousReps) : null,
           displayLabel: set.displayLabel || null,
+          createdAt: now,
+          updatedAt: now,
         })
       })
     })
@@ -231,6 +241,8 @@ export async function saveWorkoutToPayload(
               setLabel: setLabel,
               reps: Number(set.reps) || 0,
               weight: Number(set.weight) || 0,
+              createdAt: now,
+              updatedAt: now,
             })
           })
         }

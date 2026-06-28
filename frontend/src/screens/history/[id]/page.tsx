@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import api from '../../../api'
 import { theme } from '../../../theme'
+import { useAuth } from '../../../contexts/AuthContext'
+import { fromKg } from '../../../utils/unit'
 
 type SetDisplayType = 'Warmup' | 'Working' | 'Drop'
 
@@ -48,6 +50,8 @@ interface WorkoutDetailsData {
 
 export default function WorkoutDetails({ route }: any) {
   const navigation = useNavigation<any>()
+  const { user } = useAuth()
+  const unit = user?.preferredUnit || 'kg'
   const workoutId = route.params?.id
 
   const [details, setDetails] = useState<WorkoutDetailsData | null>(null)
@@ -58,26 +62,19 @@ export default function WorkoutDetails({ route }: any) {
     const fetchDetails = async () => {
       try {
         setLoading(true)
-        const [workoutDay, workoutExercisesResponse] = await Promise.all([
-          api.customFetch(`/workout-days/${workoutId}`),
-          api.customFetch(`/workout-exercises?where[workoutDay][equals]=${workoutId}&depth=1&sort=exerciseOrder&limit=100`),
-        ])
+        const response = await api.customFetch(`/custom/workouts/${workoutId}/details`)
+        const workoutDay = response.workoutDay
+        const workoutExercisesDocs = response.workoutExercises
+        const setsDocs = response.workoutSets
 
-        const exerciseIds = workoutExercisesResponse.docs.map((e: any) => e.id)
         const setsByExercise: Record<number, any[]> = {}
 
-        if (exerciseIds.length > 0) {
-          const setsResponse = await api.customFetch(
-            `/workout-sets?where[workoutExercise][in]=${exerciseIds.join(',')}&sort=setOrder&limit=500`
-          )
-
-          setsResponse.docs.forEach((set: any) => {
-            const exerciseId = typeof set.workoutExercise === 'object' ? set.workoutExercise.id : set.workoutExercise
-            const idNum = Number(exerciseId)
-            if (!setsByExercise[idNum]) setsByExercise[idNum] = []
-            setsByExercise[idNum].push(set)
-          })
-        }
+        setsDocs.forEach((set: any) => {
+          const exerciseId = typeof set.workoutExercise === 'object' ? set.workoutExercise.id : set.workoutExercise
+          const idNum = Number(exerciseId)
+          if (!setsByExercise[idNum]) setsByExercise[idNum] = []
+          setsByExercise[idNum].push(set)
+        })
 
         const setLabelMap: Record<string, SetDisplayType> = {
           warmup: 'Warmup',
@@ -85,7 +82,7 @@ export default function WorkoutDetails({ route }: any) {
           drop: 'Drop',
         }
 
-        const exercisesWithSets = workoutExercisesResponse.docs.map((workoutExercise: any) => {
+        const exercisesWithSets = workoutExercisesDocs.map((workoutExercise: any) => {
           const sets = setsByExercise[workoutExercise.id] || []
           const exercise = typeof workoutExercise.exercise === 'object' ? workoutExercise.exercise : null
 
@@ -98,15 +95,15 @@ export default function WorkoutDetails({ route }: any) {
             sets: sets.map((set: any) => ({
               id: set.id,
               type: setLabelMap[set.setLabel] || 'Working',
-              weight: set.weight ? String(set.weight) : '0',
+              weight: set.weight ? String(Math.round(fromKg(Number(set.weight), unit, true) * 10) / 10) : '0',
               reps: set.reps || '-',
               displayLabel: set.displayLabel,
             })),
           }
         })
 
-        // Calculate total volume
-        const totalVolumeKg = exercisesWithSets.reduce((sum: number, exercise: ExerciseDetail) => {
+        // Calculate total volume (now in the preferred unit)
+        const totalVolume = exercisesWithSets.reduce((sum: number, exercise: ExerciseDetail) => {
           return sum + exercise.sets.reduce((exSum: number, set: SetDetail) => {
             const repsNum = set.reps === '-' ? 0 : Number(set.reps)
             return exSum + parseFloat(set.weight) * repsNum
@@ -141,7 +138,7 @@ export default function WorkoutDetails({ route }: any) {
           startTime,
           endTime: '',
           duration: durationStr,
-          volume: `${totalVolumeKg.toLocaleString('en-US')} kg`,
+          volume: `${Math.round(totalVolume).toLocaleString('en-US')} ${unit}`,
           exercises: exercisesWithSets,
         })
       } catch (err: any) {
@@ -152,7 +149,7 @@ export default function WorkoutDetails({ route }: any) {
     }
 
     if (workoutId) fetchDetails()
-  }, [workoutId])
+  }, [workoutId, unit])
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -219,7 +216,7 @@ export default function WorkoutDetails({ route }: any) {
 
                 <View style={styles.tableHeader}>
                   <Text style={[styles.tableHeaderText, { flex: 1 }]}>SET</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>WEIGHT <Text style={styles.tableHeaderSub}>(kg)</Text></Text>
+                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>WEIGHT <Text style={styles.tableHeaderSub}>({unit})</Text></Text>
                   <Text style={[styles.tableHeaderText, { flex: 1 }]}>REPS</Text>
                 </View>
 

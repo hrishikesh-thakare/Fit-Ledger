@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
 import { theme } from '../../theme'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useNavigation, useFocusEffect } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect } from '@react-navigation/core'
 
 const PERIODS = ['All', 'This Week', 'This Month', 'Last Month']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -14,7 +15,8 @@ export default function History() {
   const navigation = useNavigation<any>()
   const [items, setItems] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('All')
   
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -82,50 +84,56 @@ export default function History() {
     }
   }, [isFilterOpen])
 
-  useFocusEffect(
-    useCallback(() => {
-      api
-        .fetchHistory()
-        .then((data: any) => setItems(data || []))
-        .catch((err: any) => setError(err?.message || String(err)))
-        .finally(() => setLoading(false))
-    }, [])
-  )
+  const fetchHistoryData = useCallback(() => {
+    setIsFetching(true)
+    let start: string | undefined
+    let end: string | undefined
 
-  // Date boundaries
-  const now = new Date()
-  const currentMonth = now.getMonth()
-  const currentYear = now.getFullYear()
-  
-  const lastMonthStart = new Date(currentYear, currentMonth - 1, 1)
-  
-  const startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay())
-  startOfWeek.setHours(0, 0, 0, 0)
-
-  // Filter Logic
-  const filteredItems = items.filter((workout) => {
-    const d = new Date(workout.date || workout.startedAt || workout.createdAt)
+    const now = new Date()
     
     if (customFilterActive) {
       const monthIdx = MONTHS.indexOf(filterMonth)
-      return d.getMonth() === monthIdx && String(d.getFullYear()) === filterYear
+      const year = parseInt(filterYear, 10)
+      const dStart = new Date(year, monthIdx, 1)
+      const dEnd = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999)
+      start = dStart.toISOString()
+      end = dEnd.toISOString()
+    } else if (selectedPeriod === 'This Month') {
+      const dStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      const dEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      start = dStart.toISOString()
+      end = dEnd.toISOString()
+    } else if (selectedPeriod === 'Last Month') {
+      const dStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const dEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+      start = dStart.toISOString()
+      end = dEnd.toISOString()
+    } else if (selectedPeriod === 'This Week') {
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
+      start = startOfWeek.toISOString()
+      end = now.toISOString()
     }
-    
-    if (selectedPeriod === 'This Month') {
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear
-    }
-    if (selectedPeriod === 'Last Month') {
-      return d.getMonth() === lastMonthStart.getMonth() && d.getFullYear() === lastMonthStart.getFullYear()
-    }
-    if (selectedPeriod === 'This Week') {
-      return d >= startOfWeek
-    }
-    return true
-  })
+
+    api
+      .fetchHistory(start, end)
+      .then((data: any) => setItems(data || []))
+      .catch((err: any) => setError(err?.message || String(err)))
+      .finally(() => {
+        setIsFetching(false)
+        setInitialLoad(false)
+      })
+  }, [customFilterActive, filterMonth, filterYear, selectedPeriod])
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistoryData()
+    }, [fetchHistoryData])
+  )
 
   // Group by month
-  const grouped = filteredItems.reduce((acc: any, workout) => {
+  const grouped = items.reduce((acc: any, workout) => {
     const d = new Date(workout.date || workout.startedAt || workout.createdAt)
     const month = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
     if (!acc[month]) acc[month] = []
@@ -139,7 +147,7 @@ export default function History() {
     setIsFilterOpen(false)
   }
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -186,7 +194,7 @@ export default function History() {
         scrollEventThrottle={16}
       >
         {error && <Text style={styles.error}>{error}</Text>}
-        {filteredItems.length === 0 && (
+        {!isFetching && items.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>⏱️</Text>
             <Text style={styles.hint}>No workouts found</Text>

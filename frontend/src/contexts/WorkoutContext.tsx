@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import * as Haptics from 'expo-haptics'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 interface WorkoutSet {
   id: string
@@ -23,6 +24,16 @@ interface RestTimerState {
   duration: number
   exerciseId: string
 }
+
+interface SavedWorkoutSession {
+  isActive: boolean
+  routineId: string | null
+  clientId: string | null
+  workoutStartTime: number | null
+  exercises: WorkoutExercise[]
+}
+
+const WORKOUT_STORAGE_KEY = '@fitledger_active_workout'
 
 interface WorkoutContextType {
   isActive: boolean
@@ -52,6 +63,63 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   
   const [activeRestTimer, setActiveRestTimer] = useState<RestTimerState | null>(null)
   const [remainingRest, setRemainingRest] = useState(0)
+  const [isRestored, setIsRestored] = useState(false)
+
+  // Restore Session Effect
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(WORKOUT_STORAGE_KEY)
+        if (stored) {
+          const session = JSON.parse(stored) as SavedWorkoutSession
+          if (session.isActive) {
+            setIsActive(session.isActive)
+            setRoutineId(session.routineId)
+            setClientId(session.clientId)
+            setWorkoutStartTime(session.workoutStartTime)
+            setExercises(session.exercises)
+            if (session.workoutStartTime) {
+              setElapsedTime(Math.floor((Date.now() - session.workoutStartTime) / 1000))
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to restore workout session:', err)
+      } finally {
+        setIsRestored(true)
+      }
+    }
+    restoreSession()
+  }, [])
+
+  // Persist Session Effect
+  useEffect(() => {
+    if (!isRestored) return
+
+    const saveSession = async () => {
+      if (isActive) {
+        const session: SavedWorkoutSession = {
+          isActive,
+          routineId,
+          clientId,
+          workoutStartTime,
+          exercises,
+        }
+        try {
+          await AsyncStorage.setItem(WORKOUT_STORAGE_KEY, JSON.stringify(session))
+        } catch (err) {
+          console.error('Failed to save workout session:', err)
+        }
+      } else {
+        try {
+          await AsyncStorage.removeItem(WORKOUT_STORAGE_KEY)
+        } catch (err) {
+          console.error('Failed to clear workout session:', err)
+        }
+      }
+    }
+    saveSession()
+  }, [isRestored, isActive, routineId, clientId, workoutStartTime, exercises])
 
   // Timer Effect
   useEffect(() => {
@@ -80,7 +148,14 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
   const startWorkout = (id: string, initialExercises: WorkoutExercise[]) => {
     setRoutineId(id)
-    setClientId(`sess-${Date.now()}-${Math.floor(Math.random() * 10000)}`)
+    
+    // Generate UUID v4 for unique session idempotency
+    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
+    
+    setClientId(`sess-${Date.now()}-${uuid}`)
     setExercises(initialExercises)
     setElapsedTime(0)
     setWorkoutStartTime(Date.now())
