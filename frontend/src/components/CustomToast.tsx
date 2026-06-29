@@ -19,6 +19,11 @@ export const CustomToastRenderer = () => {
   const opacity = useRef(new Animated.Value(0)).current;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const insetsRef = useRef(insets.top);
+  useEffect(() => {
+    insetsRef.current = insets.top;
+  }, [insets.top]);
+
   useEffect(() => {
     setToastConfigGlobal = (newConfig) => {
       setConfig(newConfig);
@@ -29,7 +34,7 @@ export const CustomToastRenderer = () => {
 
       if (newConfig) {
         // Reset translateY to the final position instantly so it doesn't slide
-        translateY.setValue(insets.top + 10);
+        translateY.setValue(insetsRef.current + 10);
         
         // Show animation (fade in and slight scale)
         Animated.parallel([
@@ -51,7 +56,7 @@ export const CustomToastRenderer = () => {
       setToastConfigGlobal = null;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [insets.top]);
+  }, []);
 
   const hideToast = () => {
     Animated.timing(opacity, {

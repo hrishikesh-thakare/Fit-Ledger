@@ -30,6 +30,8 @@ export const Users: CollectionConfig = {
   },
   auth: {
     tokenExpiration: 60 * 60 * 24 * 30, // 30 days in seconds
+    maxLoginAttempts: 5,
+    lockTime: 10 * 60 * 1000, // 10 minutes in ms
   },
   fields: [
     {

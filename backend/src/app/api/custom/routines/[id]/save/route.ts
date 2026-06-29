@@ -13,9 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     const data = await req.json()
-    const start = performance.now()
     const result = await saveRoutineToPayload(payload, { id, user }, data)
-    console.log(`[API] /api/custom/routines/${id}/save took ${performance.now() - start}ms`)
     return NextResponse.json(result.body, { status: result.status })
   } catch (error: unknown) {
     const errObj = error instanceof Error ? error : new Error('Internal Server Error')

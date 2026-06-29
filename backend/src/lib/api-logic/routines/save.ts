@@ -1,4 +1,3 @@
-import { and, eq, inArray, type AnyColumn } from 'drizzle-orm'
 import type { Payload } from 'payload'
 
 interface SetInput {
@@ -27,90 +26,125 @@ export async function saveRoutineToPayload(
   data: SaveRoutinePayload,
 ): Promise<{ status: number; body: unknown }> {
   const { id, user } = params
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = (payload.db as unknown as { drizzle: unknown; tables: Record<string, unknown> }).drizzle as any
-  const tables = (payload.db as unknown as { tables: Record<string, Record<string, AnyColumn>> }).tables
 
-  const routinesTable = tables.routines
-  const reTable = tables.routine_exercises
-  const rsTable = tables.routine_sets
+  if (!data.name?.trim()) {
+    return { status: 400, body: { error: 'Routine name is required' } }
+  }
 
   const exerciseCount = data.exercises.length
   const setCount = data.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0)
-  const now = new Date()
 
   let finalRoutineId = 0
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.transaction(async (tx: any) => {
+  const t = await payload.db.beginTransaction()
+
+  try {
     if (id === 'new') {
-      const newRoutine = await tx
-        .insert(routinesTable)
-        .values({
+      const newRoutine = await payload.create({
+        collection: 'routines',
+        data: {
           name: data.name,
           notes: data.description || null,
           exerciseCount,
           setCount,
-          user: user.id,
+          user: Number(user.id),
           isActive: 'active',
-          updatedAt: now,
-          createdAt: now,
-        })
-        .returning({ id: routinesTable.id })
+        },
+        overrideAccess: true,
+        req: t ? { transactionID: t } : undefined,
+      })
 
-      finalRoutineId = newRoutine[0].id
+      finalRoutineId = Number(newRoutine.id)
     } else {
       finalRoutineId = Number(id)
 
-      const ownershipCondition = user.role !== 'admin' ? eq(routinesTable.user, user.id) : undefined
+      if (user.role !== 'admin') {
+        const existingRoutine = await payload.findByID({
+          collection: 'routines',
+          id: finalRoutineId,
+          depth: 0,
+          overrideAccess: true,
+          req: t ? { transactionID: t } : undefined,
+        })
 
-      const updateResult = await tx
-        .update(routinesTable)
-        .set({
+        if (!existingRoutine) {
+          throw new Error('NOT_FOUND_OR_UNAUTHORIZED')
+        }
+
+        const routineUserId = typeof existingRoutine.user === 'object' ? existingRoutine.user?.id : existingRoutine.user
+        if (String(routineUserId) !== String(user.id)) {
+          throw new Error('NOT_FOUND_OR_UNAUTHORIZED')
+        }
+      }
+
+      await payload.update({
+        collection: 'routines',
+        id: finalRoutineId,
+        data: {
           name: data.name,
           notes: data.description || null,
           exerciseCount,
           setCount,
-          updatedAt: now,
+        },
+        overrideAccess: true,
+        req: t ? { transactionID: t } : undefined,
+      })
+
+      const existingREs = await payload.find({
+        collection: 'routine-exercises',
+        where: { routine: { equals: finalRoutineId } },
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+        req: t ? { transactionID: t } : undefined,
+      })
+      
+      const existingREIds = existingREs.docs.map((re) => Number(re.id))
+
+      if (existingREIds.length > 0) {
+        await payload.delete({
+          collection: 'routine-sets',
+          where: { routineExercise: { in: existingREIds } },
+          overrideAccess: true,
+          req: t ? { transactionID: t } : undefined,
         })
-        .where(
-          ownershipCondition
-            ? and(eq(routinesTable.id, finalRoutineId), ownershipCondition)
-            : eq(routinesTable.id, finalRoutineId)
-        )
-        .returning({ id: routinesTable.id })
 
-      if (updateResult.length === 0) {
-        throw new Error('NOT_FOUND_OR_UNAUTHORIZED')
-      }
-
-      const existingREs = await tx.select({ id: reTable.id }).from(reTable).where(eq(reTable.routine, finalRoutineId))
-      const existingREIds = existingREs.map((re: { id: number }) => re.id)
-
-      if (existingREIds.length > 0) {
-        await tx.delete(rsTable).where(inArray(rsTable.routineExercise, existingREIds))
-      }
-
-      if (existingREIds.length > 0) {
-        await tx.delete(reTable).where(eq(reTable.routine, finalRoutineId))
+        await payload.delete({
+          collection: 'routine-exercises',
+          where: { routine: { equals: finalRoutineId } },
+          overrideAccess: true,
+          req: t ? { transactionID: t } : undefined,
+        })
       }
     }
 
     if (data.exercises.length > 0) {
-      const exerciseRows = data.exercises.map((exInput, index) => ({
-        routine: finalRoutineId,
-        exercise: Number(exInput.exerciseId),
-        exerciseOrder: index,
-        updatedAt: now,
-        createdAt: now,
-      }))
+      const newExercises = await Promise.all(
+        data.exercises.map((exInput, index) =>
+          payload.create({
+            collection: 'routine-exercises',
+            data: {
+              routine: finalRoutineId,
+              exercise: Number(exInput.exerciseId),
+              exerciseOrder: index,
+            },
+            overrideAccess: true,
+            req: t ? { transactionID: t } : undefined,
+          })
+        )
+      )
 
-      const newExercises = await tx.insert(reTable).values(exerciseRows).returning({ id: reTable.id })
-
-      const setRows: { routineExercise: number; setOrder: number; setLabel: string; reps: number; weight: number; updatedAt: Date; createdAt: Date }[] = []
+      type NewRoutineSet = {
+        routineExercise: number
+        setOrder: number
+        setLabel: 'warmup' | 'drop' | 'working'
+        reps: number
+        weight: number
+      }
+      const setRows: NewRoutineSet[] = []
 
       data.exercises.forEach((exInput, exIndex) => {
-        const newREId = newExercises[exIndex].id
+        const newREId = Number(newExercises[exIndex].id)
         ;(exInput.sets || []).forEach((setInput, setIndex) => {
           setRows.push({
             routineExercise: newREId,
@@ -123,17 +157,29 @@ export async function saveRoutineToPayload(
                   : 'working',
             reps: Number(setInput.reps) || 0,
             weight: Number(setInput.weight) || 0,
-            updatedAt: now,
-            createdAt: now,
           })
         })
       })
 
       if (setRows.length > 0) {
-        await tx.insert(rsTable).values(setRows)
+        await Promise.all(
+          setRows.map((data) =>
+            payload.create({
+              collection: 'routine-sets',
+              data,
+              overrideAccess: true,
+              req: t ? { transactionID: t } : undefined,
+            })
+          )
+        )
       }
     }
-  })
 
-  return { status: 200, body: { success: true, id: finalRoutineId } }
+    if (t) await payload.db.commitTransaction(t)
+
+    return { status: 200, body: { success: true, id: finalRoutineId } }
+  } catch (error) {
+    if (t) await payload.db.rollbackTransaction(t)
+    throw error
+  }
 }

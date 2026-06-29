@@ -48,7 +48,7 @@ interface WorkoutContextType {
   setExercises: React.Dispatch<React.SetStateAction<WorkoutExercise[]>>
   setActiveRestTimer: React.Dispatch<React.SetStateAction<RestTimerState | null>>
   startWorkout: (id: string, initialExercises: WorkoutExercise[]) => void
-  endWorkout: () => void
+  endWorkout: () => Promise<void>
   formatTime: (seconds: number) => string
 }
 
@@ -111,12 +111,6 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
         } catch (err) {
           console.error('Failed to save workout session:', err)
         }
-      } else {
-        try {
-          await AsyncStorage.removeItem(WORKOUT_STORAGE_KEY)
-        } catch (err) {
-          console.error('Failed to clear workout session:', err)
-        }
       }
     }
     saveSession()
@@ -160,7 +154,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     setIsActive(true)
   }
 
-  const endWorkout = () => {
+  const endWorkout = async () => {
+    try {
+      await AsyncStorage.removeItem(WORKOUT_STORAGE_KEY)
+    } catch (err) {
+      console.error('Failed to clear workout session:', err)
+    }
     setIsActive(false)
     setRoutineId(null)
     setClientId(null)

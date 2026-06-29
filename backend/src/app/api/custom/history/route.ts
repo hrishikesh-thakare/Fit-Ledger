@@ -82,9 +82,7 @@ export async function GET(req: NextRequest) {
 
     const totalDuration = performance.now() - routeStart
 
-    console.log(`[API] /api/custom/history`)
-    console.log(`Payload duration: ${payloadDuration.toFixed(2)}ms`)
-    console.log(`Total duration: ${totalDuration.toFixed(2)}ms`)
+
 
     return NextResponse.json(
       { docs: results },
