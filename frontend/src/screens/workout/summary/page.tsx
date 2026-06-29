@@ -18,7 +18,7 @@ interface SummaryExercise {
   volume: number
 }
 
-interface WorkoutSummaryData {
+export interface WorkoutSummaryData {
   savePayload?: any
   routineId?: string | number
   duration: number // seconds
@@ -27,7 +27,7 @@ interface WorkoutSummaryData {
 }
 
 export default function WorkoutSummary({ route }: any) {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const summaryData: WorkoutSummaryData = route.params?.summaryData || {
     duration: 0,
     totalVolume: 0,

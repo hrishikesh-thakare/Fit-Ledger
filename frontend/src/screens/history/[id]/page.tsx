@@ -49,7 +49,7 @@ interface WorkoutDetailsData {
 }
 
 export default function WorkoutDetails({ route }: any) {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const { user } = useAuth()
   const unit = user?.preferredUnit || 'kg'
   const workoutId = route.params?.id

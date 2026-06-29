@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { useAuth } from '../../contexts/AuthContext'
@@ -9,7 +9,7 @@ import { theme } from '../../theme'
 import { API_URL } from '../../api'
 
 export default function Login() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,7 +49,11 @@ export default function Login() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      contentContainerStyle={styles.container} 
+      keyboardShouldPersistTaps="handled" 
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.headerContainer}>
         <Text style={styles.title}>FitLedger</Text>
         <Text style={styles.hint}>Track your fitness journey</Text>
@@ -105,12 +109,12 @@ export default function Login() {
           Don't have an account? <Text style={styles.linkTextBold}>Sign up</Text>
         </Text>
       </Pressable>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, flex: 1, justifyContent: 'center', backgroundColor: theme.colors.background },
+  container: { padding: 24, flexGrow: 1, justifyContent: 'center', backgroundColor: theme.colors.background },
   headerContainer: { marginBottom: 40, alignItems: 'center' },
   title: { ...theme.typography.display, marginBottom: 8, letterSpacing: 0.5 },
   hint: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '400' },

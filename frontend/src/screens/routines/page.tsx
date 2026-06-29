@@ -11,7 +11,7 @@ import { theme } from '../../theme'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Routines() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const { user } = useAuth()
   const [routines, setRoutines] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -160,10 +160,15 @@ export default function Routines() {
 
               <View style={styles.footerRow}>
                 <Text style={styles.footerText}>
-                  {numExercises} Exercises • {r.duration || '~1h 39m'}
+                  {numExercises} {numExercises === 1 ? 'Exercise' : 'Exercises'}
+                  {r.duration ? (
+                    <Text style={styles.estDurationText}>
+                      {' • Est. '}{r.duration.replace('~', '')}
+                    </Text>
+                  ) : null}
                 </Text>
                 <Pressable style={styles.startButton} onPress={() => navigation.navigate('RoutineDetails', { id: r.id || r._id })}>
-                  <Text style={styles.startButtonText}>Start</Text>
+                  <Text style={styles.startButtonText}>View</Text>
                   <Feather name="arrow-right" size={18} color={theme.colors.background} />
                 </Pressable>
               </View>
@@ -225,6 +230,7 @@ const styles = StyleSheet.create({
   previewText: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400', marginBottom: 20 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+  estDurationText: { color: theme.colors.textMuted, fontStyle: 'italic', fontWeight: '400' },
   startButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
   startButtonText: { color: theme.colors.background, fontWeight: '700', fontSize: 14, lineHeight: 20, marginRight: 6 },
   

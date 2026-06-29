@@ -10,7 +10,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import { fromKg } from '../../../utils/unit'
 
 export default function RoutineDetails({ route }: any) {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const { user } = useAuth()
   const unit = user?.preferredUnit || 'kg'
   const { id } = route.params || {}

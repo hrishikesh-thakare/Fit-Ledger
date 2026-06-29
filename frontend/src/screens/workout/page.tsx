@@ -33,7 +33,7 @@ interface WorkoutExercise {
 
 export default function Workout({ route }: any) {
   const { user } = useAuth()
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const routineId = route.params?.routineId || route.params?.id
 
   const insets = useSafeAreaInsets()
@@ -459,7 +459,9 @@ export default function Workout({ route }: any) {
                   <View style={styles.tableHeader}>
                     <Text style={[styles.th, { width: 40, textAlign: 'center' }]}>SET</Text>
                     <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>PREV</Text>
-                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>KG</Text>
+                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>
+                      {(user?.preferredUnit || 'kg').toUpperCase()}
+                    </Text>
                     <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>REPS</Text>
                     <Pressable hitSlop={10} onPress={() => handleToggleAllSets(ex.id)} style={{ width: 40, alignItems: 'center' }}>
                       {allCompleted ? <Feather name="check-circle" size={18} color={theme.colors.primary} /> : <Feather name="check" size={18} color={theme.colors.textMuted} />}
@@ -536,12 +538,15 @@ export default function Workout({ route }: any) {
               )
             })}
             
-            {exercises.length > 0 && (
-              <Pressable style={styles.addExerciseCardBtn} onPress={() => setShowAddExerciseDrawer(true)}>
-                <Feather name="plus" size={16} color={theme.colors.textMuted} />
-                <Text style={styles.addExerciseCardText}>Add Exercise</Text>
-              </Pressable>
+            {exercises.length === 0 && !isLoading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.hint}>No exercises yet. Add one to get started.</Text>
+              </View>
             )}
+            <Pressable style={styles.addExerciseCardBtn} onPress={() => setShowAddExerciseDrawer(true)}>
+              <Feather name="plus" size={16} color={theme.colors.textMuted} />
+              <Text style={styles.addExerciseCardText}>Add Exercise</Text>
+            </Pressable>
           </>
         )}
       </ScrollView>
@@ -752,9 +757,9 @@ export default function Workout({ route }: any) {
       <Modal visible={showFinishDialog} transparent animationType="fade" statusBarTranslucent>
         <View style={styles.confirmModalBg}>
           <View style={styles.confirmModalCard}>
-            <Text style={styles.confirmModalTitle}>Save Workout?</Text>
+            <Text style={styles.confirmModalTitle}>Review Workout</Text>
             <Text style={styles.confirmModalText}>
-              Your completed sets will be saved. Unchecked sets will be discarded.
+              Review your completed sets before saving. Unchecked sets will be discarded.
             </Text>
             <View style={styles.confirmModalButtons}>
               <Pressable
@@ -772,7 +777,7 @@ export default function Workout({ route }: any) {
                 {saving ? (
                   <ActivityIndicator color={theme.colors.background} size="small" />
                 ) : (
-                  <Text style={styles.confirmModalSaveText}>Save</Text>
+                  <Text style={styles.confirmModalSaveText}>Continue</Text>
                 )}
               </Pressable>
             </View>

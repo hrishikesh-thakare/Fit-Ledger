@@ -1,12 +1,23 @@
+import { WorkoutSummaryData } from '../screens/workout/summary/page';
+
+export interface ExerciseItem {
+  id: string | number;
+  name: string;
+  muscleGroup?: string;
+  equipment?: string;
+  description?: string;
+  [key: string]: any;
+}
+
 export type RootStackParamList = {
-  MainTabs: undefined;
+  MainTabs: { screen: string } | undefined;
   WorkoutDetails: { id: string | number };
   RoutineDetails: { id: string | number };
   EditRoutine: { id: string | number };
   CreateRoutine: undefined;
   Workout: { routineId?: string | number; id?: string | number };
-  WorkoutSummary: { summaryData?: any; workoutDayId?: string | number };
-  ExerciseHistory: { exercise: any };
+  WorkoutSummary: { summaryData?: WorkoutSummaryData; workoutDayId?: string | number };
+  ExerciseHistory: { exercise: ExerciseItem };
   Login: undefined;
   SignUp: undefined;
 }

@@ -15,7 +15,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const YEARS = Array.from({length: 10}, (_, i) => String(new Date().getFullYear() - i))
 
 export default function History() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const [items, setItems] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [initialLoad, setInitialLoad] = useState(true)

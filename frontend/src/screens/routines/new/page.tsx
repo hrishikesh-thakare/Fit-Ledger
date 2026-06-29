@@ -11,7 +11,7 @@ import { CreateExerciseModal } from '../../../components/CreateExerciseModal'
 import { getMuscle, getEquipment, capitalize } from '../../../utils/exercise'
 
 export default function CreateRoutine() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   
   const [keyboardVisible, setKeyboardVisible] = useState(false)

@@ -29,7 +29,7 @@ interface ProcessedExercise {
 }
 
 export default function ExerciseHistory({ route }: any) {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation()
   const { user } = useAuth()
   const exerciseParam = route.params?.exercise
 
