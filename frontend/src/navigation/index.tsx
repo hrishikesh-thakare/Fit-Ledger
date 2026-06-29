@@ -75,6 +75,8 @@ import CreateRoutine from '../screens/routines/new/page'
 import Workout from '../screens/workout/page'
 import WorkoutSummary from '../screens/workout/summary/page'
 import ExerciseHistory from '../screens/exercises/history/page'
+import DashboardStatistics from '../screens/dashboard/statistics/page'
+import DashboardCalendar from '../screens/dashboard/calendar/page'
 
 function RootStack() {
   return (
@@ -93,6 +95,8 @@ function RootStack() {
       <Stack.Screen name="Workout" component={Workout} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummary} options={{ gestureEnabled: false }} />
       <Stack.Screen name="ExerciseHistory" component={ExerciseHistory} />
+      <Stack.Screen name="DashboardStatistics" component={DashboardStatistics} />
+      <Stack.Screen name="DashboardCalendar" component={DashboardCalendar} />
     </Stack.Navigator>
   )
 }

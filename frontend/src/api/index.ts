@@ -35,8 +35,8 @@ export default {
   customFetch: async (endpoint: string) => {
     return fetchWithAuth(endpoint)
   },
-  fetchRoutines: async (userId: string | number) => {
-    const res = await fetchWithAuth(`/custom/routines?userId=${userId}`)
+  fetchRoutines: async () => {
+    const res = await fetchWithAuth(`/custom/routines`)
     return res.docs || res || []
   },
   fetchExercises: async () => {

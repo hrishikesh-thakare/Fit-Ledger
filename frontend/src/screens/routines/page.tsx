@@ -66,7 +66,7 @@ export default function Routines() {
     if (!user?.id) return
     if (!silent) setLoading(true)
     api
-      .fetchRoutines(user.id)
+      .fetchRoutines()
       .then((data: any) => setRoutines(data || []))
       .catch((err: any) => setError(err.message))
       .finally(() => { if (!silent) setLoading(false) })

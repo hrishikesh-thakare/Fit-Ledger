@@ -7,6 +7,8 @@ import api from '../../../api'
 import { theme } from '../../../theme'
 import { useAuth } from '../../../contexts/AuthContext'
 import { fromKg } from '../../../utils/unit'
+import { CustomAlert as Alert } from '../../../components/CustomAlert'
+import { Toast } from '../../../components/CustomToast'
 
 type SetDisplayType = 'Warmup' | 'Working' | 'Drop'
 
@@ -57,6 +59,21 @@ export default function WorkoutDetails({ route }: any) {
   const [details, setDetails] = useState<WorkoutDetailsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const handleDelete = () => {
+    Alert.alert('Delete Workout', 'Are you sure you want to delete this workout? This action cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await api.deleteWorkoutDay(workoutId)
+          Toast.show('Workout deleted', 'info')
+          navigation.goBack()
+        } catch (err) {
+          Toast.show('Failed to delete workout.', 'error')
+        }
+      }}
+    ])
+  }
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -154,11 +171,18 @@ export default function WorkoutDetails({ route }: any) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { justifyContent: 'space-between' }]}>
         <Pressable onPress={() => navigation.goBack()} style={{ padding: 8, marginLeft: -8, marginRight: 8 }}>
           <Feather name="arrow-left" size={24} color={theme.colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Workout Details</Text>
+        {!loading && !error && details ? (
+          <Pressable onPress={handleDelete} style={{ padding: 8, marginRight: -8 }}>
+            <Feather name="trash-2" size={24} color={theme.colors.error} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {loading ? (

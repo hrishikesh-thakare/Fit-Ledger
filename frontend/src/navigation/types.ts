@@ -2,16 +2,17 @@ import { WorkoutSummaryData } from '../screens/workout/summary/page';
 
 export interface ExerciseItem {
   id: string | number;
-  name: string;
-  muscleGroup?: string;
-  equipment?: string;
-  description?: string;
-  [key: string]: any;
+  name?: string;
+  bodyPart?: string;
+  muscleGroup?: string | { name: string };
+  equipment?: string | { name: string };
 }
 
 export type RootStackParamList = {
   MainTabs: { screen: string } | undefined;
   WorkoutDetails: { id: string | number };
+  DashboardStatistics: undefined;
+  DashboardCalendar: undefined;
   RoutineDetails: { id: string | number };
   EditRoutine: { id: string | number };
   CreateRoutine: undefined;

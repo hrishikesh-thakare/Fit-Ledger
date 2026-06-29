@@ -18,12 +18,30 @@ interface SummaryExercise {
   volume: number
 }
 
+export interface WorkoutSetData {
+  weight: string;
+  reps: string;
+  setLabel: string;
+  completed: boolean;
+  setOrder: number;
+  displayLabel: string;
+  previousWeight?: number;
+  previousReps?: number;
+}
+
+export interface SaveWorkoutPayload {
+  routineId: string | number;
+  date: string;
+  durationSeconds: number;
+  exercises: Array<{ exerciseId: string | number; name?: string; sets: WorkoutSetData[] }>;
+}
+
 export interface WorkoutSummaryData {
-  savePayload?: any
-  routineId?: string | number
-  duration: number // seconds
-  totalVolume: number
-  exercises: SummaryExercise[]
+  savePayload?: SaveWorkoutPayload;
+  routineId?: string | number;
+  duration: number; // seconds
+  totalVolume: number;
+  exercises: SummaryExercise[];
 }
 
 export default function WorkoutSummary({ route }: any) {
