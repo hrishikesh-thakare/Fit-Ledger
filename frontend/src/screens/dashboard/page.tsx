@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { Feather } from '@expo/vector-icons'
 import Svg, { Polygon, Line, Text as SvgText } from 'react-native-svg'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import api from '../../api'
 import { getMuscle } from '../../utils/exercise'
+import { useAuth } from '../../contexts/AuthContext'
+import { fromKg } from '../../utils/unit'
 
 interface HistoryItem {
   id?: string | number
@@ -23,22 +25,27 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default function Dashboard() {
+  const { theme, isDark } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation<any>()
+  const { user } = useAuth()
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   
+  const unit = user?.preferredUnit === 'lb' ? 'LBS' : 'KG'
+  
   const [timeFilter, setTimeFilter] = useState<'30_days' | '3_months' | 'year' | 'all_time'>('30_days')
   const [showTimeFilter, setShowTimeFilter] = useState(false)
-  const [allSets, setAllSets] = useState<any[]>([])
+  const [dashboardStats, setDashboardStats] = useState<any>(null)
 
   useFocusEffect(useCallback(() => {
     setLoading(true)
     Promise.all([
       api.fetchHistory(),
-      api.customFetch('/workout-sets?limit=5000&depth=3').catch(() => ({ docs: [] }))
-    ]).then(([historyDocs, setsRes]) => {
+      api.customFetch('/custom/dashboard/stats').catch(() => null)
+    ]).then(([historyDocs, statsRes]) => {
       setHistory(Array.isArray(historyDocs) ? historyDocs : (historyDocs?.docs && Array.isArray(historyDocs.docs) ? historyDocs.docs : []))
-      setAllSets((setsRes as any)?.docs || [])
+      setDashboardStats(statsRes || null)
       setLoading(false)
     }).catch(err => {
       console.log('Error fetching dashboard data', err)
@@ -66,12 +73,10 @@ export default function Dashboard() {
   let curWorkouts = 0
   let curDuration = 0
   let curVolume = 0
-  let curSets = 0
 
   let prevWorkouts = 0
   let prevDuration = 0
   let prevVolume = 0
-  let prevSets = 0
 
   history.forEach(h => {
     const dStr = h.date || h.startedAt || h.createdAt || new Date().toISOString()
@@ -87,53 +92,16 @@ export default function Dashboard() {
     }
   })
 
-  allSets.forEach(set => {
-    const dStr = set.workoutDay?.date || set.createdAt || new Date().toISOString()
-    const t = new Date(dStr).getTime()
-    if (t >= startOfCurrentMonth) curSets++
-    else if (t >= startOfPreviousMonth && t <= endOfPreviousMonth) prevSets++
-  })
+  const curSets = dashboardStats?.curSets || 0
+  const prevSets = dashboardStats?.prevSets || 0
   
   const curDurMins = Math.round(curDuration / 60)
   const prevDurMins = Math.round(prevDuration / 60)
 
   // --- Section 3: Radar Chart (Dynamic Time Filter) ---
-  const cutoffDate = new Date()
-  if (timeFilter === '30_days') cutoffDate.setDate(cutoffDate.getDate() - 30)
-  else if (timeFilter === '3_months') cutoffDate.setMonth(cutoffDate.getMonth() - 3)
-  else if (timeFilter === 'year') cutoffDate.setFullYear(cutoffDate.getFullYear() - 1)
-  else if (timeFilter === 'all_time') cutoffDate.setFullYear(1970)
-
-  const muscleSets: Record<string, number> = {
+  const muscleSets: Record<string, number> = dashboardStats?.muscleSets?.[timeFilter] || {
     back: 0, chest: 0, core: 0, shoulders: 0, arms: 0, legs: 0
   }
-
-  allSets.forEach(set => {
-    const dStr = set.workoutDay?.date || set.createdAt || new Date().toISOString()
-    const d = new Date(dStr)
-
-    if (d.getTime() >= cutoffDate.getTime()) {
-      let m = ''
-      const ex = set.workoutExercise?.exercise
-      if (ex) {
-        const mg = ex.muscleGroup
-        if (mg && typeof mg === 'object' && mg.name) {
-          m = mg.name.toLowerCase()
-        } else if (typeof mg === 'string') {
-          m = mg.toLowerCase()
-        } else if (ex.bodyPart) {
-          m = ex.bodyPart.toLowerCase()
-        }
-      }
-
-      if (m.includes('back')) muscleSets.back += 1
-      else if (m.includes('chest')) muscleSets.chest += 1
-      else if (m.includes('core') || m.includes('abs') || m.includes('waist')) muscleSets.core += 1
-      else if (m.includes('shoulder') || m.includes('delts')) muscleSets.shoulders += 1
-      else if (m.includes('arm') || m.includes('bicep') || m.includes('tricep') || m.includes('forearm')) muscleSets.arms += 1
-      else if (m.includes('leg') || m.includes('quad') || m.includes('hamstring') || m.includes('calf') || m.includes('glute')) muscleSets.legs += 1
-    }
-  })
   
   const maxMuscleSets = Math.max(1, ...Object.values(muscleSets))
   const rBack = muscleSets.back / maxMuscleSets
@@ -156,7 +124,7 @@ export default function Dashboard() {
   }
 
   // Map workouts to current month days
-  const currentMonthWorkouts: Record<number, string | number> = {}
+  const currentMonthWorkouts: Record<number, string | number | boolean> = {}
   history.forEach(h => {
     const dStr = h.date || h.startedAt || h.createdAt || new Date().toISOString()
     const d = new Date(dStr)
@@ -164,6 +132,25 @@ export default function Dashboard() {
       currentMonthWorkouts[d.getDate()] = h.id || h._id || true
     }
   })
+
+  const renderTrend = (cur: number, prev: number, format: (val: number) => string | number = (v) => v) => {
+    const isUp = cur > prev
+    const isDown = cur < prev
+    const color = isUp ? (theme.colors as any).success || '#10b981' : isDown ? (theme.colors as any).error || '#ef4444' : theme.colors.textSecondary
+    const icon = isUp ? 'trending-up' : isDown ? 'trending-down' : 'minus'
+    
+    return (
+      <View style={{ marginTop: 2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Feather name={icon as any} size={14} color={color} />
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+            {format(prev)}
+          </Text>
+        </View>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 10, marginTop: 2 }}>vs last month</Text>
+      </View>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -186,40 +173,28 @@ export default function Dashboard() {
         ) : (
           <>
         {/* Section 1: Summary */}
-        <View style={[styles.section, { marginBottom: 48 }]}>
-          <Text style={[styles.sectionLabel, { marginBottom: 16 }]}>Summary</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Summary</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
               <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Workouts</Text>
               <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curWorkouts}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
-                <Feather name="arrow-right" size={12} color={theme.colors.textSecondary} />
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }}>{prevWorkouts}</Text>
-              </View>
+              {renderTrend(curWorkouts, prevWorkouts)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
               <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Duration</Text>
               <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curDurMins}min</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
-                <Feather name="arrow-right" size={12} color={theme.colors.textSecondary} />
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }}>{prevDurMins}min</Text>
-              </View>
+              {renderTrend(curDurMins, prevDurMins, (v) => `${v}min`)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
               <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Volume</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curVolume.toLocaleString('en-US')} kg</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
-                <Feather name="arrow-right" size={12} color={theme.colors.textSecondary} />
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }}>{prevVolume.toLocaleString('en-US')} kg</Text>
-              </View>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{Math.round(fromKg(curVolume, user?.preferredUnit || 'kg')).toLocaleString('en-US')} {unit.toLowerCase()}</Text>
+              {renderTrend(curVolume, prevVolume, (v) => `${Math.round(fromKg(v, user?.preferredUnit || 'kg')).toLocaleString('en-US')} ${unit.toLowerCase()}`)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
               <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Sets</Text>
               <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curSets}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
-                <Feather name="arrow-right" size={12} color={theme.colors.textSecondary} />
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 12, fontWeight: '500' }}>{prevSets}</Text>
-              </View>
+              {renderTrend(curSets, prevSets)}
             </View>
           </View>
         </View>
@@ -227,7 +202,7 @@ export default function Dashboard() {
         {/* Section 2: Current Month */}
         <View style={styles.section}>
           <View style={styles.calendarHeaderRow}>
-            <Text style={styles.sectionLabel}>Current Month</Text>
+            <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Current Month</Text>
             <Pressable 
               onPress={() => navigation.navigate('DashboardCalendar')}
               style={{ padding: 4, flexDirection: 'row', alignItems: 'center', gap: 2 }}
@@ -271,7 +246,7 @@ export default function Dashboard() {
         </View>
 
         {/* Section 3: Muscle Distribution */}
-        <View style={[styles.section, { marginBottom: 0 }]}>
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>Muscle distribution</Text>
 
           <View style={styles.radarCard}>
@@ -297,7 +272,7 @@ export default function Dashboard() {
                     `${150 + 100 * scale * Math.cos(Math.PI * 2 / 3)},${130 + 100 * scale * Math.sin(Math.PI * 2 / 3)}`,
                     `${150 + 100 * scale * Math.cos(Math.PI)},${130 + 100 * scale * Math.sin(Math.PI)}`,
                   ].join(' ')
-                  return <Polygon key={i} points={points} stroke={theme.colors.borderLight} strokeWidth="1" fill="none" />
+                  return <Polygon key={i} points={points} stroke={isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.15)"} strokeWidth="1" fill="none" />
                 })}
                 
                 {/* 6 Axes */}
@@ -315,18 +290,18 @@ export default function Dashboard() {
                     y1="130" 
                     x2={150 + 100 * Math.cos(angle)} 
                     y2={130 + 100 * Math.sin(angle)} 
-                    stroke={theme.colors.borderLight} 
+                    stroke={isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.15)"} 
                     strokeWidth="1" 
                   />
                 ))}
 
                 {/* Labels */}
-                <SvgText x={150 + 120 * Math.cos(-Math.PI * 2 / 3)} y={130 + 120 * Math.sin(-Math.PI * 2 / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Back</SvgText>
-                <SvgText x={150 + 120 * Math.cos(-Math.PI / 3)} y={130 + 120 * Math.sin(-Math.PI / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Chest</SvgText>
-                <SvgText x={150 + 130 * Math.cos(0)} y={130 + 120 * Math.sin(0)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Core</SvgText>
-                <SvgText x={150 + 120 * Math.cos(Math.PI / 3)} y={130 + 120 * Math.sin(Math.PI / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Shoulders</SvgText>
-                <SvgText x={150 + 120 * Math.cos(Math.PI * 2 / 3)} y={130 + 120 * Math.sin(Math.PI * 2 / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Arms</SvgText>
-                <SvgText x={150 + 130 * Math.cos(Math.PI)} y={130 + 120 * Math.sin(Math.PI)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="middle" alignmentBaseline="middle">Legs</SvgText>
+                <SvgText x={150 + 115 * Math.cos(-Math.PI * 2 / 3)} y={130 + 115 * Math.sin(-Math.PI * 2 / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="end" alignmentBaseline="middle">Back</SvgText>
+                <SvgText x={150 + 115 * Math.cos(-Math.PI / 3)} y={130 + 115 * Math.sin(-Math.PI / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="start" alignmentBaseline="middle">Chest</SvgText>
+                <SvgText x={150 + 115 * Math.cos(0)} y={130 + 115 * Math.sin(0)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="start" alignmentBaseline="middle">Core</SvgText>
+                <SvgText x={150 + 115 * Math.cos(Math.PI / 3)} y={130 + 115 * Math.sin(Math.PI / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="start" alignmentBaseline="middle">Shoulders</SvgText>
+                <SvgText x={150 + 115 * Math.cos(Math.PI * 2 / 3)} y={130 + 115 * Math.sin(Math.PI * 2 / 3)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="end" alignmentBaseline="middle">Arms</SvgText>
+                <SvgText x={150 + 115 * Math.cos(Math.PI)} y={130 + 115 * Math.sin(Math.PI)} fill={theme.colors.textSecondary} fontSize="12" textAnchor="end" alignmentBaseline="middle">Legs</SvgText>
 
                 {/* Data Polygon (Current) */}
                 <Polygon 
@@ -385,15 +360,15 @@ export default function Dashboard() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   pageTitle: { ...theme.typography.headerTitle },
   
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 10 },
   
-  section: { marginBottom: 12 },
-  sectionLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
+  section: { marginBottom: 28 },
+  sectionLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 12 },
 
   // Stat Card
   statCard: { 
@@ -403,7 +378,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: theme.colors.border, 
     borderRadius: 16, 
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     justifyContent: 'center',
   },
 
@@ -412,14 +387,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     marginBottom: 12
   },
   miniCalendarCard: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingTop: 12,
+    paddingBottom: 12,
     paddingHorizontal: 0,
   },
   daysOfWeekRow: {
@@ -431,18 +408,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary
+    color: theme.colors.primary
   },
   miniDaysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    rowGap: 12,
   },
   miniDayCell: {
     width: '14.28%',
-    aspectRatio: 1,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2
   },
   miniDayCircle: {
     width: 40,
@@ -466,10 +443,10 @@ const styles = StyleSheet.create({
 
   // Radar Chart
   radarCard: { 
-    backgroundColor: theme.colors.surfaceVariant, 
+    backgroundColor: theme.colors.surface, 
     borderRadius: 16, 
     padding: 16, 
-    paddingBottom: 0,
+    paddingBottom: 8,
     alignItems: 'center' 
   },
   radarDropdown: { 
@@ -494,7 +471,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: theme.colors.surfaceElevated,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -512,7 +489,7 @@ const styles = StyleSheet.create({
   modalOption: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: theme.colors.borderLight,
   },
   modalOptionText: {
     fontSize: 16,

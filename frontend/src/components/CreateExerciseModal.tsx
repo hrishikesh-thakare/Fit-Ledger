@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TextInput, Pressable, Modal, Switch, ActivityIndicator, ScrollView, TouchableWithoutFeedback } from 'react-native'
 import { Feather } from '@expo/vector-icons'
-import { theme } from '../theme'
+import { useTheme } from '../contexts/ThemeContext'
 import api from '../api'
 import { Toast } from './CustomToast'
 
@@ -21,6 +21,8 @@ const EQUIPMENT_OPTIONS = [
 ]
 
 export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerciseModalProps) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const [name, setName] = useState('')
   const [muscleGroupId, setMuscleGroupId] = useState<string | number>('')
   const [muscleGroupLabel, setMuscleGroupLabel] = useState<string>('')
@@ -50,6 +52,8 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
         })
         .catch(console.error)
         .finally(() => setLoadingGroups(false))
+    } else {
+      setMuscleGroups([])
     }
   }, [visible])
 
@@ -211,7 +215,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: theme.colors.overlay,

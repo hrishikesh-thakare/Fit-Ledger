@@ -4,7 +4,7 @@ import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import { fromKg, toKg } from '../../utils/unit'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
@@ -18,6 +18,8 @@ const VERTICAL_PADDING = (CAROUSEL_HEIGHT - ITEM_HEIGHT) / 2
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList)
 
 export default function Weight() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -196,7 +198,7 @@ export default function Weight() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.headerBar}>
         <Text style={styles.title}>Body Weight</Text>
       </View>
@@ -466,13 +468,13 @@ export default function Weight() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { padding: 0, flex: 1, backgroundColor: theme.colors.background },
   headerBar: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   title: { ...theme.typography.headerTitle },
   scrollContent: { padding: 16, paddingBottom: 0, flexGrow: 1 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 12, marginTop: 8 },
-  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.borderLight },
+  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 16 },
   cardTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
   currentWeightText: { fontSize: 48, fontWeight: '800', color: theme.colors.text, marginRight: 2 },
   unitText: { fontSize: 16, fontWeight: '500', color: theme.colors.textMuted },
@@ -481,7 +483,7 @@ const styles = StyleSheet.create({
   dateText: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '500' },
   chip: { backgroundColor: theme.colors.surfaceVariant, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, minWidth: 80, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.borderLight },
   chipText: { fontSize: 14, fontWeight: '700', color: theme.colors.textMuted },
-  divider: { height: 1, backgroundColor: theme.colors.border, marginHorizontal: 16 },
+  divider: { height: 1, backgroundColor: theme.colors.divider, marginHorizontal: 16 },
   hint: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400' },
   error: { color: theme.colors.error, marginBottom: 16 },
   

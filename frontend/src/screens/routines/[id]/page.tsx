@@ -5,11 +5,14 @@ import { useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/core'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import api from '../../../api'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { fromKg } from '../../../utils/unit'
+import { getEquipment } from '../../../utils/exercise'
 
 export default function RoutineDetails({ route }: any) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const { user } = useAuth()
   const unit = user?.preferredUnit || 'kg'
@@ -112,14 +115,21 @@ export default function RoutineDetails({ route }: any) {
           return (
             <View key={ex.id || index} style={styles.exerciseCard}>
               <View style={styles.exerciseHeader}>
-                <Text style={styles.exerciseName}>{ex.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Text style={styles.exerciseName}>{ex.name || 'Unknown'}</Text>
+                  {getEquipment(ex) && (
+                    <View style={styles.machineBadge}>
+                      <Text style={styles.machineBadgeText}>{getEquipment(ex)}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               
               <View style={styles.table}>
                 <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'left' }]}>Set</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>{unit}</Text>
-                  <Text style={[styles.tableHeaderText, { flex: 2 }]}>Reps</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>Set</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>{unit}</Text>
+                  <Text style={[styles.tableHeaderText, { flex: 1 }]}>Reps</Text>
                 </View>
                 {ex.sets?.map((set: any, sIdx: number) => {
                   let setLabel = set.type
@@ -138,13 +148,13 @@ export default function RoutineDetails({ route }: any) {
                   
                   return (
                     <View key={set.id || sIdx} style={styles.tableRow}>
-                      <Text style={[styles.tableCell, { flex: 1, textAlign: 'left', fontWeight: 'bold', color: labelColor }]}>
+                      <Text style={[styles.tableCell, { flex: 1, fontWeight: 'bold', color: labelColor }]}>
                         {setLabel}
                       </Text>
-                      <Text style={[styles.tableCell, { flex: 2 }]}>
+                      <Text style={[styles.tableCell, { flex: 1 }]}>
                         {set.weight ? Math.round(fromKg(Number(set.weight), unit, true) * 10) / 10 : '-'}
                       </Text>
-                      <Text style={[styles.tableCell, { flex: 2 }]}>{set.reps || '-'}</Text>
+                      <Text style={[styles.tableCell, { flex: 1 }]}>{set.reps || '-'}</Text>
                     </View>
                   )
                 })}
@@ -164,7 +174,7 @@ export default function RoutineDetails({ route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16, backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   backBtn: { padding: 8, marginLeft: -8 },
@@ -185,17 +195,19 @@ const styles = StyleSheet.create({
   
   sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text, letterSpacing: 1, marginBottom: 16 },
   
-  exerciseCard: { backgroundColor: theme.colors.background, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 16, overflow: 'hidden' },
-  exerciseHeader: { padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  exerciseName: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  exerciseCard: { backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, marginBottom: 16, overflow: 'hidden' },
+  exerciseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.borderInput },
+  exerciseName: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginRight: 8 },
+  machineBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  machineBadgeText: { color: theme.colors.primary, fontSize: 10, fontWeight: '700' },
   
-  table: { paddingTop: 8 },
-  tableHeader: { flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  tableHeaderText: { color: theme.colors.textMuted, fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
+  table: { paddingTop: 0 },
+  tableHeader: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 16 },
+  tableHeaderText: { color: theme.colors.primary, fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
   tableRow: { flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 16 },
   tableCell: { color: theme.colors.text, fontSize: 15, textAlign: 'center' },
   
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.border },
   startBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 12, gap: 8, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   startBtnText: { color: theme.colors.background, fontSize: 18, fontWeight: '700' }
 })

@@ -5,12 +5,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { CustomAlert as Alert } from '../../../components/CustomAlert'
 import { Toast } from '../../../components/CustomToast'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 import api from '../../../api'
 import { CreateExerciseModal } from '../../../components/CreateExerciseModal'
 import { getMuscle, getEquipment, capitalize } from '../../../utils/exercise'
 
 export default function CreateRoutine() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const insets = useSafeAreaInsets()
   
@@ -377,9 +379,9 @@ export default function CreateRoutine() {
 
               {/* Table Header */}
               <View style={styles.tableHeader}>
-                <Text style={[styles.th, { flex: 1, textAlign: 'left' }]}>Set</Text>
-                <Text style={[styles.th, { flex: 2 }]}>kg</Text>
-                <Text style={[styles.th, { flex: 2 }]}>Reps</Text>
+                <Text style={[styles.th, { flex: 1 }]}>Set</Text>
+                <Text style={[styles.th, { flex: 1 }]}>kg</Text>
+                <Text style={[styles.th, { flex: 1 }]}>Reps</Text>
               </View>
 
               {/* Table Rows */}
@@ -401,7 +403,7 @@ export default function CreateRoutine() {
 
                 return (
                   <View key={set.id || sIdx} style={styles.tableRow}>
-                    <View style={{ flex: 1, alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
                       <Pressable 
                         hitSlop={10}
                         onPress={() => setSelectedSet({ exIdx: idx, sIdx, type: set.type || 'Normal' })}
@@ -410,7 +412,7 @@ export default function CreateRoutine() {
                         <Text style={{ color: labelColor, fontWeight: '700', fontSize: 13 }}>{setLabel}</Text>
                       </Pressable>
                     </View>
-                    <View style={{ flex: 2, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                       <TextInput 
                         style={[styles.td, styles.tableInput, { minWidth: 60 }]} 
                         value={set.weight ? String(set.weight) : ''} 
@@ -423,7 +425,7 @@ export default function CreateRoutine() {
                         onFocus={() => handleFocusInput(idx)}
                       />
                     </View>
-                    <View style={{ flex: 2, alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                       <TextInput 
                         style={[styles.td, styles.tableInput, { minWidth: 60 }]} 
                         value={set.reps ? String(set.reps) : ''} 
@@ -634,7 +636,7 @@ export default function CreateRoutine() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
@@ -646,7 +648,7 @@ const styles = StyleSheet.create({
   inputContainer: { marginTop: 8, marginBottom: 24, position: 'relative' },
   inputLegend: { position: 'absolute', top: -10, left: 12, backgroundColor: theme.colors.background, paddingHorizontal: 4, zIndex: 1 },
   inputLegendText: { color: theme.colors.textMuted, fontSize: 12, fontWeight: '500' },
-  input: { borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, fontSize: 16, color: theme.colors.text, fontWeight: '500' },
+  input: { backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, fontSize: 16, color: theme.colors.text, fontWeight: '500' },
 
   exercisesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.textMuted, letterSpacing: 1 },
@@ -656,18 +658,18 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 40, backgroundColor: theme.colors.surfaceElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, borderStyle: 'dashed', marginBottom: 16 },
   hint: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '500' },
 
-  exerciseCard: { backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  exerciseCard: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   exName: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginRight: 8 },
   machineBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   machineBadgeText: { color: theme.colors.primary, fontSize: 10, fontWeight: '700' },
   
   tableHeader: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  th: { color: theme.colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  th: { color: theme.colors.primary, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14 },
   td: { color: theme.colors.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   
-  addSetBtn: { borderTopWidth: 1, borderTopColor: theme.colors.borderLight, paddingVertical: 14, alignItems: 'center', backgroundColor: theme.colors.surfaceVariant },
+  addSetBtn: { borderTopWidth: 1, borderTopColor: theme.colors.borderLight, paddingVertical: 14, alignItems: 'center', backgroundColor: 'transparent' },
   addSetText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
 
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.border },

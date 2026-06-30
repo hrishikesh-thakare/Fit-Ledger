@@ -5,10 +5,12 @@ import { Toast } from '../../components/CustomToast'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import { API_URL } from '../../api'
 
 export default function Login() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const { login } = useAuth()
   const [email, setEmail] = useState('')
@@ -113,7 +115,7 @@ export default function Login() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { padding: 24, flexGrow: 1, justifyContent: 'center', backgroundColor: theme.colors.background },
   headerContainer: { marginBottom: 40, alignItems: 'center' },
   title: { ...theme.typography.display, marginBottom: 8, letterSpacing: 0.5 },

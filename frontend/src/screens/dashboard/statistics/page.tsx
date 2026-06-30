@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { Feather } from '@expo/vector-icons'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 
 export default function DashboardStatistics() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
 
   return (
@@ -27,7 +29,7 @@ export default function DashboardStatistics() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { padding: 8, marginLeft: -8 },

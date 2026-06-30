@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { CustomAlert as Alert } from '../../../components/CustomAlert'
 import { Toast } from '../../../components/CustomToast'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 import api from '../../../api'
 import { useWorkoutContext } from '../../../contexts/WorkoutContext'
 import { useAuth } from '../../../contexts/AuthContext'
@@ -45,6 +45,8 @@ export interface WorkoutSummaryData {
 }
 
 export default function WorkoutSummary({ route }: any) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const summaryData: WorkoutSummaryData = route.params?.summaryData || {
     duration: 0,
@@ -102,10 +104,10 @@ export default function WorkoutSummary({ route }: any) {
 
   const handleDiscard = () => {
     Alert.alert(
-      'Discard Workout',
-      'Are you sure you want to discard this workout? It will not be saved to your history.',
+      'Discard workout?',
+      'Your workout will not be saved.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Keep going', style: 'cancel' },
         { 
           text: 'Discard', 
           style: 'destructive',
@@ -187,7 +189,7 @@ export default function WorkoutSummary({ route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

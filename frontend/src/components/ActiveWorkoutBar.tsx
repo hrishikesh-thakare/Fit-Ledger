@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { theme } from '../theme'
+import { useTheme } from '../contexts/ThemeContext'
 import { useWorkoutContext } from '../contexts/WorkoutContext'
 import { CustomAlert as Alert } from './CustomAlert'
 import { Toast } from './CustomToast'
 
-export default function ActiveWorkoutBar() {
+export default function ActiveWorkoutBar({ hasTabBar = true, hasBottomBar = false }: { hasTabBar?: boolean; hasBottomBar?: boolean }) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const { isActive, elapsedTime, formatTime, endWorkout, routineId } = useWorkoutContext()
   const navigation = useNavigation() as { navigate: (screen: string, params?: Record<string, unknown>) => void }
   const insets = useSafeAreaInsets()
@@ -38,8 +40,12 @@ export default function ActiveWorkoutBar() {
     )
   }
 
-  // Use a fixed bottom position that accommodates the tab bar
-  const bottomPosition = theme.layout.tabBarHeight + (insets.bottom ? insets.bottom + 4 : 10) + 16
+  // Calculate bottom position based on screen layout
+  const bottomPosition = hasTabBar 
+    ? theme.layout.tabBarHeight + (insets.bottom ? insets.bottom + 4 : 10) + 16
+    : hasBottomBar 
+      ? 96 
+      : Math.max(insets.bottom, 16) + 12
 
   return (
     <View style={[styles.container, { bottom: bottomPosition }]}>
@@ -60,7 +66,7 @@ export default function ActiveWorkoutBar() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     position: 'absolute',
     left: 16,
@@ -76,7 +82,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    shadowColor: theme.colors.primary,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,

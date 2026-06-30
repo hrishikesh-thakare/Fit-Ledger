@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import api from '../../../api'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { fromKg } from '../../../utils/unit'
 import { CustomAlert as Alert } from '../../../components/CustomAlert'
@@ -51,6 +51,8 @@ interface WorkoutDetailsData {
 }
 
 export default function WorkoutDetails({ route }: any) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const { user } = useAuth()
   const unit = user?.preferredUnit || 'kg'
@@ -277,7 +279,7 @@ export default function WorkoutDetails({ route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -349,14 +351,14 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: theme.colors.borderInput,
     marginBottom: 24,
   },
   exercisesContainer: {
     gap: 16,
   },
   exerciseCard: {
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: theme.colors.borderLight,
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.borderLight,
   },
   tableHeaderText: {
-    color: theme.colors.textMuted,
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',

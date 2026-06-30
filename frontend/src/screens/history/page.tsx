@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { ScrollView, Text, View, StyleSheet, ActivityIndicator, Pressable, Modal, Animated, FlatList, PanResponder } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import api from '../../api'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/core'
@@ -15,6 +15,8 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const YEARS = Array.from({length: 10}, (_, i) => String(new Date().getFullYear() - i))
 
 export default function History() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const [items, setItems] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -146,7 +148,7 @@ export default function History() {
 
   const applyCustomFilter = () => {
     setCustomFilterActive(true)
-    setSelectedPeriod('')
+    setSelectedPeriod(null as any)
     setIsFilterOpen(false)
   }
 
@@ -159,7 +161,7 @@ export default function History() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>History</Text>
       </View>
@@ -242,7 +244,7 @@ export default function History() {
       {/* Floating Action Button */}
       <Animated.View style={[styles.fab, { opacity: fabAnim, transform: [{ scale: fabAnim }], pointerEvents: fabVisible ? 'auto' : 'none' }]}>
         <Pressable style={styles.fabInner} onPress={() => setIsFilterOpen(true)}>
-          <Feather name="calendar" size={24} color="#000" />
+          <Feather name="calendar" size={24} color={theme.colors.background} />
         </Pressable>
       </Animated.View>
 
@@ -384,7 +386,7 @@ export default function History() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { ...theme.typography.headerTitle },
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
   monthHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   monthHeader: { fontSize: 12, fontWeight: '700', color: theme.colors.textMuted, letterSpacing: 1, marginLeft: 4 },
   
-  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.background, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border },
+  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   cardTitle: { fontSize: 22, fontWeight: '400', lineHeight: 28, textTransform: 'capitalize', color: theme.colors.text },
   dateText: { color: theme.colors.textMuted, fontSize: 12, lineHeight: 16, fontWeight: '500' },

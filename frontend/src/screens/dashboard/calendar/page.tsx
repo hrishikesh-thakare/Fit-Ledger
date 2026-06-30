@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from '
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { Feather } from '@expo/vector-icons'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 import api from '../../../api'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -27,6 +27,8 @@ const generateMonths = (): MonthData[] => {
 }
 
 export default function DashboardCalendar() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation<any>()
   const [loading, setLoading] = useState(true)
   
@@ -132,7 +134,7 @@ export default function DashboardCalendar() {
           keyExtractor={item => item.id}
           renderItem={renderMonth}
           contentContainerStyle={{ paddingBottom: 40 }}
-          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: 16, marginVertical: 8 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: 16, marginVertical: 4 }} />}
           onLayout={() => {
             setTimeout(() => {
               flatListRef.current?.scrollToIndex({ index: new Date().getMonth(), animated: false })
@@ -150,7 +152,7 @@ export default function DashboardCalendar() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { padding: 8, marginLeft: -8 },
@@ -170,31 +172,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary
+    color: theme.colors.primary
   },
   
   monthContainer: {
     paddingHorizontal: 8,
-    paddingTop: 24,
-    paddingBottom: 8,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   monthTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: theme.colors.primary,
     marginLeft: 8,
     marginBottom: 16
   },
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    rowGap: 14,
   },
   dayCell: {
     width: '14.28%', // 100 / 7
-    aspectRatio: 1,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4
   },
   dayCircle: {
     width: 36,

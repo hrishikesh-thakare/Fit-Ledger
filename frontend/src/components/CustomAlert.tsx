@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
-import { theme } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 type AlertButton = {
   text?: string;
@@ -17,6 +17,8 @@ type AlertConfig = {
 let setAlertConfigGlobal: ((config: AlertConfig | null) => void) | null = null;
 
 export const CustomAlertRenderer = () => {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const [config, setConfig] = useState<AlertConfig | null>(null);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export const CustomAlert = {
   }
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   modalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { width: '100%', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, padding: 24, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   modalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },

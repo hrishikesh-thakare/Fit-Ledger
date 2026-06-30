@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native'
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useAuth } from '../../../contexts/AuthContext'
 import api from '../../../api'
-import { theme } from '../../../theme'
+import { useTheme } from '../../../contexts/ThemeContext'
 
 interface HistoryEntry {
   date: string
@@ -29,6 +29,8 @@ interface ProcessedExercise {
 }
 
 export default function ExerciseHistory({ route }: any) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const { user } = useAuth()
   const exerciseParam = route.params?.exercise
@@ -36,6 +38,26 @@ export default function ExerciseHistory({ route }: any) {
   const [exercise, setExercise] = useState<ProcessedExercise | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    try {
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return dateStr
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const month = months[d.getMonth()]
+      const day = d.getDate()
+      const year = d.getFullYear()
+      let hours = d.getHours()
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      hours = hours % 12
+      hours = hours ? hours : 12
+      return `${month} ${day}, ${year} • ${hours}:${minutes} ${ampm}`
+    } catch (e) {
+      return dateStr
+    }
+  }
 
   useEffect(() => {
     const fetchExerciseData = async () => {
@@ -127,7 +149,7 @@ export default function ExerciseHistory({ route }: any) {
                   <Text style={styles.pbMultiply}>×</Text>
                   <Text style={styles.pbReps}>{exercise.personalBest.reps}</Text>
                 </View>
-                <Text style={styles.pbDate}>Set on {exercise.personalBest.date}</Text>
+                <Text style={styles.pbDate}>Set on {formatDate(exercise.personalBest.date)}</Text>
               </View>
             )}
 
@@ -150,7 +172,7 @@ export default function ExerciseHistory({ route }: any) {
                       <View style={styles.historyItem}>
                         <View style={styles.historyItemHeader}>
                           <MaterialCommunityIcons name="calendar-blank" size={16} color={theme.colors.textMuted} />
-                          <Text style={styles.historyDate}>{entry.date}</Text>
+                          <Text style={styles.historyDate}>{formatDate(entry.date)}</Text>
                           {entry.isPR && (
                             <View style={styles.prBadge}>
                               <Text style={styles.prBadgeText}>PR</Text>
@@ -186,7 +208,7 @@ export default function ExerciseHistory({ route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -367,7 +389,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: theme.colors.divider,
     marginHorizontal: 20,
   },
 })

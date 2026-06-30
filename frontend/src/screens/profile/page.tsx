@@ -5,12 +5,14 @@ import { Toast } from '../../components/CustomToast'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import api from '../../api'
 import { toKg, fromKg } from '../../utils/unit'
 
 export default function Profile() {
   const { user, logout, refreshUser } = useAuth()
+  const { theme, mode, setMode } = useTheme()
+  const styles = getStyles(theme)
   
   const [aboutOpen, setAboutOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -25,6 +27,22 @@ export default function Profile() {
   
   // Animation state for weight unit segmented control slider
   const slideAnim = useRef(new Animated.Value(localUnit === 'lb' ? 1 : 0)).current
+
+  // Animation state for theme mode segmented control slider
+  const themeAnim = useRef(new Animated.Value(mode === 'system' ? 2 : mode === 'dark' ? 1 : 0)).current
+
+  useEffect(() => {
+    Animated.timing(themeAnim, {
+      toValue: mode === 'system' ? 2 : mode === 'dark' ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start()
+  }, [mode])
+
+  const themeTranslateX = themeAnim.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [0, 50, 100]
+  })
 
   useEffect(() => {
     if (user?.preferredUnit) {
@@ -151,7 +169,7 @@ export default function Profile() {
     : 'Not set'
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Top Header */}
       <View style={styles.headerBar}>
         <Text style={styles.headerTitle}>Profile</Text>
@@ -176,6 +194,34 @@ export default function Profile() {
         {/* Preferences */}
         <Text style={styles.sectionHeader}>Preferences</Text>
         <View style={styles.sectionCard}>
+          <View style={styles.listItem}>
+            <View style={styles.listItemLeft}>
+              <MaterialCommunityIcons name="theme-light-dark" size={20} color={theme.colors.textMuted} style={styles.listIcon} />
+              <Text style={styles.listItemText}>Appearance</Text>
+            </View>
+            <View style={[styles.segmentedControl, { width: 156 }]}>
+              <Animated.View 
+                style={[
+                  styles.segmentBackground, 
+                  {
+                    transform: [{ translateX: themeTranslateX }]
+                  }
+                ]} 
+              />
+              <Pressable style={styles.segmentButton} onPress={() => setMode('light')}>
+                <Text style={[styles.segmentText, mode === 'light' && styles.segmentTextActive]}>Light</Text>
+              </Pressable>
+              <Pressable style={styles.segmentButton} onPress={() => setMode('dark')}>
+                <Text style={[styles.segmentText, mode === 'dark' && styles.segmentTextActive]}>Dark</Text>
+              </Pressable>
+              <Pressable style={styles.segmentButton} onPress={() => setMode('system')}>
+                <Text style={[styles.segmentText, mode === 'system' && styles.segmentTextActive]}>Auto</Text>
+              </Pressable>
+            </View>
+          </View>
+          
+          <View style={styles.divider} />
+
           <View style={styles.listItem}>
             <View style={styles.listItemLeft}>
               <MaterialCommunityIcons name="dumbbell" size={20} color={theme.colors.textMuted} style={styles.listIcon} />
@@ -359,7 +405,7 @@ export default function Profile() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   headerTitle: { ...theme.typography.headerTitle },
@@ -417,9 +463,9 @@ const styles = StyleSheet.create({
   modalBtnTextClose: { color: theme.colors.background, fontWeight: '700', fontSize: 16 },
 
   // Segmented control specific styles
-  segmentedControl: { flexDirection: 'row', backgroundColor: theme.colors.surfaceVariant, borderRadius: 8, padding: 2, borderWidth: 1, borderColor: theme.colors.borderInput, width: 104, height: 34, position: 'relative' },
-  segmentBackground: { position: 'absolute', top: 2, left: 2, width: 48, height: 28, borderRadius: 6, backgroundColor: theme.colors.primary },
-  segmentButton: { width: 48, height: 28, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
+  segmentedControl: { flexDirection: 'row', backgroundColor: theme.colors.surfaceVariant, borderRadius: 8, padding: 2, borderWidth: 1, borderColor: theme.colors.borderInput, width: 106, height: 34, position: 'relative' },
+  segmentBackground: { position: 'absolute', top: 2, left: 2, width: 50, height: 28, borderRadius: 6, backgroundColor: theme.colors.primary },
+  segmentButton: { width: 50, height: 28, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
   segmentText: { color: theme.colors.textMuted, fontSize: 13, fontWeight: '600' },
   segmentTextActive: { color: theme.colors.background, fontWeight: '700' }
 })

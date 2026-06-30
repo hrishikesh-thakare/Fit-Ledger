@@ -7,10 +7,12 @@ import { useNavigation } from '@react-navigation/native'
 import { useFocusEffect } from '@react-navigation/core'
 import { Feather } from '@expo/vector-icons'
 import api from '../../api'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Routines() {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const navigation = useNavigation()
   const { user } = useAuth()
   const [routines, setRoutines] = useState<any[]>([])
@@ -100,7 +102,7 @@ export default function Routines() {
     ])
   }
 
-  if (loading) {
+  if (loading && routines.length === 0) {
     return (
       <View style={[styles.wrapper, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -109,7 +111,7 @@ export default function Routines() {
   }
 
   return (
-    <SafeAreaView style={styles.wrapper}>
+    <SafeAreaView style={styles.wrapper} edges={['top']}>
       {/* Top Header */}
       <View style={styles.headerBar}>
         <Text style={styles.headerTitle}>Routines</Text>
@@ -132,8 +134,6 @@ export default function Routines() {
         {routines.map((r) => {
           const mg = r.muscleGroups || []
           const numExercises = r.exerciseCount || 0
-          // Mock preview text if not available
-          const previewText = (r.previewExercises && r.previewExercises.length > 0) ? r.previewExercises.join(' · ') : 'No exercises added'
           
           return (
             <View key={r.id || r._id} style={styles.card}>
@@ -151,12 +151,6 @@ export default function Routines() {
                   </View>
                 ))}
               </View>
-
-              <View style={styles.divider} />
-
-              <Text style={styles.previewText} numberOfLines={2}>
-                {previewText}
-              </Text>
 
               <View style={styles.footerRow}>
                 <Text style={styles.footerText}>
@@ -214,20 +208,20 @@ export default function Routines() {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: theme.colors.background },
   headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.background },
   headerTitle: { ...theme.typography.headerTitle },
   container: { padding: 16, paddingBottom: 100, flexGrow: 1 },
-  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.background, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  card: { padding: 16, borderRadius: 16, backgroundColor: theme.colors.surface, marginBottom: 16, borderWidth: 1, borderColor: theme.colors.border },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   cardTitle: { fontSize: 22, fontWeight: '400', lineHeight: 28, color: theme.colors.text, textTransform: 'capitalize' },
   menuButton: { padding: 4, marginRight: -4 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
   chip: { backgroundColor: theme.colors.primary + '20', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   chipText: { fontSize: 12, lineHeight: 16, fontWeight: '700', color: theme.colors.primary },
-  divider: { height: 1, backgroundColor: theme.colors.border, marginTop: 4, marginBottom: 12 },
-  previewText: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400', marginBottom: 20 },
+  divider: { height: 1, backgroundColor: theme.colors.borderInput, marginTop: 8, marginBottom: 12 },
+  previewText: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400', marginBottom: 12 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
   estDurationText: { color: theme.colors.textMuted, fontStyle: 'italic', fontWeight: '400' },

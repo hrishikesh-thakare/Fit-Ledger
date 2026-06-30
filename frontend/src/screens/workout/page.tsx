@@ -6,7 +6,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { CustomAlert as Alert } from '../../components/CustomAlert'
 import { Toast } from '../../components/CustomToast'
-import { theme } from '../../theme'
+import { useTheme } from '../../contexts/ThemeContext'
 import api from '../../api'
 import { getMuscle, getEquipment, capitalize, getSetLabelText } from '../../utils/exercise'
 import { useWorkoutContext } from '../../contexts/WorkoutContext'
@@ -32,6 +32,8 @@ interface WorkoutExercise {
 }
 
 export default function Workout({ route }: any) {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const { user } = useAuth()
   const navigation = useNavigation()
   const routineId = route.params?.routineId || route.params?.id
@@ -457,14 +459,14 @@ export default function Workout({ route }: any) {
 
                   {/* Table Header */}
                   <View style={styles.tableHeader}>
-                    <Text style={[styles.th, { width: 40, textAlign: 'center' }]}>SET</Text>
+                    <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>SET</Text>
                     <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>PREV</Text>
-                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>
+                    <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>
                       {(user?.preferredUnit || 'kg').toUpperCase()}
                     </Text>
-                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>REPS</Text>
-                    <Pressable hitSlop={10} onPress={() => handleToggleAllSets(ex.id)} style={{ width: 40, alignItems: 'center' }}>
-                      {allCompleted ? <Feather name="check-circle" size={18} color={theme.colors.primary} /> : <Feather name="check" size={18} color={theme.colors.textMuted} />}
+                    <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>REPS</Text>
+                    <Pressable hitSlop={10} onPress={() => handleToggleAllSets(ex.id)} style={{ flex: 1, alignItems: 'center' }}>
+                      <Feather name={allCompleted ? "check-circle" : "check"} size={18} color={theme.colors.primary} />
                     </Pressable>
                   </View>
 
@@ -476,7 +478,7 @@ export default function Workout({ route }: any) {
                       <View key={set.id || sIdx} style={[styles.tableRow, { backgroundColor: rowBg }]}>
                         {/* Set Number/Type */}
                         <Pressable 
-                          style={{ width: 40, alignItems: 'center', paddingVertical: 8 }}
+                          style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
                           onPress={() => setActiveSet({ exerciseId: ex.id, setId: set.id })}
                         >
                           <Text style={[styles.tdSet, { color: getSetLabelColor(set.type) }]}>
@@ -490,7 +492,7 @@ export default function Workout({ route }: any) {
                         </View>
 
                         {/* Weight */}
-                        <View style={{ flex: 1.5, alignItems: 'center' }}>
+                        <View style={{ flex: 1, alignItems: 'center' }}>
                           <TextInput
                             style={[styles.tdInput, isChecked && { color: theme.colors.textMuted }]}
                             value={set.weight}
@@ -504,7 +506,7 @@ export default function Workout({ route }: any) {
                         </View>
 
                         {/* Reps */}
-                        <View style={{ flex: 1.5, alignItems: 'center' }}>
+                        <View style={{ flex: 1, alignItems: 'center' }}>
                           <TextInput
                             style={[styles.tdInput, isChecked && { color: theme.colors.textMuted }]}
                             value={set.reps}
@@ -519,7 +521,7 @@ export default function Workout({ route }: any) {
 
                         {/* Checkbox */}
                         <Pressable 
-                          style={{ width: 40, alignItems: 'center', paddingVertical: 8 }}
+                          style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
                           onPress={() => handleToggleComplete(ex.id, set.id)}
                         >
                           <View style={[styles.checkCircle, isChecked && styles.checkCircleActive]}>
@@ -544,7 +546,7 @@ export default function Workout({ route }: any) {
               </View>
             )}
             <Pressable style={styles.addExerciseCardBtn} onPress={() => setShowAddExerciseDrawer(true)}>
-              <Feather name="plus" size={16} color={theme.colors.textMuted} />
+              <Feather name="plus" size={16} color={theme.colors.primary} />
               <Text style={styles.addExerciseCardText}>Add Exercise</Text>
             </Pressable>
           </>
@@ -788,9 +790,9 @@ export default function Workout({ route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { ...theme.typography.heading },
   timerBox: { alignItems: 'flex-end' },
@@ -804,16 +806,16 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surfaceVariant, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.borderLight },
   backBtnText: { color: theme.colors.text, fontWeight: '600' },
 
-  card: { backgroundColor: theme.colors.surfaceElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, overflow: 'hidden', marginBottom: 16 },
+  card: { backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, overflow: 'hidden', marginBottom: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
   cardTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, flex: 1 },
   restTimeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   restTimeText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
   
-  tableHeader: { flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  th: { color: theme.colors.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  tableHeader: { flexDirection: 'row', paddingHorizontal: 0, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
+  th: { color: theme.colors.primary, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   
-  tableRow: { flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 4, alignItems: 'center' },
+  tableRow: { flexDirection: 'row', paddingHorizontal: 0, paddingVertical: 4, alignItems: 'center' },
   tdSet: { fontSize: 15, fontWeight: '700' },
   tdPrev: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', fontFamily: 'monospace' },
   tdInput: { color: theme.colors.text, fontSize: 18, fontWeight: '700', textAlign: 'center', minWidth: 60 },
@@ -821,14 +823,14 @@ const styles = StyleSheet.create({
   checkCircle: { height: 26, width: 26, borderRadius: 13, backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.borderInput, alignItems: 'center', justifyContent: 'center' },
   checkCircleActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   
-  addSetBtn: { paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.colors.borderLight, backgroundColor: theme.colors.surfaceVariant },
+  addSetBtn: { paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.colors.borderLight, backgroundColor: 'transparent' },
   addSetText: { color: theme.colors.primary, fontSize: 15, fontWeight: '700' },
 
-  addExerciseCardBtn: { borderStyle: 'dashed', borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 0 },
-  addExerciseCardText: { color: theme.colors.textMuted, fontSize: 15, fontWeight: '700' },
+  addExerciseCardBtn: { borderStyle: 'dashed', borderWidth: 1, borderColor: theme.colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 0 },
+  addExerciseCardText: { color: theme.colors.primary, fontSize: 15, fontWeight: '700' },
 
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, backgroundColor: theme.colors.background },
-  restBanner: { backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, elevation: 10, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+  restBanner: { backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.borderLight, borderTopLeftRadius: 16, borderTopRightRadius: 16, elevation: 10, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
   restProgressBar: { height: 3, backgroundColor: theme.colors.primary, position: 'absolute', top: 0, left: 0 },
   restBannerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
   restBtn: { backgroundColor: theme.colors.surfaceElevated, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight },

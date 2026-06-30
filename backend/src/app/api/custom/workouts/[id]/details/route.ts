@@ -12,29 +12,29 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id: workoutId } = await params
 
   try {
-    // 1. Fetch Workout Day
-    const workoutDay = await payload.findByID({
-      collection: 'workout-days',
-      id: workoutId,
-      depth: 0,
-      overrideAccess: false,
-      user,
-    })
-
-    // 2. Fetch Workout Exercises
-    const workoutExercisesResponse = await payload.find({
-      collection: 'workout-exercises',
-      where: {
-        workoutDay: {
-          equals: workoutId,
+    // 1 & 2. Fetch Workout Day and Exercises in parallel
+    const [workoutDay, workoutExercisesResponse] = await Promise.all([
+      payload.findByID({
+        collection: 'workout-days',
+        id: workoutId,
+        depth: 0,
+        overrideAccess: false,
+        user,
+      }),
+      payload.find({
+        collection: 'workout-exercises',
+        where: {
+          workoutDay: {
+            equals: workoutId,
+          },
         },
-      },
-      depth: 1,
-      sort: 'exerciseOrder',
-      limit: 100,
-      overrideAccess: false,
-      user,
-    })
+        depth: 1,
+        sort: 'exerciseOrder',
+        limit: 100,
+        overrideAccess: false,
+        user,
+      })
+    ])
 
     const exerciseIds = workoutExercisesResponse.docs.map((doc) => doc.id)
 

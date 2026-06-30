@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, StatusBar } from 'react-native';
-import { theme } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,8 @@ type ToastConfig = {
 let setToastConfigGlobal: ((config: ToastConfig | null) => void) | null = null;
 
 export const CustomToastRenderer = () => {
+  const { theme } = useTheme()
+  const styles = getStyles(theme)
   const [config, setConfig] = useState<ToastConfig | null>(null);
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(-100)).current;
@@ -94,7 +96,7 @@ export const Toast = {
   }
 };
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     position: 'absolute',
     top: 0,

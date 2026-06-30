@@ -162,6 +162,8 @@ export async function saveRoutineToPayload(
       })
 
       if (setRows.length > 0) {
+        // We intentionally bypass standard access control and hooks for bulk inserts here for performance. 
+        // Route-level access control guarantees authorization, and no side-effect hooks are required for these tables.
         await Promise.all(
           setRows.map((data) =>
             payload.create({

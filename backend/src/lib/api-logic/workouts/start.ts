@@ -86,41 +86,40 @@ export async function saveWorkoutToPayload(
     }
   }
 
-  const t = await payload.db.beginTransaction()
-  try {
-    const workoutDay = await payload.create({
-      collection: 'workout-days',
-      data: {
-        user: Number(userId),
-        routine: Number(routineId),
-        title: routine.name,
-        date,
-        durationSeconds,
-        volumeKg: totalVolumeKg,
-        exerciseCount,
-        ...(clientId ? { clientId } : {}),
-      },
-      overrideAccess: true,
-      req: t ? { transactionID: t } : undefined,
-    })
+  const workoutDay = await payload.create({
+    collection: 'workout-days',
+    data: {
+      user: Number(userId),
+      routine: Number(routineId),
+      title: routine.name,
+      date,
+      durationSeconds,
+      volumeKg: totalVolumeKg,
+      exerciseCount,
+      ...(clientId ? { clientId } : {}),
+    },
+    overrideAccess: true,
+  })
 
-    const workoutExercises = await Promise.all(
-      exercises.map((ex, exerciseOrder) => {
-        return payload.create({
-          collection: 'workout-exercises',
-          data: {
-            workoutDay: Number(workoutDay.id),
-            exercise: Number(ex.exerciseId),
-            exerciseOrder: exerciseOrder,
-          },
-          overrideAccess: true,
-          req: t ? { transactionID: t } : undefined,
-        })
-      })
-    )
+  try {
+
+    const workoutExercisesTable = payload.db.tables['workout_exercises']
+    const workoutExercises = await payload.db.drizzle
+      .insert(workoutExercisesTable)
+      .values(
+        exercises.map((ex, exerciseOrder) => ({
+          workoutDay: Number(workoutDay.id),
+          exercise: Number(ex.exerciseId),
+          exerciseOrder: exerciseOrder,
+        }))
+      )
+      .returning()
     
     const workoutExerciseIdsByOrder = new Map<number, number>(
-      workoutExercises.map((exercise) => [Number(exercise.exerciseOrder), Number(exercise.id)]),
+      (workoutExercises as { id: number | string; exerciseOrder: number | string }[]).map((exercise) => [
+        Number(exercise.exerciseOrder), 
+        Number(exercise.id)
+      ]),
     )
 
     const validSetLabels = ['warmup', 'working', 'drop']
@@ -166,16 +165,8 @@ export async function saveWorkoutToPayload(
     })
 
     if (workoutSetsToInsert.length > 0) {
-      await Promise.all(
-        workoutSetsToInsert.map((data) =>
-          payload.create({
-            collection: 'workout-sets',
-            data,
-            overrideAccess: true,
-            req: t ? { transactionID: t } : undefined,
-          })
-        )
-      )
+      const workoutSetsTable = payload.db.tables['workout_sets']
+      await payload.db.drizzle.insert(workoutSetsTable).values(workoutSetsToInsert)
     }
 
     if (updatePrevWeights) {
@@ -185,7 +176,6 @@ export async function saveWorkoutToPayload(
         limit: 100,
         depth: 0,
         overrideAccess: true,
-        req: t ? { transactionID: t } : undefined,
       })
 
       const routineExercises = routineExercisesResult.docs
@@ -206,7 +196,6 @@ export async function saveWorkoutToPayload(
               collection: 'routine-sets',
               where: { routineExercise: { equals: id } },
               overrideAccess: true,
-              req: t ? { transactionID: t } : undefined,
             })
           )
         )
@@ -242,20 +231,10 @@ export async function saveWorkoutToPayload(
       }
 
       if (routineSetsToInsert.length > 0) {
-        await Promise.all(
-          routineSetsToInsert.map((data) =>
-            payload.create({
-              collection: 'routine-sets',
-              data,
-              overrideAccess: true,
-              req: t ? { transactionID: t } : undefined,
-            })
-          )
-        )
+        const routineSetsTable = payload.db.tables['routine_sets']
+        await payload.db.drizzle.insert(routineSetsTable).values(routineSetsToInsert)
       }
     }
-
-    if (t) await payload.db.commitTransaction(t)
 
     return {
       status: 200,
@@ -265,7 +244,13 @@ export async function saveWorkoutToPayload(
       },
     }
   } catch (error) {
-    if (t) await payload.db.rollbackTransaction(t)
+    console.error('Error in bulk insert, rolling back workoutDay:', error)
+    await payload.delete({
+      collection: 'workout-days',
+      id: workoutDay.id,
+      overrideAccess: true,
+    }).catch(() => null)
+    
     throw error
   }
 }

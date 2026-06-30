@@ -11,7 +11,7 @@ import Weight from '../screens/bodyweight/page'
 import Profile from '../screens/profile/page'
 import Login from '../screens/login/page'
 import { getToken } from '../auth'
-import { theme } from '../theme'
+import { useTheme } from '../contexts/ThemeContext'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -24,13 +24,14 @@ const Tab = createBottomTabNavigator()
 
 function MainTabs() {
   const insets = useSafeAreaInsets()
+  const { theme } = useTheme()
 
   return (
     <Tab.Navigator
       screenOptions={({ route }: { route: any }) => ({
         headerShown: false,
         tabBarStyle: { 
-          backgroundColor: theme.colors.background, 
+          backgroundColor: theme.colors.surfaceElevated, 
           borderTopColor: theme.colors.border, 
           borderTopWidth: 1,
           height: theme.layout.tabBarHeight + insets.bottom,
@@ -79,6 +80,7 @@ import DashboardStatistics from '../screens/dashboard/statistics/page'
 import DashboardCalendar from '../screens/dashboard/calendar/page'
 
 function RootStack() {
+  const { theme } = useTheme()
   return (
     <Stack.Navigator 
       screenOptions={{ 
@@ -107,6 +109,7 @@ import { useNavigationContainerRef } from '@react-navigation/core'
 
 function NavigationContent() {
   const { signedIn } = useAuth()
+  const { theme, isDark } = useTheme()
   const navigationRef = useNavigationContainerRef()
   const [currentRoute, setCurrentRoute] = useState<string | undefined>(undefined)
 
@@ -126,7 +129,7 @@ function NavigationContent() {
           setCurrentRoute(navigationRef.getCurrentRoute()?.name)
         }}
         theme={{
-          dark: true,
+          dark: isDark,
           colors: {
             primary: theme.colors.primary,
             background: theme.colors.background,
@@ -146,7 +149,12 @@ function NavigationContent() {
         )}
         
         {/* Render the active workout bar globally, but hide it if we are actually ON the Workout or WorkoutSummary screen */}
-        {signedIn && currentRoute !== 'Workout' && currentRoute !== 'WorkoutSummary' && <ActiveWorkoutBar />}
+        {signedIn && currentRoute !== 'Workout' && currentRoute !== 'WorkoutSummary' && (
+          <ActiveWorkoutBar 
+            hasTabBar={!currentRoute || ['Dashboard', 'Routines', 'History', 'Weight', 'Profile'].includes(currentRoute)} 
+            hasBottomBar={['RoutineDetails', 'EditRoutine', 'CreateRoutine'].includes(currentRoute || '')}
+          />
+        )}
         
         <CustomAlertRenderer />
         <CustomToastRenderer />
