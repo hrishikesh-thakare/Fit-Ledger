@@ -166,7 +166,7 @@ export default function RoutineDetails({ route }: any) {
 
       <View style={styles.bottomBar}>
         <Pressable style={styles.startBtn} onPress={() => navigation.navigate('Workout', { routineId: id })}>
-          <Feather name="play" size={20} color={theme.colors.background} />
+          <Feather name="play" size={20} color={theme.colors.onPrimary} />
           <Text style={styles.startBtnText}>Start Workout</Text>
         </Pressable>
       </View>
@@ -195,9 +195,9 @@ const getStyles = (theme: any) => StyleSheet.create({
   
   sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text, letterSpacing: 1, marginBottom: 16 },
   
-  exerciseCard: { backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, marginBottom: 16, overflow: 'hidden' },
-  exerciseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.borderInput },
-  exerciseName: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginRight: 8 },
+  exerciseCard: { backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 16, overflow: 'hidden' },
+  exerciseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  exerciseName: { ...theme.typography.subheading, color: theme.colors.text, marginRight: 8 },
   machineBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
   machineBadgeText: { color: theme.colors.primary, fontSize: 10, fontWeight: '700' },
   
@@ -209,5 +209,5 @@ const getStyles = (theme: any) => StyleSheet.create({
   
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: theme.colors.surfaceElevated, borderTopWidth: 1, borderTopColor: theme.colors.border },
   startBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 12, gap: 8, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  startBtnText: { color: theme.colors.background, fontSize: 18, fontWeight: '700' }
+  startBtnText: { ...theme.typography.subheading, color: theme.colors.onPrimary }
 })

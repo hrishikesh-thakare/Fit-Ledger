@@ -41,8 +41,7 @@ function MainTabs() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 13,
-          fontWeight: '600',
+          ...theme.typography.label,
           marginTop: 2,
         },
         tabBarIcon: ({ color }: { color: string }) => {

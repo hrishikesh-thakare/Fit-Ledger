@@ -174,7 +174,7 @@ export default function WorkoutSummary({ route }: any) {
         <View style={styles.actionsContainer}>
           <Pressable style={styles.saveBtn} onPress={handleSave} disabled={isSaving}>
             {isSaving ? (
-              <ActivityIndicator color={theme.colors.background} size="small" />
+              <ActivityIndicator color={theme.colors.onPrimary} size="small" />
             ) : (
               <Text style={styles.saveBtnText}>Save Workout</Text>
             )}
@@ -202,8 +202,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...theme.typography.subheading,
     color: theme.colors.text,
   },
   scrollContent: {
@@ -286,8 +285,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 3,
   },
   exerciseMeta: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...theme.typography.label,
     color: theme.colors.textMuted,
   },
   toggleCard: {
@@ -344,7 +342,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     width: '100%',
   },
   saveBtnText: {
-    color: theme.colors.background,
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '700',
   },

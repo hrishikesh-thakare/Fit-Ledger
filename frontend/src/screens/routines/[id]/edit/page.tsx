@@ -553,7 +553,6 @@ export default function EditRoutine({ route }: { route: { params?: { id?: string
               {routine?.exercises?.map((ex: RoutineExercise, idx: number) => (
                 <View key={ex.id || idx} style={styles.reorderItem}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MaterialCommunityIcons name="drag-horizontal" size={24} color={theme.colors.textMuted} style={{ marginRight: 16 }} />
                     <Text style={styles.reorderItemText}>{ex.exercise?.name || ex.name || 'Unknown'}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -728,8 +727,8 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Floating Label Input Style
   inputContainer: { marginTop: 8, marginBottom: 24, position: 'relative' },
   inputLegend: { position: 'absolute', top: -10, left: 12, backgroundColor: theme.colors.background, paddingHorizontal: 4, zIndex: 1 },
-  inputLegendText: { color: theme.colors.textMuted, fontSize: 12, fontWeight: '500' },
-  input: { backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, fontSize: 16, color: theme.colors.text, fontWeight: '500' },
+  inputLegendText: { color: theme.colors.textMuted, ...theme.typography.caption },
+  input: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 16, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, fontSize: 16, color: theme.colors.text, fontWeight: '500' },
 
   exercisesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.textMuted, letterSpacing: 1 },
@@ -745,7 +744,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   
   // Table
   tableHeader: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  th: { color: theme.colors.primary, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  th: { color: theme.colors.primary, ...theme.typography.label, textAlign: 'center' },
   tableRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 14 },
   td: { color: theme.colors.text, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   
@@ -756,12 +755,12 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Footer Button
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.border },
   updateBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
-  updateBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
+  updateBtnText: { color: theme.colors.onPrimary, fontSize: 16, fontWeight: '700' },
 
   // Reorder Modal
   modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   reorderCard: { backgroundColor: theme.colors.surfaceElevated, width: '100%', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.colors.borderLight },
-  reorderTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
+  reorderTitle: { ...theme.typography.cardTitle, color: theme.colors.text, marginBottom: 20 },
   reorderItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 24, padding: 16, marginBottom: 12 },
   reorderItemText: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
   reorderDoneBtn: { alignSelf: 'flex-end', marginTop: 12, padding: 8, paddingRight: 0 },
@@ -785,7 +784,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Select Exercise Filters
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
-  filterChipText: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
+  filterChipText: { color: theme.colors.text, ...theme.typography.label },
   filterChipTextActive: { color: theme.colors.primary },
   
   // Exercise List Item

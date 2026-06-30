@@ -22,7 +22,7 @@ export const darkColors = {
   surfaceDropdown:  '#45403D',   // Menus, popups
 
   // Borders
-  border:           'transparent',
+  border:           'rgba(255,255,255,0.08)',
   borderLight:      'rgba(255,255,255,0.04)',
   borderInput:      'rgba(255,255,255,0.10)',
 
@@ -30,11 +30,12 @@ export const darkColors = {
   text:             '#F4F3EE',   // Warm Cream
   textSecondary:    '#B1ADA1',   // Muted Sand
   textMuted:        '#827E76',
-  textDisabled:     '#5D5953',
+  textDisabled:     '#7A756D',
 
   // Brand Colors
-  primary:          '#C15F3C',
-  primaryPressed:   '#AA5335',
+  primary:          '#A34A2C',
+  onPrimary:        '#FFFFFF',
+  primaryPressed:   '#8C3F25',
   primaryLight:     'rgba(193,95,60,0.15)',
 
   // Status Colors
@@ -63,17 +64,18 @@ export const lightColors = {
   surfaceVariant:   '#EAE9E4',
   surfaceDropdown:  '#FFFFFF',
 
-  border:           'transparent',
+  border:           'rgba(0,0,0,0.08)',
   borderLight:      'rgba(0,0,0,0.06)',
   borderInput:      'rgba(0,0,0,0.12)',
 
   text:             '#2C2927',   // Dark Charcoal
   textSecondary:    '#706D67',   // Medium Charcoal
-  textMuted:        '#9A9791',
-  textDisabled:     '#BDBBB6',
+  textMuted:        '#7A766F',
+  textDisabled:     '#94918B',
 
-  primary:          '#C15F3C',
-  primaryPressed:   '#AA5335',
+  primary:          '#A34A2C',
+  onPrimary:        '#FFFFFF',
+  primaryPressed:   '#8C3F25',
   primaryLight:     'rgba(193,95,60,0.15)',
 
   success:          '#2E8B57',

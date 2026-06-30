@@ -143,7 +143,7 @@ export default function Dashboard() {
       <View style={{ marginTop: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Feather name={icon as any} size={14} color={color} />
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, fontSize: 13, fontWeight: '600' }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.textSecondary, ...theme.typography.label }}>
             {format(prev)}
           </Text>
         </View>
@@ -165,7 +165,7 @@ export default function Dashboard() {
             <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: theme.colors.surfaceVariant, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               <Feather name="activity" size={40} color={theme.colors.primary} />
             </View>
-            <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '700', marginBottom: 12, textAlign: 'center' }}>Welcome to Fit Ledger</Text>
+            <Text style={{ color: theme.colors.text, ...theme.typography.cardTitle, marginBottom: 12, textAlign: 'center' }}>Welcome to Fit Ledger</Text>
             <Text style={{ color: theme.colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
               Your dashboard will automatically populate with your statistics, calendar, and muscle distribution once you log your first workout.
             </Text>
@@ -177,23 +177,23 @@ export default function Dashboard() {
           <Text style={styles.sectionLabel}>Summary</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Workouts</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curWorkouts}</Text>
+              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Workouts</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curWorkouts}</Text>
               {renderTrend(curWorkouts, prevWorkouts)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Duration</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curDurMins}min</Text>
+              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Duration</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curDurMins}min</Text>
               {renderTrend(curDurMins, prevDurMins, (v) => `${v}min`)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Volume</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{Math.round(fromKg(curVolume, user?.preferredUnit || 'kg')).toLocaleString('en-US')} {unit.toLowerCase()}</Text>
+              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Volume</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{Math.round(fromKg(curVolume, user?.preferredUnit || 'kg')).toLocaleString('en-US')} {unit.toLowerCase()}</Text>
               {renderTrend(curVolume, prevVolume, (v) => `${Math.round(fromKg(v, user?.preferredUnit || 'kg')).toLocaleString('en-US')} ${unit.toLowerCase()}`)}
             </View>
             <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Sets</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.colors.primary, fontSize: 20, fontWeight: '700' }}>{curSets}</Text>
+              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Sets</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curSets}</Text>
               {renderTrend(curSets, prevSets)}
             </View>
           </View>
@@ -207,7 +207,7 @@ export default function Dashboard() {
               onPress={() => navigation.navigate('DashboardCalendar')}
               style={{ padding: 4, flexDirection: 'row', alignItems: 'center', gap: 2 }}
             >
-              <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>View Full</Text>
+              <Text style={{ ...theme.typography.label, color: theme.colors.primary }}>View Full</Text>
               <Feather name="chevron-right" size={16} color={theme.colors.primary} />
             </Pressable>
           </View>
@@ -254,7 +254,7 @@ export default function Dashboard() {
               style={styles.radarDropdown}
               onPress={() => setShowTimeFilter(true)}
             >
-              <Text style={{ color: theme.colors.primary, fontSize: 14, fontWeight: '600' }}>
+              <Text style={{ color: theme.colors.primary, ...theme.typography.label }}>
                 {timeFilter === '30_days' ? 'Last 30 days' : timeFilter === '3_months' ? 'Last 3 months' : timeFilter === 'year' ? 'Last 1 year' : 'All time'}
               </Text>
               <Feather name="chevron-down" size={16} color={theme.colors.primary} />
@@ -406,8 +406,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   dayOfWeekText: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '600',
+    ...theme.typography.label,
     color: theme.colors.primary
   },
   miniDaysGrid: {
@@ -438,7 +437,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   },
   miniDayTextActive: {
     fontWeight: '700',
-    color: theme.colors.background,
+    color: theme.colors.onPrimary,
   },
 
   // Radar Chart
@@ -447,7 +446,9 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderRadius: 16, 
     padding: 16, 
     paddingBottom: 8,
-    alignItems: 'center' 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border
   },
   radarDropdown: { 
     backgroundColor: theme.colors.surfaceVariant, 
@@ -480,8 +481,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderColor: theme.colors.borderLight,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...theme.typography.subheading,
     color: theme.colors.text,
     marginBottom: 16,
     textAlign: 'center',

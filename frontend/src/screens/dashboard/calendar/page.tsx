@@ -15,19 +15,27 @@ interface MonthData {
   month: number // 0-11
 }
 
-// Generate only the months for the current year (Jan to Dec)
 const generateMonths = (): MonthData[] => {
   const data: MonthData[] = []
-  const y = new Date().getFullYear()
+  const now = new Date()
   
-  for (let m = 0; m <= 11; m++) {
+  let y = now.getFullYear()
+  let m = now.getMonth()
+  
+  // Generate backwards until we hit Jan 2026
+  while (y > 2026 || (y === 2026 && m >= 0)) {
     data.push({ id: `${y}-${m}`, year: y, month: m })
+    m--
+    if (m < 0) {
+      m = 11
+      y--
+    }
   }
   return data
 }
 
 export default function DashboardCalendar() {
-  const { theme } = useTheme()
+  const { theme, isDark } = useTheme()
   const styles = getStyles(theme)
   const navigation = useNavigation<any>()
   const [loading, setLoading] = useState(true)
@@ -43,7 +51,7 @@ export default function DashboardCalendar() {
       const history = Array.isArray(docs) ? docs : (docs?.docs && Array.isArray(docs.docs) ? docs.docs : [])
       const datesMap: Record<string, string | number> = {}
       
-      history.forEach(h => {
+      history.forEach((h: any) => {
         const dStr = h.date || h.startedAt || h.createdAt
         if (dStr) {
           const d = new Date(dStr)
@@ -133,19 +141,10 @@ export default function DashboardCalendar() {
           data={monthsData}
           keyExtractor={item => item.id}
           renderItem={renderMonth}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingTop: 40, paddingBottom: 0 }}
+          inverted={true}
+          showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.borderLight, marginHorizontal: 16, marginVertical: 4 }} />}
-          onLayout={() => {
-            setTimeout(() => {
-              flatListRef.current?.scrollToIndex({ index: new Date().getMonth(), animated: false })
-            }, 50)
-          }}
-          onScrollToIndexFailed={(info) => {
-            const wait = new Promise(resolve => setTimeout(resolve, 500));
-            wait.then(() => {
-              flatListRef.current?.scrollToIndex({ index: info.index, animated: false });
-            });
-          }}
         />
       )}
     </SafeAreaView>
@@ -156,7 +155,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { padding: 8, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  headerTitle: { ...theme.typography.subheading, color: theme.colors.text },
   
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   
@@ -215,6 +214,6 @@ const getStyles = (theme: any) => StyleSheet.create({
   },
   dayTextActive: {
     fontWeight: '700',
-    color: theme.colors.background,
+    color: theme.colors.onPrimary,
   }
 })

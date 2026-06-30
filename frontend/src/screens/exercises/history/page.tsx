@@ -228,8 +228,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
+    ...theme.typography.subheading,
     color: theme.colors.text,
   },
   scrollContent: {
@@ -353,8 +352,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     marginBottom: 16,
   },
   historyDate: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...theme.typography.label,
     color: theme.colors.textMuted,
     marginLeft: 6,
     flex: 1,

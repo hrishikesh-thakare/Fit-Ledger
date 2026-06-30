@@ -130,7 +130,7 @@ export function CreateExerciseModal({ visible, onClose, onCreated }: CreateExerc
             </Pressable>
             <Pressable style={[styles.createBtn, isSubmitting && { opacity: 0.7 }]} onPress={handleCreate} disabled={isSubmitting}>
               {isSubmitting ? (
-                <ActivityIndicator size="small" color={theme.colors.background} />
+                <ActivityIndicator size="small" color={theme.colors.onPrimary} />
               ) : (
                 <Text style={styles.createBtnText}>Create</Text>
               )}
@@ -230,8 +230,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderColor: theme.colors.borderLight,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...theme.typography.cardTitle,
     color: theme.colors.text,
     marginBottom: 24,
   },

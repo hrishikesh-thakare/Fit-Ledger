@@ -100,7 +100,7 @@ export default function Login() {
 
       <Pressable style={styles.button} onPress={handleSubmit} disabled={loading}>
         {loading ? (
-          <ActivityIndicator color={theme.colors.background} />
+          <ActivityIndicator color={theme.colors.onPrimary} />
         ) : (
           <Text style={styles.buttonText}>Sign In</Text>
         )}
@@ -120,12 +120,12 @@ const getStyles = (theme: any) => StyleSheet.create({
   headerContainer: { marginBottom: 40, alignItems: 'center' },
   title: { ...theme.typography.display, marginBottom: 8, letterSpacing: 0.5 },
   hint: { color: theme.colors.textMuted, fontSize: 16, fontWeight: '400' },
-  inputLabel: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  inputLabel: { color: theme.colors.textMuted, ...theme.typography.label, marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, height: 52 },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, color: theme.colors.text, fontSize: 16, height: '100%' },
   button: { backgroundColor: theme.colors.primary, padding: 14, borderRadius: 12, marginTop: 12, height: 52, justifyContent: 'center', alignItems: 'center' },
-  buttonText: { color: theme.colors.background, fontWeight: '700', fontSize: 16 },
+  buttonText: { color: theme.colors.onPrimary, fontWeight: '700', fontSize: 16 },
   linkButton: { marginTop: 24, alignItems: 'center' },
   linkText: { color: theme.colors.textMuted, fontSize: 14 },
   linkTextBold: { color: theme.colors.primary, fontWeight: '700' },

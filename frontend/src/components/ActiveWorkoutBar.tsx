@@ -44,7 +44,7 @@ export default function ActiveWorkoutBar({ hasTabBar = true, hasBottomBar = fals
   const bottomPosition = hasTabBar 
     ? theme.layout.tabBarHeight + (insets.bottom ? insets.bottom + 4 : 10) + 16
     : hasBottomBar 
-      ? 96 
+      ? 116 
       : Math.max(insets.bottom, 16) + 12
 
   return (

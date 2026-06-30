@@ -525,7 +525,7 @@ export default function Workout({ route }: any) {
                           onPress={() => handleToggleComplete(ex.id, set.id)}
                         >
                           <View style={[styles.checkCircle, isChecked && styles.checkCircleActive]}>
-                            {isChecked && <Feather name="check" size={16} color={theme.colors.background} />}
+                            {isChecked && <Feather name="check" size={16} color={theme.colors.onPrimary} />}
                           </View>
                         </Pressable>
                       </View>
@@ -568,7 +568,7 @@ export default function Workout({ route }: any) {
                 setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime - 15000, duration: Math.max(15, prev.duration - 15) } : null)
                 setRemainingRest(r => Math.max(0, r - 15))
               }}>
-                <Text style={[styles.restBtnText, { color: theme.colors.background }]}>-15</Text>
+                <Text style={[styles.restBtnText, { color: theme.colors.onPrimary }]}>-15</Text>
               </Pressable>
               <View style={{ alignItems: 'center' }}>
                 <Text style={styles.restBannerLabel}>RESTING</Text>
@@ -582,7 +582,7 @@ export default function Workout({ route }: any) {
                    setActiveRestTimer(prev => prev ? { ...prev, endTime: prev.endTime + 15000, duration: prev.duration + 15 } : null)
                    setRemainingRest(r => r + 15)
                 }}>
-                  <Text style={[styles.restBtnText, { color: theme.colors.background }]}>+15</Text>
+                  <Text style={[styles.restBtnText, { color: theme.colors.onPrimary }]}>+15</Text>
                 </Pressable>
               </View>
             </View>
@@ -777,7 +777,7 @@ export default function Workout({ route }: any) {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color={theme.colors.background} size="small" />
+                  <ActivityIndicator color={theme.colors.onPrimary} size="small" />
                 ) : (
                   <Text style={styles.confirmModalSaveText}>Continue</Text>
                 )}
@@ -808,7 +808,7 @@ const getStyles = (theme: any) => StyleSheet.create({
 
   card: { backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.borderLight, overflow: 'hidden', marginBottom: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.borderLight },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, flex: 1 },
+  cardTitle: { ...theme.typography.subheading, color: theme.colors.text, flex: 1 },
   restTimeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   restTimeText: { color: theme.colors.primary, fontSize: 14, fontWeight: '700' },
   
@@ -817,8 +817,8 @@ const getStyles = (theme: any) => StyleSheet.create({
   
   tableRow: { flexDirection: 'row', paddingHorizontal: 0, paddingVertical: 4, alignItems: 'center' },
   tdSet: { fontSize: 15, fontWeight: '700' },
-  tdPrev: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', fontFamily: 'monospace' },
-  tdInput: { color: theme.colors.text, fontSize: 18, fontWeight: '700', textAlign: 'center', minWidth: 60 },
+  tdPrev: { color: theme.colors.textMuted, ...theme.typography.label, fontFamily: 'monospace' },
+  tdInput: { color: theme.colors.text, ...theme.typography.subheading, textAlign: 'center', minWidth: 60 },
   
   checkCircle: { height: 26, width: 26, borderRadius: 13, backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.borderInput, alignItems: 'center', justifyContent: 'center' },
   checkCircleActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
@@ -841,7 +841,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   footer: { paddingHorizontal: 16, paddingTop: 16, backgroundColor: theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.borderLight },
   footerWithRestBanner: { borderTopWidth: 0, paddingTop: 15 },
   finishBtn: { backgroundColor: theme.colors.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
-  finishBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
+  finishBtnText: { color: theme.colors.onPrimary, fontSize: 16, fontWeight: '700' },
 
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
   bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
@@ -856,7 +856,7 @@ const getStyles = (theme: any) => StyleSheet.create({
 
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.borderLight, marginRight: 8 },
   filterChipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
-  filterChipText: { color: theme.colors.text, fontSize: 14, fontWeight: '600' },
+  filterChipText: { color: theme.colors.text, ...theme.typography.label },
   filterChipTextActive: { color: theme.colors.primary },
   
   exerciseListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 24 },
@@ -868,13 +868,13 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Confirmation Dialogs
   confirmModalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   confirmModalCard: { width: '100%', backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 20, padding: 24 },
-  confirmModalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 10 },
+  confirmModalTitle: { ...theme.typography.cardTitle, color: theme.colors.text, marginBottom: 10 },
   confirmModalText: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 24, lineHeight: 22 },
   confirmModalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   confirmModalCancelBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 },
   confirmModalCancelText: { color: theme.colors.textMuted, fontWeight: '700', fontSize: 15 },
   confirmModalSaveBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 10, backgroundColor: theme.colors.primary, minWidth: 80, alignItems: 'center' },
-  confirmModalSaveText: { color: theme.colors.background, fontWeight: '700', fontSize: 15 },
+  confirmModalSaveText: { color: theme.colors.onPrimary, fontWeight: '700', fontSize: 15 },
   confirmModalDiscardBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, backgroundColor: theme.colors.error, minWidth: 80, alignItems: 'center' },
   confirmModalDiscardText: { color: theme.colors.text, fontWeight: '700', fontSize: 15 },
 })

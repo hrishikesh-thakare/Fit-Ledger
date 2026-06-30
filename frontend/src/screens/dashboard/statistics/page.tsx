@@ -33,9 +33,9 @@ const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { padding: 8, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  headerTitle: { ...theme.typography.subheading, color: theme.colors.text },
   
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  title: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
+  title: { ...theme.typography.cardTitle, color: theme.colors.text, marginBottom: 8 },
   subtitle: { fontSize: 15, color: theme.colors.textMuted, textAlign: 'center' }
 })

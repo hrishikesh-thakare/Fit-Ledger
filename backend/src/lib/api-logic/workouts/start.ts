@@ -190,15 +190,11 @@ export async function saveWorkoutToPayload(
       }
 
       if (routineExerciseIdsToDelete.length > 0) {
-        await Promise.all(
-          routineExerciseIdsToDelete.map((id) =>
-            payload.delete({
-              collection: 'routine-sets',
-              where: { routineExercise: { equals: id } },
-              overrideAccess: true,
-            })
-          )
-        )
+        await payload.delete({
+          collection: 'routine-sets',
+          where: { routineExercise: { in: routineExerciseIdsToDelete } },
+          overrideAccess: true,
+        })
       }
 
       type NewRoutineSet = {

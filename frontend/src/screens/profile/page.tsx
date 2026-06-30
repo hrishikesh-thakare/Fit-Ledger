@@ -315,7 +315,7 @@ export default function Profile() {
               </Pressable>
               <Pressable style={[styles.modalBtn, styles.modalBtnSave]} onPress={handleSaveProfile} disabled={saving}>
                 {saving ? (
-                  <ActivityIndicator color={theme.colors.background} size="small" />
+                  <ActivityIndicator color={theme.colors.onPrimary} size="small" />
                 ) : (
                   <Text style={styles.modalBtnTextSave}>Save</Text>
                 )}
@@ -346,7 +346,7 @@ export default function Profile() {
               </Pressable>
               <Pressable style={[styles.modalBtn, styles.modalBtnSave]} onPress={handleSaveTargetWeight} disabled={saving}>
                 {saving ? (
-                  <ActivityIndicator color={theme.colors.background} size="small" />
+                  <ActivityIndicator color={theme.colors.onPrimary} size="small" />
                 ) : (
                   <Text style={styles.modalBtnTextSave}>Save</Text>
                 )}
@@ -362,7 +362,7 @@ export default function Profile() {
           <View style={styles.modalCard}>
             <View style={styles.aboutLogoContainer}>
               <View style={styles.aboutLogo}>
-                <MaterialCommunityIcons name="dumbbell" size={32} color={theme.colors.background} />
+                <MaterialCommunityIcons name="dumbbell" size={32} color={theme.colors.onPrimary} />
               </View>
             </View>
             <Text style={styles.aboutTitle}>FitLedger</Text>
@@ -386,7 +386,7 @@ export default function Profile() {
           <View style={styles.modalCard}>
             <View style={styles.aboutLogoContainer}>
               <View style={styles.aboutLogo}>
-                <MaterialCommunityIcons name="cloud-download-outline" size={32} color={theme.colors.background} />
+                <MaterialCommunityIcons name="cloud-download-outline" size={32} color={theme.colors.onPrimary} />
               </View>
             </View>
             <Text style={styles.aboutTitle}>Export Data</Text>
@@ -440,15 +440,15 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Modals
   modalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { width: '100%', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, padding: 24 },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
-  modalLabel: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  modalTitle: { ...theme.typography.cardTitle, color: theme.colors.text, marginBottom: 20 },
+  modalLabel: { color: theme.colors.textMuted, ...theme.typography.label, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   modalInput: { backgroundColor: theme.colors.surfaceVariant, color: theme.colors.text, borderWidth: 1, borderColor: theme.colors.borderInput, borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 20 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end' },
   modalBtn: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginLeft: 12, justifyContent: 'center', alignItems: 'center', minWidth: 90 },
   modalBtnCancel: { backgroundColor: theme.colors.surfaceVariant, borderWidth: 1, borderColor: theme.colors.borderInput },
   modalBtnSave: { backgroundColor: theme.colors.primary },
   modalBtnTextCancel: { color: theme.colors.textMuted, fontWeight: '600', fontSize: 15 },
-  modalBtnTextSave: { color: theme.colors.background, fontWeight: '700', fontSize: 15 },
+  modalBtnTextSave: { color: theme.colors.onPrimary, fontWeight: '700', fontSize: 15 },
 
   // About Modal custom styling
   aboutLogoContainer: { alignItems: 'center', marginBottom: 16 },
@@ -460,12 +460,12 @@ const getStyles = (theme: any) => StyleSheet.create({
   aboutDivider: { height: 1, backgroundColor: theme.colors.borderLight, marginVertical: 20 },
   copyright: { fontSize: 12, color: theme.colors.textDisabled, textAlign: 'center', marginBottom: 20 },
   modalBtnClose: { backgroundColor: theme.colors.primary, marginLeft: 0, marginTop: 10, width: '100%', paddingVertical: 14 },
-  modalBtnTextClose: { color: theme.colors.background, fontWeight: '700', fontSize: 16 },
+  modalBtnTextClose: { color: theme.colors.onPrimary, fontWeight: '700', fontSize: 16 },
 
   // Segmented control specific styles
   segmentedControl: { flexDirection: 'row', backgroundColor: theme.colors.surfaceVariant, borderRadius: 8, padding: 2, borderWidth: 1, borderColor: theme.colors.borderInput, width: 106, height: 34, position: 'relative' },
   segmentBackground: { position: 'absolute', top: 2, left: 2, width: 50, height: 28, borderRadius: 6, backgroundColor: theme.colors.primary },
   segmentButton: { width: 50, height: 28, justifyContent: 'center', alignItems: 'center', zIndex: 1 },
-  segmentText: { color: theme.colors.textMuted, fontSize: 13, fontWeight: '600' },
-  segmentTextActive: { color: theme.colors.background, fontWeight: '700' }
+  segmentText: { color: theme.colors.textMuted, ...theme.typography.label },
+  segmentTextActive: { color: theme.colors.onPrimary, fontWeight: '700' }
 })

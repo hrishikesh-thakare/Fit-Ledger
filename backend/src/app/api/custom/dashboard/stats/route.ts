@@ -36,13 +36,6 @@ export async function GET(req: NextRequest) {
 
     const db = payload.db.drizzle
 
-    import('fs').then(fs => {
-      fs.writeFileSync('d:/Gym-App/Fit-Ledger/schema.json', JSON.stringify({
-        workout_sets: Object.keys(payload.db.tables['workout_sets']),
-        workout_exercises: Object.keys(payload.db.tables['workout_exercises'])
-      }, null, 2))
-    }).catch(console.error)
-
     // Query 1: Total sets for current and previous month
     // @ts-expect-error - mismatch between workspace and payload drizzle-orm versions
     const setsResult = await db.execute(sql`

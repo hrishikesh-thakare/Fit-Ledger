@@ -94,7 +94,7 @@ export const CustomAlert = {
 const getStyles = (theme: any) => StyleSheet.create({
   modalBg: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { width: '100%', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 16, padding: 24, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
+  modalTitle: { ...theme.typography.cardTitle, color: theme.colors.text, marginBottom: 8 },
   modalText: { fontSize: 16, color: theme.colors.textSecondary, marginBottom: 24, lineHeight: 22 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 12 },
   button: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, minWidth: 80, alignItems: 'center', backgroundColor: theme.colors.primaryLight },
@@ -102,5 +102,5 @@ const getStyles = (theme: any) => StyleSheet.create({
   buttonDestructive: { backgroundColor: theme.colors.error },
   buttonText: { color: theme.colors.primary, fontWeight: '700', fontSize: 15 },
   buttonTextCancel: { color: theme.colors.textMuted },
-  buttonTextDestructive: { color: theme.colors.text },
+  buttonTextDestructive: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });

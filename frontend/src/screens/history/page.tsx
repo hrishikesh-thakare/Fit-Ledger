@@ -118,7 +118,9 @@ export default function History() {
       startOfWeek.setDate(now.getDate() - now.getDay())
       startOfWeek.setHours(0, 0, 0, 0)
       start = startOfWeek.toISOString()
-      end = now.toISOString()
+      const endOfWeek = new Date(now)
+      endOfWeek.setHours(23, 59, 59, 999)
+      end = endOfWeek.toISOString()
     }
 
     api
@@ -179,7 +181,9 @@ export default function History() {
                 setCustomFilterActive(false)
               }}
             >
-              <Text style={[styles.chipText, selectedPeriod === p && styles.chipTextActive]}>{p}</Text>
+              <Text numberOfLines={1} style={[styles.chipText, selectedPeriod === p && styles.chipTextActive]}>
+                {p.replace(/ /g, '\u00A0')}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -244,7 +248,7 @@ export default function History() {
       {/* Floating Action Button */}
       <Animated.View style={[styles.fab, { opacity: fabAnim, transform: [{ scale: fabAnim }], pointerEvents: fabVisible ? 'auto' : 'none' }]}>
         <Pressable style={styles.fabInner} onPress={() => setIsFilterOpen(true)}>
-          <Feather name="calendar" size={24} color={theme.colors.background} />
+          <Feather name="calendar" size={24} color={theme.colors.onPrimary} />
         </Pressable>
       </Animated.View>
 
@@ -395,9 +399,9 @@ const getStyles = (theme: any) => StyleSheet.create({
 
   chipScrollWrapper: { paddingBottom: 16 },
   chipRow: { paddingHorizontal: 16, gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.border },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.colors.surfaceElevated, borderWidth: 1, borderColor: theme.colors.border, minWidth: 80, alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
-  chipText: { color: theme.colors.textMuted, fontSize: 14, fontWeight: '600' },
+  chipText: { color: theme.colors.textMuted, ...theme.typography.label },
   chipTextActive: { color: theme.colors.primary },
 
   scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 0 },
@@ -422,16 +426,16 @@ const getStyles = (theme: any) => StyleSheet.create({
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.borderLight, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderInput, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
+  modalTitle: { ...theme.typography.cardTitle, color: theme.colors.text },
   
   filterCarouselsWrapper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 150, marginBottom: 24, position: 'relative', gap: 16 },
   carouselContainer: { height: 150, position: 'relative', overflow: 'hidden' },
   carouselItem: { height: 50, justifyContent: 'center', alignItems: 'center' },
-  carouselTextAnimated: { fontSize: 20, fontWeight: '700' },
+  carouselTextAnimated: { ...theme.typography.cardTitle },
   carouselSelector: { position: 'absolute', left: 16, right: 16, top: 50, height: 50, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.borderInput },
   
   applyBtn: { paddingVertical: 16, backgroundColor: theme.colors.primary, borderRadius: 24, alignItems: 'center' },
-  applyBtnText: { color: theme.colors.background, fontSize: 16, fontWeight: '700' },
+  applyBtnText: { color: theme.colors.onPrimary, fontSize: 16, fontWeight: '700' },
   
   fab: { position: 'absolute', bottom: 32, right: 24, zIndex: 10, shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
   fabInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' },

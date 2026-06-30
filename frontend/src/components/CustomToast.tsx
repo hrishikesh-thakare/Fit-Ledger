@@ -76,10 +76,10 @@ export const CustomToastRenderer = () => {
   return (
     <Animated.View style={[styles.container, { transform: [{ translateY }], opacity }]} pointerEvents="box-none">
       <View style={styles.toastBox}>
-        <Feather name="info" size={20} color={theme.colors.background} style={styles.icon} />
+        <Feather name="info" size={20} color={theme.colors.onPrimary} style={styles.icon} />
         <Text style={styles.message}>{config.message}</Text>
         <Pressable onPress={hideToast} hitSlop={10} style={styles.closeBtn}>
-          <Feather name="x" size={20} color={theme.colors.background} />
+          <Feather name="x" size={20} color={theme.colors.onPrimary} />
         </Pressable>
       </View>
     </Animated.View>
@@ -126,7 +126,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   },
   message: {
     flex: 1,
-    color: theme.colors.background,
+    color: theme.colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

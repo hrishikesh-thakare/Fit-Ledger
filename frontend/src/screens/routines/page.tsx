@@ -163,7 +163,7 @@ export default function Routines() {
                 </Text>
                 <Pressable style={styles.startButton} onPress={() => navigation.navigate('RoutineDetails', { id: r.id || r._id })}>
                   <Text style={styles.startButtonText}>View</Text>
-                  <Feather name="arrow-right" size={18} color={theme.colors.background} />
+                  <Feather name="arrow-right" size={18} color={theme.colors.onPrimary} />
                 </Pressable>
               </View>
             </View>
@@ -223,10 +223,10 @@ const getStyles = (theme: any) => StyleSheet.create({
   divider: { height: 1, backgroundColor: theme.colors.borderInput, marginTop: 8, marginBottom: 12 },
   previewText: { color: theme.colors.textMuted, fontSize: 16, lineHeight: 24, fontWeight: '400', marginBottom: 12 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  footerText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+  footerText: { ...theme.typography.label, color: theme.colors.textSecondary },
   estDurationText: { color: theme.colors.textMuted, fontStyle: 'italic', fontWeight: '400' },
   startButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
-  startButtonText: { color: theme.colors.background, fontWeight: '700', fontSize: 14, lineHeight: 20, marginRight: 6 },
+  startButtonText: { color: theme.colors.onPrimary, fontWeight: '700', fontSize: 14, lineHeight: 20, marginRight: 6 },
   
   emptyState: { alignItems: 'center', marginTop: 60 },
   emptyEmoji: { fontSize: 48, marginBottom: 16 },
@@ -236,7 +236,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   error: { color: theme.colors.error, marginBottom: 16 },
   fabContainer: { position: 'absolute', bottom: 24, right: 24 },
   fab: { backgroundColor: theme.colors.primary, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: theme.colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6 },
-  fabText: { color: theme.colors.background, fontSize: 32, fontWeight: '400', marginTop: -2 },
+  fabText: { color: theme.colors.onPrimary, fontSize: 32, fontWeight: '400', marginTop: -2 },
   modalBgTransparent: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
   bottomSheet: { backgroundColor: theme.colors.surfaceElevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 48, borderWidth: 1, borderColor: theme.colors.border, borderBottomWidth: 0 },
   bottomSheetDragHandle: { width: 40, height: 4, backgroundColor: theme.colors.borderLight, borderRadius: 2, alignSelf: 'center', marginBottom: 10 },
