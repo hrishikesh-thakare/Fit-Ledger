@@ -32,13 +32,18 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed')
+      let data;
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        throw new Error('Received an invalid response from the server. Please ensure the backend is running and the API URL is correct.')
       }
 
-      if (data.token) {
+      if (!response.ok) {
+        throw new Error(data?.message || 'Login failed')
+      }
+
+      if (data?.token) {
         await login(data.token)
       } else {
         throw new Error('No token received from server')

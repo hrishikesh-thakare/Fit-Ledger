@@ -48,11 +48,16 @@ export default function SignUp() {
         }),
       })
 
-      const signUpData = await signUpResponse.json()
+      let signUpData;
+      try {
+        signUpData = await signUpResponse.json()
+      } catch (e) {
+        throw new Error('Received an invalid response from the server during sign up. Please check your API URL.')
+      }
 
       if (!signUpResponse.ok) {
         throw new Error(
-          signUpData.errors?.[0]?.message || 'Sign up failed. Please check your details.',
+          signUpData?.errors?.[0]?.message || 'Sign up failed. Please check your details.',
         )
       }
 
@@ -63,13 +68,18 @@ export default function SignUp() {
         body: JSON.stringify({ email, password }),
       })
 
-      const loginData = await loginResponse.json()
-
-      if (!loginResponse.ok) {
-        throw new Error(loginData.message || 'Auto-login failed')
+      let loginData;
+      try {
+        loginData = await loginResponse.json()
+      } catch (e) {
+        throw new Error('Received an invalid response from the server during auto-login. Please check your API URL.')
       }
 
-      if (loginData.token) {
+      if (!loginResponse.ok) {
+        throw new Error(loginData?.message || 'Auto-login failed')
+      }
+
+      if (loginData?.token) {
         await login(loginData.token)
       } else {
         throw new Error('No token received from server')
