@@ -10,12 +10,19 @@
       "userInterfaceStyle": "dark"
     },
     "android": {
-      "userInterfaceStyle": "dark"
+      "userInterfaceStyle": "dark",
+      "package": "com.hst0809.fitledger"
     },
     "plugins": [
       "expo-asset",
       "expo-font",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3d5eac45-a6f9-476a-a201-61962197eeb7"
+      }
+    },
+    "owner": "hst0809"
   }
 }
