@@ -2,6 +2,8 @@
 
 FitLedger is a Next.js + Payload app for building routines, tracking workouts, and logging bodyweight with offline-first support.
 
+The migration path now introduces an Expo React Native app under `apps/mobile` and shared domain logic under `packages/shared`.
+
 ## Tech Stack
 
 - Next.js 15
@@ -12,25 +14,39 @@ FitLedger is a Next.js + Payload app for building routines, tracking workouts, a
 
 ## Package Manager
 
-This repository uses **pnpm**.
+This repository uses `npm` (single-package-manager migration from pnpm).
 
 Required versions:
 
 - Node: `^18.20.2 || >=20.9.0`
-- pnpm: `^9 || ^10`
+
+## Environment Variables
+
+For the frontend app to correctly communicate with the backend, you must configure the environment variables.
+Copy the `.env.example` file in the `frontend` directory to a new `.env` file:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Ensure `EXPO_PUBLIC_API_URL` is set to your backend's API base URL. If developing locally with Expo Go on a physical device, replace `YOUR_SERVER_IP` with your computer's actual local IP address (not `localhost`).
+
+```env
+EXPO_PUBLIC_API_URL=http://YOUR_SERVER_IP:3000/api
+```
 
 ## Local Development
 
 1. Install dependencies:
 
 ```bash
-pnpm install
+npm install
 ```
 
 2. Start development server:
 
 ```bash
-pnpm dev
+npm run dev
 ```
 
 3. Open:
@@ -41,13 +57,13 @@ http://localhost:3000
 
 ## Scripts
 
-- `pnpm dev` — run local dev server
-- `pnpm build` — production build
-- `pnpm start` — run production server
-- `pnpm lint` — lint
-- `pnpm test:int` — integration tests (Vitest)
-- `pnpm test:e2e` — end-to-end tests (Playwright)
-- `pnpm test` — runs integration + e2e tests
+- `npm run dev` — run local dev server
+- `npm run build` — production build
+- `npm run start` — run production server
+- `npm run lint` — lint
+- `npm run test:int` — integration tests (Vitest)
+- `npm run test:e2e` — end-to-end tests (Playwright)
+- `npm test` — runs integration + e2e tests
 
 ## Offline Support (Current Scope)
 

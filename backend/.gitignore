@@ -1,0 +1,7 @@
+node_modules/
+.next/
+*.env
+!*.env.example
+error.log
+keys-output.json
+*.log
