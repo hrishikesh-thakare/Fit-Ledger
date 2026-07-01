@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { Feather } from '@expo/vector-icons'
 import { useTheme } from '../../../contexts/ThemeContext'
 import api from '../../../api'
@@ -46,30 +46,33 @@ export default function DashboardCalendar() {
   const [monthsData] = useState<MonthData[]>(generateMonths())
   const flatListRef = React.useRef<FlatList>(null)
 
-  useEffect(() => {
-    api.fetchHistory().then((docs: any) => {
-      const history = Array.isArray(docs) ? docs : (docs?.docs && Array.isArray(docs.docs) ? docs.docs : [])
-      const datesMap: Record<string, string | number> = {}
-      
-      history.forEach((h: any) => {
-        const dStr = h.date || h.startedAt || h.createdAt
-        if (dStr) {
-          const d = new Date(dStr)
-          // local YYYY-MM-DD format
-          const y = d.getFullYear()
-          const m = String(d.getMonth() + 1).padStart(2, '0')
-          const day = String(d.getDate()).padStart(2, '0')
-          const key = `${y}-${m}-${day}`
-          datesMap[key] = h.id || h._id
-        }
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true)
+      api.fetchHistory().then((docs: any) => {
+        const history = Array.isArray(docs) ? docs : (docs?.docs && Array.isArray(docs.docs) ? docs.docs : [])
+        const datesMap: Record<string, string | number> = {}
+        
+        history.forEach((h: any) => {
+          const dStr = h.date || h.startedAt || h.createdAt
+          if (dStr) {
+            const d = new Date(dStr)
+            // local YYYY-MM-DD format
+            const y = d.getFullYear()
+            const m = String(d.getMonth() + 1).padStart(2, '0')
+            const day = String(d.getDate()).padStart(2, '0')
+            const key = `${y}-${m}-${day}`
+            datesMap[key] = h.id || h._id
+          }
+        })
+        
+        setWorkoutDates(datesMap)
+        setLoading(false)
+      }).catch(() => {
+        setLoading(false)
       })
-      
-      setWorkoutDates(datesMap)
-      setLoading(false)
-    }).catch(() => {
-      setLoading(false)
-    })
-  }, [])
+    }, [])
+  )
 
   const renderMonth = ({ item }: { item: MonthData }) => {
     const firstDay = new Date(item.year, item.month, 1).getDay() // 0 (Sun) to 6 (Sat)

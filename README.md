@@ -1,82 +1,273 @@
-# FitLedger
+<p align="center">
+  <h1 align="center">FitLedger</h1>
+  <p align="center">
+    A workout tracking app built with React Native (Expo) and Payload CMS.
+    <br />
+    Build routines, log workouts, track body weight — all from your phone.
+  </p>
+</p>
 
-FitLedger is a Next.js + Payload app for building routines, tracking workouts, and logging bodyweight with offline-first support.
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#project-structure">Project Structure</a> •
+  <a href="#building-the-apk">Building the APK</a> •
+  <a href="#license">License</a>
+</p>
 
-The migration path now introduces an Expo React Native app under `apps/mobile` and shared domain logic under `packages/shared`.
+---
+
+## Features
+
+- **Routines** — Create, edit, and manage workout routines with exercises and sets.
+- **Workout Tracking** — Start a workout from any routine, log sets with weight and reps in real time.
+- **Workout History** — Browse past workouts with full details and summaries.
+- **Body Weight Logging** — Track daily body weight with trend visualization.
+- **Exercise Library** — Browse exercises by muscle group; create custom exercises.
+- **Dashboard** — At-a-glance statistics, calendar view, and recent activity.
+- **Dark & Light Themes** — Warm-neutral design system with automatic system-preference detection.
+- **User Accounts** — Secure authentication with JWT tokens and encrypted local storage.
+
+---
 
 ## Tech Stack
 
-- Next.js 15
-- Payload CMS 3 + PostgreSQL
-- React 19 + MUI
-- Dexie (IndexedDB) for offline cache/sync
-- Playwright + Vitest for testing
+### Frontend (Mobile)
 
-## Package Manager
+| Technology | Purpose |
+| :--- | :--- |
+| [Expo](https://expo.dev/) (SDK 54) | React Native framework and build toolchain |
+| [React Native](https://reactnative.dev/) 0.81 | Cross-platform native UI |
+| [React Navigation](https://reactnavigation.org/) | Stack and bottom-tab navigation |
+| [Expo Secure Store](https://docs.expo.dev/versions/latest/sdk/securestore/) | Encrypted token storage |
+| [Async Storage](https://react-native-async-storage.github.io/async-storage/) | User preferences and cache |
+| TypeScript | Static type checking |
 
-This repository uses `npm` (single-package-manager migration from pnpm).
+### Backend (API + CMS)
 
-Required versions:
+| Technology | Purpose |
+| :--- | :--- |
+| [Payload CMS](https://payloadcms.com/) 3.70 | Headless CMS with auto-generated REST API |
+| [Next.js](https://nextjs.org/) 15 | Server framework (hosts Payload) |
+| [PostgreSQL](https://www.postgresql.org/) | Primary database |
+| [Drizzle ORM](https://orm.drizzle.team/) | Database access layer |
+| [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/) | Integration and E2E testing |
 
-- Node: `^18.20.2 || >=20.9.0`
+---
 
-## Environment Variables
+## Getting Started
 
-For the frontend app to correctly communicate with the backend, you must configure the environment variables.
-Copy the `.env.example` file in the `frontend` directory to a new `.env` file:
+### Prerequisites
+
+- **Node.js** `^18.20.2` or `>=20.9.0`
+- **npm** `>=9`
+- **PostgreSQL** running locally (or a remote connection string)
+- **Android Studio** (for Android emulator / APK builds) or a physical device with USB debugging
+
+### 1. Clone the Repository
 
 ```bash
-cp frontend/.env.example frontend/.env
+git clone https://github.com/hrishikesh-thakare/Fit-Ledger.git
+cd Fit-Ledger
 ```
 
-Ensure `EXPO_PUBLIC_API_URL` is set to your backend's API base URL. If developing locally with Expo Go on a physical device, replace `YOUR_SERVER_IP` with your computer's actual local IP address (not `localhost`).
-
-```env
-EXPO_PUBLIC_API_URL=http://YOUR_SERVER_IP:3000/api
-```
-
-## Local Development
-
-1. Install dependencies:
+### 2. Backend Setup
 
 ```bash
+cd backend
 npm install
 ```
 
-2. Start development server:
+Create a `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required values:
+
+```env
+DATABASE_URL=postgresql://postgres:root@localhost:5432/fit_ledger
+PAYLOAD_SECRET=<any-random-string>
+```
+
+Start the backend dev server:
 
 ```bash
 npm run dev
 ```
 
-3. Open:
+The API will be available at `http://localhost:3000/api`. The Payload admin panel is at `http://localhost:3000/admin`.
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Set your API URL. For local development on a physical device, use your computer's local IP:
+
+```env
+EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:3000/api
+```
+
+For the deployed backend:
+
+```env
+EXPO_PUBLIC_API_URL=https://fit-ledger.vercel.app/api
+```
+
+Start the Expo development server:
+
+```bash
+npm run start
+```
+
+Press `a` to open on a connected Android device/emulator.
+
+---
+
+## Project Structure
 
 ```
-http://localhost:3000
+Fit-Ledger/
+├── backend/                    # Payload CMS + Next.js API server
+│   ├── src/
+│   │   ├── collections/        # Payload collection schemas
+│   │   │   ├── Users.ts
+│   │   │   ├── Exercises.ts
+│   │   │   ├── MuscleGroups.ts
+│   │   │   ├── Routines.ts
+│   │   │   ├── RoutineExercises.ts
+│   │   │   ├── RoutineSets.ts
+│   │   │   ├── WorkoutDays.ts
+│   │   │   ├── WorkoutExercises.ts
+│   │   │   ├── WorkoutSets.ts
+│   │   │   ├── BodyWeightLogs.ts
+│   │   │   └── Media.ts
+│   │   ├── app/api/            # Custom API routes
+│   │   ├── lib/                # Shared utilities
+│   │   └── payload.config.ts   # Payload configuration
+│   └── package.json
+│
+├── frontend/                   # Expo React Native mobile app
+│   ├── src/
+│   │   ├── screens/            # App screens
+│   │   │   ├── dashboard/      # Dashboard, statistics, calendar
+│   │   │   ├── routines/       # Routine CRUD + detail views
+│   │   │   ├── workout/        # Active workout + summary
+│   │   │   ├── history/        # Workout history + detail
+│   │   │   ├── bodyweight/     # Body weight logging
+│   │   │   ├── exercises/      # Exercise history
+│   │   │   ├── profile/        # User profile + settings
+│   │   │   ├── login/          # Login screen
+│   │   │   └── signup/         # Sign-up screen
+│   │   ├── contexts/           # React contexts (Auth, Theme, Workout)
+│   │   ├── components/         # Shared UI components
+│   │   ├── navigation/         # React Navigation setup
+│   │   ├── theme/              # Design system tokens
+│   │   ├── api/                # API client + fetch helpers
+│   │   └── auth.ts             # Secure token management
+│   ├── android/                # Android native project
+│   └── package.json
+│
+├── DESIGN_SYSTEM.md            # Color palette & typography reference
+├── LICENSE                     # MIT License
+└── README.md
 ```
+
+---
+
+## Building the APK
+
+### Debug Build
+
+A debug APK connects to Metro Bundler for hot-reloading. Requires your development machine to be running `npm run start`.
+
+```bash
+cd frontend/android
+.\gradlew assembleDebug
+```
+
+Output: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`
+
+### Release Build
+
+A release APK is a self-contained build with all JavaScript bundled inside. No development server needed.
+
+```bash
+cd frontend/android
+.\gradlew assembleRelease
+```
+
+Output: `frontend/android/app/build/outputs/apk/release/app-release.apk`
+
+> **Note:** Each build overwrites the previous APK at the same path.
+
+### Install via ADB
+
+```bash
+adb install frontend/android/app/build/outputs/apk/release/app-release.apk
+```
+
+---
 
 ## Scripts
 
-- `npm run dev` — run local dev server
-- `npm run build` — production build
-- `npm run start` — run production server
-- `npm run lint` — lint
-- `npm run test:int` — integration tests (Vitest)
-- `npm run test:e2e` — end-to-end tests (Playwright)
-- `npm test` — runs integration + e2e tests
+### Backend (`backend/`)
 
-## Offline Support (Current Scope)
+| Command | Description |
+| :--- | :--- |
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run test:int` | Integration tests (Vitest) |
+| `npm run test:e2e` | End-to-end tests (Playwright) |
 
-- Complete workout offline (queued and synced later)
-- Log bodyweight offline (queued and synced later)
-- View pre-cached routines and exercises offline
+### Frontend (`frontend/`)
 
-Not in offline scope:
+| Command | Description |
+| :--- | :--- |
+| `npm run start` | Start Expo development server |
+| `npm run android` | Run on Android device/emulator |
+| `npm run ios` | Run on iOS simulator |
+| `npm run web` | Start web version |
+| `npm run typecheck` | TypeScript type checking |
 
-- Auth flows
-- Routine editing
+---
 
-## Notes
+## Environment Variables
 
-- Service worker and Workbox assets in `public/` are generated artifacts.
-- By repo policy, only `README.md` is tracked among markdown docs.
+### Backend
+
+| Variable | Required | Description |
+| :--- | :---: | :--- |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `PAYLOAD_SECRET` | ✅ | Secret key for Payload CMS auth |
+
+### Frontend
+
+| Variable | Required | Description |
+| :--- | :---: | :--- |
+| `EXPO_PUBLIC_API_URL` | ✅ | Backend API base URL (must end with `/api`) |
+
+---
+
+## License
+
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  Built by <a href="https://github.com/hrishikesh-thakare">Hrishikesh Thakare</a>
+</p>

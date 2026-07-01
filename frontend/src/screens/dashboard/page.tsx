@@ -23,6 +23,7 @@ interface HistoryItem {
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function Dashboard() {
   const { theme, isDark } = useTheme()
@@ -111,27 +112,31 @@ export default function Dashboard() {
   const rArms = muscleSets.arms / maxMuscleSets
   const rLegs = muscleSets.legs / maxMuscleSets
 
-  // --- Section 2: Current Month Mini Calendar ---
-  const now = new Date()
-  const cYear = now.getFullYear()
-  const cMonth = now.getMonth()
-  const firstDay = new Date(cYear, cMonth, 1).getDay()
-  const daysInMonth = new Date(cYear, cMonth + 1, 0).getDate()
-  
-  const grid: (number | null)[] = Array(firstDay).fill(null)
-  for (let i = 1; i <= daysInMonth; i++) {
-    grid.push(i)
+  // --- Section 2: Scrollable Week Calendar (14 Days Before to 3 Days After Today) ---
+  const todayDate = new Date()
+  const weekDaysData = Array.from({ length: 18 }, (_, i) => {
+    const d = new Date()
+    d.setDate(todayDate.getDate() - 14 + i)
+    return d
+  })
+
+  const isDayToday = (date: Date) => {
+    const today = new Date()
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
   }
 
-  // Map workouts to current month days
-  const currentMonthWorkouts: Record<number, string | number | boolean> = {}
-  history.forEach(h => {
-    const dStr = h.date || h.startedAt || h.createdAt || new Date().toISOString()
-    const d = new Date(dStr)
-    if (d.getFullYear() === cYear && d.getMonth() === cMonth) {
-      currentMonthWorkouts[d.getDate()] = h.id || h._id || true
-    }
-  })
+  const getWorkoutForDate = (date: Date) => {
+    return history.find(h => {
+      const dStr = h.date || h.startedAt || h.createdAt
+      if (!dStr) return false
+      const d = new Date(dStr)
+      return d.getFullYear() === date.getFullYear() &&
+             d.getMonth() === date.getMonth() &&
+             d.getDate() === date.getDate()
+    })
+  }
 
   const renderTrend = (cur: number, prev: number, format: (val: number) => string | number = (v) => v) => {
     const isUp = cur > prev
@@ -172,75 +177,120 @@ export default function Dashboard() {
           </View>
         ) : (
           <>
+        {/* Section 0: Scrollable Week View */}
+        <View style={[styles.section, { marginBottom: 20 }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Activity This Week</Text>
+            <Pressable 
+              onPress={() => navigation.navigate('DashboardCalendar')}
+              style={{ padding: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Text style={{ ...theme.typography.label, color: theme.colors.primary }}>Calendar</Text>
+              <Feather name="calendar" size={16} color={theme.colors.primary} />
+            </Pressable>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.weekScrollContainer}
+          >
+            {weekDaysData.map((d, idx) => {
+              const workout = getWorkoutForDate(d)
+              const isToday = isDayToday(d)
+              const hasWorkout = !!workout
+              const workoutId = workout?.id || workout?._id
+              
+              const dayContent = (
+                <View style={[
+                  styles.weekDayCard,
+                  isToday ? styles.weekDayCardToday : null,
+                ]}>
+                  <Text style={[
+                    styles.weekDayNameText,
+                    isToday ? styles.weekDayNameTextToday : null,
+                  ]}>
+                    {WEEKDAY_NAMES[d.getDay()][0]}
+                  </Text>
+                  <View style={[
+                    styles.dayNumberCircle,
+                    hasWorkout ? styles.dayNumberCircleActive : null,
+                  ]}>
+                    <Text style={[
+                      styles.weekDayNumText,
+                      isToday ? styles.weekDayNumTextToday : null,
+                    ]}>
+                      {d.getDate()}
+                    </Text>
+                  </View>
+                </View>
+              )
+
+              if (hasWorkout && workoutId) {
+                return (
+                  <Pressable 
+                    key={idx}
+                    onPress={() => navigation.navigate('WorkoutDetails', { id: workoutId })}
+                  >
+                    {dayContent}
+                  </Pressable>
+                )
+              }
+
+              return (
+                <View key={idx}>
+                  {dayContent}
+                </View>
+              )
+            })}
+          </ScrollView>
+        </View>
+
         {/* Section 1: Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Summary</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' }}>
-            <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Workouts</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curWorkouts}</Text>
-              {renderTrend(curWorkouts, prevWorkouts)}
+            <View style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <Text style={styles.statLabel}>Workouts</Text>
+                <Feather name="activity" size={16} color={theme.colors.textMuted} />
+              </View>
+              <View style={{ marginTop: 4 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statValue}>{curWorkouts}</Text>
+                {renderTrend(curWorkouts, prevWorkouts)}
+              </View>
             </View>
-            <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Duration</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curDurMins}min</Text>
-              {renderTrend(curDurMins, prevDurMins, (v) => `${v}min`)}
-            </View>
-            <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Volume</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{Math.round(fromKg(curVolume, user?.preferredUnit || 'kg')).toLocaleString('en-US')} {unit.toLowerCase()}</Text>
-              {renderTrend(curVolume, prevVolume, (v) => `${Math.round(fromKg(v, user?.preferredUnit || 'kg')).toLocaleString('en-US')} ${unit.toLowerCase()}`)}
-            </View>
-            <View style={[styles.statCard, { alignItems: 'flex-start' }]}>
-              <Text style={{ ...theme.typography.label, color: theme.colors.text, marginBottom: 4 }}>Sets</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit style={{ ...theme.typography.cardTitle, color: theme.colors.primary }}>{curSets}</Text>
-              {renderTrend(curSets, prevSets)}
-            </View>
-          </View>
-        </View>
 
-        {/* Section 2: Current Month */}
-        <View style={styles.section}>
-          <View style={styles.calendarHeaderRow}>
-            <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Current Month</Text>
-            <Pressable 
-              onPress={() => navigation.navigate('DashboardCalendar')}
-              style={{ padding: 4, flexDirection: 'row', alignItems: 'center', gap: 2 }}
-            >
-              <Text style={{ ...theme.typography.label, color: theme.colors.primary }}>View Full</Text>
-              <Feather name="chevron-right" size={16} color={theme.colors.primary} />
-            </Pressable>
-          </View>
-
-          <View style={styles.miniCalendarCard}>
-            <View style={styles.daysOfWeekRow}>
-              {DAYS_OF_WEEK.map((d, i) => (
-                <Text key={i} style={styles.dayOfWeekText}>{d}</Text>
-              ))}
+            <View style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <Text style={styles.statLabel}>Duration</Text>
+                <Feather name="clock" size={16} color={theme.colors.textMuted} />
+              </View>
+              <View style={{ marginTop: 4 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statValue}>{curDurMins}m</Text>
+                {renderTrend(curDurMins, prevDurMins, (v) => `${v}m`)}
+              </View>
             </View>
-            <View style={styles.miniDaysGrid}>
-              {grid.map((dayNum, index) => {
-                if (dayNum === null) {
-                  return <View key={`empty-${index}`} style={styles.miniDayCell} />
-                }
-                
-                const workoutId = currentMonthWorkouts[dayNum]
-                const isToday = dayNum === now.getDate()
-                
-                return (
-                  <View key={dayNum} style={styles.miniDayCell}>
-                    <View style={[
-                      styles.miniDayCircle, 
-                      workoutId ? styles.miniDayCircleActive : null,
-                      isToday && !workoutId ? { borderWidth: 1.5, borderColor: theme.colors.borderInput } : null
-                    ]}>
-                      <Text style={[styles.miniDayText, workoutId ? styles.miniDayTextActive : null]}>
-                        {dayNum}
-                      </Text>
-                    </View>
-                  </View>
-                )
-              })}
+
+            <View style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <Text style={styles.statLabel}>Volume</Text>
+                <Feather name="bar-chart-2" size={16} color={theme.colors.textMuted} />
+              </View>
+              <View style={{ marginTop: 4 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statValue}>{Math.round(fromKg(curVolume, user?.preferredUnit || 'kg')).toLocaleString('en-US')} {unit.toLowerCase()}</Text>
+                {renderTrend(curVolume, prevVolume, (v) => `${Math.round(fromKg(v, user?.preferredUnit || 'kg')).toLocaleString('en-US')} ${unit.toLowerCase()}`)}
+              </View>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statHeader}>
+                <Text style={styles.statLabel}>Sets</Text>
+                <Feather name="layers" size={16} color={theme.colors.textMuted} />
+              </View>
+              <View style={{ marginTop: 4 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={styles.statValue}>{curSets}</Text>
+                {renderTrend(curSets, prevSets)}
+              </View>
             </View>
           </View>
         </View>
@@ -373,71 +423,80 @@ const getStyles = (theme: any) => StyleSheet.create({
   // Stat Card
   statCard: { 
     width: '48%',
-    height: 96,
-    padding: 16, 
+    height: 124,
+    paddingTop: 10,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
     borderWidth: 1, 
     borderColor: theme.colors.border, 
     borderRadius: 16, 
     backgroundColor: theme.colors.surface,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
-
-  // Mini Calendar
-  calendarHeaderRow: {
+  statHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 0,
-    marginBottom: 12
+    width: '100%',
   },
-  miniCalendarCard: {
+  statLabel: {
+    ...theme.typography.label,
+    color: theme.colors.textSecondary,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    lineHeight: 34,
+  },
+
+  // Week Scroll
+  weekScrollContainer: {
+    gap: 8,
+  },
+  weekDayCard: {
+    width: 48,
+    height: 82,
+    borderRadius: 24,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 0,
-  },
-  daysOfWeekRow: {
-    flexDirection: 'row',
-    marginBottom: 8
-  },
-  dayOfWeekText: {
-    flex: 1,
-    textAlign: 'center',
-    ...theme.typography.label,
-    color: theme.colors.primary
-  },
-  miniDaysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    rowGap: 12,
-  },
-  miniDayCell: {
-    width: '14.28%',
-    height: 40,
+    paddingTop: 10,
+    paddingBottom: 6,
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weekDayCardToday: {
+    borderColor: theme.colors.primary,
+    borderWidth: 1.5,
+  },
+  weekDayNameText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  weekDayNameTextToday: {
+    color: theme.colors.primary,
+  },
+  dayNumberCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
-  },
-  miniDayCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: 'center',
-    justifyContent: 'center'
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  miniDayCircleActive: {
-    backgroundColor: theme.colors.primary,
+  dayNumberCircleActive: {
+    borderColor: theme.colors.primary,
   },
-  miniDayText: {
-    fontSize: 15,
-    fontWeight: '500',
+  weekDayNumText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: theme.colors.text,
   },
-  miniDayTextActive: {
-    fontWeight: '700',
-    color: theme.colors.onPrimary,
+  weekDayNumTextToday: {
+    color: theme.colors.primary,
   },
 
   // Radar Chart
