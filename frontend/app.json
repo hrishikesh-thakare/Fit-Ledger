@@ -12,7 +12,11 @@
     },
     "android": {
       "userInterfaceStyle": "dark",
-      "package": "com.hst0809.fitledger"
+      "package": "com.hst0809.fitledger",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1C1A19"
+      }
     },
     "plugins": [
       "expo-asset",
