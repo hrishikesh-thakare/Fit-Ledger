@@ -3,6 +3,7 @@
     "name": "Fit-Ledger",
     "slug": "fit-ledger",
     "version": "1.0.0",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
